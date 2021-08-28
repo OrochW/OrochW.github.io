@@ -94,7 +94,7 @@ yum install -y  pcre pcre-devel zlib zlib-devel openssl openssl-devel autoconf a
             <div class="post-content-wrapper">
               <div class="post-content">
                 <pre><code>############  安装nginx
-yum install -y  pcre pcre-devel zlib zlib-devel openssl openssl-devel autoconf automake make gcc-c++
+yum install -y  pcre pcre-devel zlib zlib-devel openssl openssl-devel autoconf automake make gcc-c++ wget 
 useradd -s /sbin/nologin nginx
 cd /usr/local/src
 wget http://nginx.org/download/nginx-1.18.0.tar.gz
@@ -104,16 +104,14 @@ cd nginx-1.18.0
 make &amp;&amp; make install
 
 
-
-
-------- 配置环境变量 ----------
+#------- 配置环境变量 ----------
 cat &lt;&lt;'EOF' &gt; /etc/profile.d/nginx.sh
 export NGINX_HOME=/usr/local/nginx
 export PATH=$NGINX_HOME/sbin:$PATH
 EOF
 source /etc/profile
 
--------- 配置成系统服务 ------------
+#-------- 配置成系统服务 ------------
 cat &lt;&lt;EOF &gt; /usr/lib/systemd/system/nginx.service
 [Unit]
 Description=nginx - high performance web server
