@@ -1,0 +1,340 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>elasticsearch集群多主机部署 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1742902773262">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="elasticsearch集群多主机部署 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="
+
+
+节点ip
+程序目录
+数据目录
+
+
+
+
+192.168.234.201
+/apps/elasticsearch
+/data/elasticsearch
+
+
+192.168.234.202
+/apps/elasticsearch
+/dat..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1742902773262" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              elasticsearch集群多主机部署
+            </h2>
+            <div class="post-info">
+              <span>
+                2023-01-05
+              </span>
+              <span>
+                3 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <table>
+<thead>
+<tr>
+<th>节点ip</th>
+<th>程序目录</th>
+<th>数据目录</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>192.168.234.201</td>
+<td>/apps/elasticsearch</td>
+<td>/data/elasticsearch</td>
+</tr>
+<tr>
+<td>192.168.234.202</td>
+<td>/apps/elasticsearch</td>
+<td>/data/elasticsearch</td>
+</tr>
+<tr>
+<td>192.168.234.203</td>
+<td>/apps/elasticsearch</td>
+<td>/data/elasticsearch</td>
+</tr>
+</tbody>
+</table>
+<h1 id="一-下载软件包目录准备">一、下载软件包目录准备</h1>
+<h2 id="1-下载">1、下载</h2>
+<pre><code class="language-bash">#三台均要执行
+cd /apps
+wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-8.0.0-linux-x86_64.tar.gz
+tar xf  elasticsearch-8.0.0-linux-x86_64.tar.gz
+ln -sv elasticsearch-8.0.0 elasticsearch
+</code></pre>
+<h2 id="2-权限">2、权限</h2>
+<pre><code class="language-bash">groupadd es
+useradd es -g es
+</code></pre>
+<h2 id="3-目录">3、目录</h2>
+<pre><code class="language-bash">mkdir -p /data/elasticsearch/data
+mkdir -p /data/elasticsearch/logs
+chown -R /apps/elasticsearch
+chown -R /apps/elasticsearch-8.0.0
+chown -R /data/elasticsearch
+</code></pre>
+<h1 id="二-配置">二、配置</h1>
+<p>192.168.234.201配置</p>
+<pre><code class="language-bash">[es@es1-234-201 elasticsearch]$ vim config/elasticsearch.yml
+cluster.name: elasticsearch
+node.name: node-1
+path.data: /data/elasticsearch/data
+path.logs: /data/elasticsearch/data
+network.host: 0.0.0.0
+http.port: 9200
+transport.tcp.port: 9300
+discovery.seed_hosts: [&quot;192.168.234.201&quot;, &quot;192.168.234.202&quot;,&quot;192.168.234.202&quot;]
+cluster.initial_master_nodes: [&quot;node-1&quot;]
+cluster.routing.allocation.cluster_concurrent_rebalance: 32
+cluster.routing.allocation.node_concurrent_recoveries: 32
+cluster.routing.allocation.node_initial_primaries_recoveries: 32
+http.cors.enabled: true
+http.cors.allow-origin: “*”
+xpack.ml.enabled: false
+xpack.security.enabled: false
+</code></pre>
+<p>192.168.234.202配置</p>
+<pre><code class="language-bash">[es@es2-234-202 elasticsearch]$ vim config/elasticsearch.yml
+cluster.name: elasticsearch
+node.name: node-2
+path.data: /data/elasticsearch/data
+path.logs: /data/elasticsearch/data
+network.host: 0.0.0.0
+http.port: 9200
+transport.tcp.port: 9300
+discovery.seed_hosts: [&quot;192.168.234.201&quot;, &quot;192.168.234.202&quot;,&quot;192.168.234.202&quot;]
+cluster.initial_master_nodes: [&quot;node-1&quot;]
+cluster.routing.allocation.cluster_concurrent_rebalance: 32
+cluster.routing.allocation.node_concurrent_recoveries: 32
+cluster.routing.allocation.node_initial_primaries_recoveries: 32
+http.cors.enabled: true
+http.cors.allow-origin: “*”
+xpack.ml.enabled: false
+xpack.security.enabled: false
+</code></pre>
+<p>192.168.234.202配置</p>
+<pre><code class="language-bash">[es@es3-234-203 elasticsearch]$ vim config/elasticsearch.yml
+cluster.name: elasticsearch
+node.name: node-3
+path.data: /data/elasticsearch/data
+path.logs: /data/elasticsearch/data
+network.host: 0.0.0.0
+http.port: 9200
+transport.tcp.port: 9300
+discovery.seed_hosts: [&quot;192.168.234.201&quot;, &quot;192.168.234.202&quot;,&quot;192.168.234.202&quot;]
+cluster.initial_master_nodes: [&quot;node-1&quot;]
+cluster.routing.allocation.cluster_concurrent_rebalance: 32
+cluster.routing.allocation.node_concurrent_recoveries: 32
+cluster.routing.allocation.node_initial_primaries_recoveries: 32
+http.cors.enabled: true
+http.cors.allow-origin: “*”
+xpack.ml.enabled: false
+xpack.security.enabled: false
+</code></pre>
+<h1 id="三-启动">三、启动</h1>
+<pre><code class="language-bash">su es
+./apps/elasticsearch/bin/elasticsearch -d
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20230105200117.png" alt="" loading="lazy"></figure>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20230105200359.png" alt="" loading="lazy"></figure>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#%E4%B8%80-%E4%B8%8B%E8%BD%BD%E8%BD%AF%E4%BB%B6%E5%8C%85%E7%9B%AE%E5%BD%95%E5%87%86%E5%A4%87">一、下载软件包目录准备</a>
+<ul>
+<li><a href="#1-%E4%B8%8B%E8%BD%BD">1、下载</a></li>
+<li><a href="#2-%E6%9D%83%E9%99%90">2、权限</a></li>
+<li><a href="#3-%E7%9B%AE%E5%BD%95">3、目录</a></li>
+</ul>
+</li>
+<li><a href="#%E4%BA%8C-%E9%85%8D%E7%BD%AE">二、配置</a></li>
+<li><a href="#%E4%B8%89-%E5%90%AF%E5%8A%A8">三、启动</a></li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/prometheus-shi-yong-yuan-duan-cun-chu-victoriametrics-ji-qun/">
+              <h3 class="post-title">
+                Prometheus使用远端存储VictoriaMetrics集群
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>
