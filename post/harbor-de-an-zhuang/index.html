@@ -1,0 +1,334 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>harbor的安装 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="harbor的安装 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="官方文档
+https://goharbor.io/docs/2.5.0/install-config/download-installer/
+一、下载harbor包 放入/opt 解压 复制配置文件并编辑
+下载地址
+https://gith..." />
+    <meta name="keywords" content="云原生" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              harbor的安装
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-07-09
+              </span>
+              <span>
+                4 min read
+              </span>
+              
+                <a href="https://orochw.github.io/tag/cZHz0EPaPM/" class="post-tag">
+                  # 云原生
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>官方文档<br>
+https://goharbor.io/docs/2.5.0/install-config/download-installer/</p>
+<h2 id="一-下载harbor包-放入opt-解压-复制配置文件并编辑">一、下载harbor包 放入/opt 解压 复制配置文件并编辑</h2>
+<p>下载地址<br>
+https://github.com/goharbor/harbor/releases</p>
+<pre><code class="language-sh">[root@harbor-01 harbor]# ll
+total 594388
+-rw-r--r-- 1 root root      3361 Aug 18  2021 common.sh
+-rw-r--r-- 1 root root 608611132 Aug 18  2021 harbor.v2.3.2.tar.gz
+-rw-r--r-- 1 root root      7838 Jul  8 17:28 harbor.yml
+-rw-r--r-- 1 root root      7840 Aug 18  2021 harbor.yml.tmpl
+-rwxr-xr-x 1 root root      2500 Aug 18  2021 install.sh
+-rw-r--r-- 1 root root     11347 Aug 18  2021 LICENSE
+-rwxr-xr-x 1 root root      1881 Aug 18  2021 prepare
+[root@harbor-01 harbor]# cp harbor.yml.tmpl harbor.yml
+[root@harbor-01 harbor]# vim harbor.yml
+
+修改配置文件
+hostname: 192.168.234.201
+
+# http related config
+http:
+  # port for http, default is 80. If https enabled, this port will redirect to https port
+  port: 80
+
+harbor_admin_password: 123456
+</code></pre>
+<p>配置文件其他部分暂时不用改</p>
+<h2 id="二-解决安装harbor所需的环境并安装harbor">二、解决安装harbor所需的环境并安装harbor</h2>
+<pre><code class="language-bash">[root@harbor-01 harbor]# ./install.sh
+
+[Step 0]: checking if docker is installed ...
+
+Note: docker version: 20.10.17
+
+[Step 1]: checking docker-compose is installed ...
+✖ Need to install docker-compose(1.18.0+) by yourself first and run this script again.
+[root@harbor-01 harbor]#
+</code></pre>
+<h3 id="安装docker和docker-compose">安装docker和docker-compose</h3>
+<h4 id="docker的安装">docker的安装</h4>
+<p>docker官方文档(我用的centos)<br>
+https://docs.docker.com/engine/install/centos/<br>
+安装步骤<br>
+#复制安装</p>
+<pre><code> yum remove docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-engine
+ yum install -y yum-utils
+ yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+</code></pre>
+<p>查看docker的状态<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220709140654.png" alt="" loading="lazy"></p>
+<h4 id="docker-compose的安装">docker-compose的安装</h4>
+<p>因为安装docker的时候安装了docker-compose<br>
+所以只需要docker compose的可执行程序<br>
+下载地址<br>
+https://github.com/docker/compose/releases/tag/v2.6.1<br>
+下载docker-compose-linux-x86_64 二进制没有执行权限</p>
+<pre><code class="language-bash">[root@harbor-01 harbor]# cp docker-compose-linux-x86_64 /usr/sbin/docker-compose
+[root@harbor-01 harbor]# cp docker-compose-linux-x86_64 /usr/bin/docker-compose
+[root@harbor-01 harbor]# chmod a+x /usr/sbin/docker-compose /usr/bin/docker-compose
+</code></pre>
+<h3 id="http的设置修改私有仓库">http的设置修改私有仓库</h3>
+<pre><code class="language-bash">vim /usr/lib/systemd/system/docker.service
+ExecStart=/usr/bin/dockerd -H fd://  --containerd=/run/containerd/containerd.sock --insecure-registry 192.168.234.51
+
+或者
+# cat /etc/docker/daemon.json
+{
+  &quot;insecure-registries&quot;: [&quot;192.168.234.51&quot;]
+}
+</code></pre>
+<p>启动docker并开机启动</p>
+<pre><code>[root@harbor-01 harbor]# systemctl daemon-reload 
+[root@harbor-01 harbor]# systemctl start docker 
+[root@harbor-01 harbor]# systemctl enable docker
+</code></pre>
+<h2 id="增加扫描器-helm仓库及notary功能">增加扫描器、Helm仓库及notary功能</h2>
+<blockquote>
+<p>要使用 Notary 进行安装，您必须将 Harbor 配置为使用 HTTPS。</p>
+</blockquote>
+<p>Harbor v2.1 及之前的版本内置了 Clair 镜像扫描器，在 v2.2 中，Harbor使用了 Aqua Trivy 作为缺省扫描器。</p>
+<pre><code class="language-bash">$ ./install.sh --with-notary --with-trivy --with-chartmuseum
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220709172950.png" alt="" loading="lazy"></figure>
+<h3 id="安装harbor">安装harbor</h3>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220709141709.png" alt="" loading="lazy"></figure>
+<p>查看harbor<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220709141838.png" alt="" loading="lazy"><br>
+登录harbor<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220709141915.png" alt="" loading="lazy"></p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E4%B8%80-%E4%B8%8B%E8%BD%BDharbor%E5%8C%85-%E6%94%BE%E5%85%A5opt-%E8%A7%A3%E5%8E%8B-%E5%A4%8D%E5%88%B6%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E5%B9%B6%E7%BC%96%E8%BE%91">一、下载harbor包 放入/opt 解压 复制配置文件并编辑</a></li>
+<li><a href="#%E4%BA%8C-%E8%A7%A3%E5%86%B3%E5%AE%89%E8%A3%85harbor%E6%89%80%E9%9C%80%E7%9A%84%E7%8E%AF%E5%A2%83%E5%B9%B6%E5%AE%89%E8%A3%85harbor">二、解决安装harbor所需的环境并安装harbor</a>
+<ul>
+<li><a href="#%E5%AE%89%E8%A3%85docker%E5%92%8Cdocker-compose">安装docker和docker-compose</a>
+<ul>
+<li><a href="#docker%E7%9A%84%E5%AE%89%E8%A3%85">docker的安装</a></li>
+<li><a href="#docker-compose%E7%9A%84%E5%AE%89%E8%A3%85">docker-compose的安装</a></li>
+</ul>
+</li>
+<li><a href="#http%E7%9A%84%E8%AE%BE%E7%BD%AE%E4%BF%AE%E6%94%B9%E7%A7%81%E6%9C%89%E4%BB%93%E5%BA%93">http的设置修改私有仓库</a></li>
+</ul>
+</li>
+<li><a href="#%E5%A2%9E%E5%8A%A0%E6%89%AB%E6%8F%8F%E5%99%A8-helm%E4%BB%93%E5%BA%93%E5%8F%8Anotary%E5%8A%9F%E8%83%BD">增加扫描器、Helm仓库及notary功能</a>
+<ul>
+<li><a href="#%E5%AE%89%E8%A3%85harbor">安装harbor</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/dockerfile-bian-xie/">
+              <h3 class="post-title">
+                Dockerfile编写
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

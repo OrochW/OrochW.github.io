@@ -1,0 +1,832 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kubernetes Redis 4.0.14 集群部署与排错手册 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Kubernetes Redis 4.0.14 集群部署与排错手册 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="📚 Kubernetes Redis 4.0.14 集群部署与排错手册（真实验证版）
+
+命名空间：cka | 版本：v9.0（含真实命令验证）
+
+
+1️⃣ 第一部分：引言
+本文档记录了在 Kubernetes 集群中，使用原始配置文件（p..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Kubernetes Redis 4.0.14 集群部署与排错手册
+            </h2>
+            <div class="post-info">
+              <span>
+                2025-08-13
+              </span>
+              <span>
+                14 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h1 id="kubernetes-redis-4014-集群部署与排错手册真实验证版">📚 <strong>Kubernetes Redis 4.0.14 集群部署与排错手册（真实验证版）</strong></h1>
+<blockquote>
+<p><strong>命名空间：cka</strong> | 版本：v9.0（含真实命令验证）</p>
+</blockquote>
+<hr>
+<h2 id="1️⃣-第一部分引言">1️⃣ 第一部分：引言</h2>
+<p>本文档记录了在 Kubernetes 集群中，<strong>使用原始配置文件</strong>（<code>pv</code>、<code>redis.conf</code>、<code>redis-cluster.yaml</code>）部署 Redis 4.0.14 集群的全过程。</p>
+<p>重点包括：</p>
+<ul>
+<li>使用 <code>redis.conf</code> 创建 ConfigMap</li>
+<li>挂载配置到 Redis Pod</li>
+<li>集群初始化失败：<code>redis:4.0.14</code> 官方镜像不支持 <code>redis-cli --cluster</code></li>
+<li>排错验证与最终解决方案</li>
+<li>一键初始化脚本</li>
+</ul>
+<p>所有步骤均基于真实命令验证，确保可复现。</p>
+<hr>
+<h2 id="2️⃣-第二部分开始部署">2️⃣ 第二部分：开始部署</h2>
+<h3 id="21-准备-nfs-存储在-nfs-服务器上执行">2.1 准备 NFS 存储（在 NFS 服务器上执行）</h3>
+<pre><code class="language-bash">mkdir -p /data/k8sdata/cka/redis{0..5}
+chmod 777 /data/k8sdata/cka/redis{0..5}
+</code></pre>
+<hr>
+<h3 id="22-创建-persistentvolumepv">2.2 创建 PersistentVolume（PV）</h3>
+<blockquote>
+<p>✅ 使原始 <code>pv/redis-cluster-pv.yaml</code></p>
+</blockquote>
+<pre><code class="language-yaml">apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-cluster-pv0
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 172.31.7.110
+    path: /data/k8sdata/cka/redis0
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-cluster-pv1
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 172.31.7.110
+    path: /data/k8sdata/cka/redis1
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-cluster-pv2
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 172.31.7.110
+    path: /data/k8sdata/cka/redis2
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-cluster-pv3
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 172.31.7.110
+    path: /data/k8sdata/cka/redis3
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-cluster-pv4
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 172.31.7.110
+    path: /data/k8sdata/cka/redis4
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-cluster-pv5
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 172.31.7.110
+    path: /data/k8sdata/cka/redis5
+</code></pre>
+<h4 id="应用-pv">应用 PV：</h4>
+<pre><code class="language-bash">kubectl apply -f pv/redis-cluster-pv.yaml
+kubectl get pv
+</code></pre>
+<blockquote>
+<p>✅ 确认 6 个 PV 状态为 <code>Available</code>。</p>
+</blockquote>
+<hr>
+<h3 id="23-创建-redis-配置文件-redisconf">2.3 创建 Redis 配置文件 <code>redis.conf</code></h3>
+<blockquote>
+<p>✅ 使用原始的 <code>redis.conf</code></p>
+</blockquote>
+<pre><code class="language-conf"># redis.conf
+port 6379
+bind 0.0.0.0
+cluster-enabled yes
+cluster-config-file nodes.conf
+cluster-node-timeout 5000
+appendonly yes
+save &quot;&quot;
+</code></pre>
+<blockquote>
+<p>💡 说明：</p>
+<ul>
+<li><code>cluster-enabled yes</code>：启用集群模式</li>
+<li><code>cluster-config-file nodes.conf</code>：集群节点信息文件</li>
+<li><code>appendonly yes</code>：开启 AOF 持久化</li>
+<li><code>save &quot;&quot;</code>：关闭 RDB 持久化，避免与 AOF 冲突</li>
+</ul>
+</blockquote>
+<hr>
+<h3 id="24-从-redisconf-创建-configmap">2.4 从 <code>redis.conf</code> 创建 ConfigMap</h3>
+<pre><code class="language-bash">kubectl create configmap redis-config \
+  --from-file=redis.conf=./redis.conf \
+  -n cka
+</code></pre>
+<blockquote>
+<p>✅ 验证 ConfigMap：</p>
+</blockquote>
+<pre><code class="language-bash">kubectl get configmap redis-config -n cka -o yaml
+</code></pre>
+<hr>
+<h3 id="25-部署-redis-statefulset-与-service含-configmap-挂载">2.5 部署 Redis StatefulSet 与 Service（含 ConfigMap 挂载）</h3>
+<blockquote>
+<p>✅ 更新后的 <code>redis-cluster.yaml</code>，<strong>包含 ConfigMap 挂载</strong></p>
+</blockquote>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: cka
+  labels:
+    app: redis
+spec:
+  selector:
+    app: redis
+    appCluster: redis-cluster
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+    - name: cluster
+      port: 16379
+      targetPort: 16379
+  clusterIP: None
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-access
+  namespace: cka
+  labels:
+    app: redis
+spec:
+  selector:
+    app: redis
+    appCluster: redis-cluster
+  ports:
+    - name: redis-access
+      protocol: TCP
+      port: 6379
+      targetPort: 6379
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: cka
+spec:
+  serviceName: redis
+  replicas: 6
+  selector:
+    matchLabels:
+      app: redis
+      appCluster: redis-cluster
+  template:
+    metadata:
+      labels:
+        app: redis
+        appCluster: redis-cluster
+    spec:
+      terminationGracePeriodSeconds: 20
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - redis
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: redis
+          image: redis:4.0.14
+          command:
+            - &quot;redis-server&quot;
+          args:
+            - &quot;/etc/redis/redis.conf&quot;
+          resources:
+            requests:
+              cpu: &quot;500m&quot;
+              memory: &quot;500Mi&quot;
+          ports:
+            - containerPort: 6379
+              name: redis
+              protocol: TCP
+            - containerPort: 16379
+              name: cluster
+              protocol: TCP
+          volumeMounts:
+            - name: conf
+              mountPath: /etc/redis
+            - name: data
+              mountPath: /var/lib/redis
+      volumes:
+        - name: conf
+          configMap:
+            name: redis-config
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ &quot;ReadWriteOnce&quot; ]
+        resources:
+          requests:
+            storage: 5Gi
+</code></pre>
+<h4 id="应用配置">应用配置：</h4>
+<pre><code class="language-bash">kubectl apply -f redis-cluster.yaml
+</code></pre>
+<hr>
+<h3 id="26-等待-pod-就绪">2.6 等待 Pod 就绪</h3>
+<pre><code class="language-bash">kubectl get pods -n cka -o wide -w
+</code></pre>
+<blockquote>
+<p>✅ 等待所有 <code>redis-0</code> 到 <code>redis-5</code> 状态变为 <code>Running</code>。</p>
+</blockquote>
+<hr>
+<h2 id="3️⃣-第三部分初始化报错首次尝试">3️⃣ 第三部分：初始化报错（首次尝试）</h2>
+<h3 id="尝试使用-redis4014-镜像中的-redis-cli-初始化集群">尝试使用 <code>redis:4.0.14</code> 镜像中的 <code>redis-cli</code> 初始化集群</h3>
+<pre><code class="language-bash">kubectl run -it --rm --restart=Never \
+  --namespace cka \
+  redis-admin \
+  --image=redis:4.0.14 \
+  -- redis-cli --cluster create \
+    redis-access.cka.svc.cluster.local:6379 \
+    redis-access.cka.svc.cluster.local:6379 \
+    redis-access.cka.svc.cluster.local:6379 \
+    redis-access.cka.svc.cluster.local:6379 \
+    redis-access.cka.svc.cluster.local:6379 \
+    redis-access.cka.svc.cluster.local:6379 \
+  --cluster-replicas 1 \
+  --cluster-yes
+</code></pre>
+<h3 id="报错信息">❌ 报错信息：</h3>
+<pre><code>redis-cli: unknown option '--cluster'
+</code></pre>
+<blockquote>
+<p>🔴 <strong>错误原因</strong>：<code>redis:4.0.14</code> 镜像中的 <code>redis-cli</code> <strong>不支持 <code>--cluster</code> 子命令</strong>。</p>
+</blockquote>
+<hr>
+<h2 id="4️⃣-第四部分排错与验证">4️⃣ 第四部分：排错与验证</h2>
+<h3 id="排错-1验证-redis4014-是否支持-cluster">🔎 排错 1：验证 <code>redis:4.0.14</code> 是否支持 <code>--cluster</code></h3>
+<pre><code class="language-bash">docker run -it --rm redis:4.0.14 redis-cli --help | grep cluster
+</code></pre>
+<blockquote>
+<p>🔍 <strong>输出为空</strong></p>
+</blockquote>
+<pre><code class="language-bash">docker run -it --rm redis:4.0.14 redis-cli --cluster help
+</code></pre>
+<blockquote>
+<p>❌ 输出：</p>
+</blockquote>
+<pre><code>redis-cli: unknown option '--cluster'
+</code></pre>
+<blockquote>
+<p>✅ <strong>结论</strong>：<code>redis:4.0.14</code> 官方镜像确实不支持 <code>--cluster</code>。</p>
+</blockquote>
+<hr>
+<h3 id="排错-2尝试使用-redis-tribrb">🔎 排错 2：尝试使用 <code>redis-trib.rb</code></h3>
+<pre><code class="language-bash">docker run -it --rm redis:4.0.14 sh -c &quot;ls /usr/local/bin | grep trib&quot;
+</code></pre>
+<blockquote>
+<p>❌ 输出为空，<code>redis-trib.rb</code> 不存在。</p>
+</blockquote>
+<blockquote>
+<p>✅ 结论：无法使用旧工具。</p>
+</blockquote>
+<hr>
+<h3 id="解决方案使用高版本-redis-cliredis626-pod-ip">✅ 解决方案：使用高版本 <code>redis-cli</code>（<code>redis:6.2.6</code>） + Pod IP</h3>
+<h4 id="获取-pod-ip">获取 Pod IP：</h4>
+<pre><code>root@101-master1:/opt/k8s-data/yaml/cka/redis-cluster# kubectl get pod -cka -o wide
+NAMESPACE              NAME                                             READY   STATUS    RESTARTS      AGE     IP              NODE           NOMINATED NODE   READINESS GATES
+cka                 deploy-devops-redis-6d9fd4dbcb-hbs6q             1/1     Running   0             176m    10.200.45.203   172.31.7.105   &lt;none&gt;           &lt;none&gt;
+cka                 cka-nginx-deployment-69db98d5ff-qc7mr         1/1     Running   0             9h      10.200.11.135   172.31.7.106   &lt;none&gt;           &lt;none&gt;
+cka                 cka-tomcat-app1-deployment-78c495f67d-6db72   1/1     Running   0             24h     10.200.45.199   172.31.7.105   &lt;none&gt;           &lt;none&gt;
+cka                 cka-tomcat-app1-deployment-78c495f67d-xbm5f   1/1     Running   0             24h     10.200.11.134   172.31.7.106   &lt;none&gt;           &lt;none&gt;
+cka                 redis-0                                          1/1     Running   0             30m     10.200.210.76   172.31.7.104   &lt;none&gt;           &lt;none&gt;
+cka                 redis-1                                          1/1     Running   0             29m     10.200.45.204   172.31.7.105   &lt;none&gt;           &lt;none&gt;
+cka                 redis-2                                          1/1     Running   0             24m     10.200.11.136   172.31.7.106   &lt;none&gt;           &lt;none&gt;
+cka                 redis-3                                          1/1     Running   0             24m     10.200.210.77   172.31.7.104   &lt;none&gt;           &lt;none&gt;
+cka                 redis-4                                          1/1     Running   0             24m     10.200.45.205   172.31.7.105   &lt;none&gt;           &lt;none&gt;
+cka                 redis-5                                          1/1     Running   0             24m     10.200.11.137   172.31.7.106   &lt;none&gt;           &lt;none&gt;
+cka                 zookeeper1-5666cd8f6f-b7flr                      1/1     Running   0             4h28m   10.200.45.201   172.31.7.105   &lt;none&gt;           &lt;none&gt;
+cka                 zookeeper2-c4964cd66-vsrt6                       1/1     Running   0             4h28m   10.200.45.202   172.31.7.105   &lt;none&gt;           &lt;none&gt;
+cka                 zookeeper3-55fc5c6847-xfw9g                      1/1     Running   0             4h28m   10.200.210.75   172.31.7.104   &lt;none&gt;           &lt;none&gt;
+</code></pre>
+<pre><code class="language-bash">kubectl get pods -n cka -l app=redis -o jsonpath='{range .items[*]}{.status.podIP}{&quot;\n&quot;}{end}'
+</code></pre>
+<h4 id="使用高版本-redis-cli-初始化">使用高版本 <code>redis-cli</code> 初始化：</h4>
+<pre><code class="language-bash">kubectl run -it --rm --restart=Never \
+  --namespace cka \
+  redis-admin \
+  --image=redis:6.2.6 \
+  -- redis-cli --cluster create \
+    10.200.210.76:6379 \
+    10.200.45.204:6379 \
+    10.200.11.136:6379 \
+    10.200.210.77:6379 \
+    10.200.45.205:6379 \
+    10.200.11.137:6379 \
+  --cluster-replicas 1 \
+  --cluster-yes
+</code></pre>
+<blockquote>
+<p>✅ 成功输出：</p>
+</blockquote>
+<pre><code class="language-bash">root@101-master1:/opt/k8s-data/yaml/cka/redis-cluster# kubectl run -it --rm --restart=Never \
+&gt;   --namespace cka \
+&gt;   redis-admin \
+&gt;   --image=redis:6.2.6 \
+&gt;   -- redis-cli --cluster create \
+&gt;     10.200.210.76:6379 \
+&gt;     10.200.45.204:6379 \
+&gt;     10.200.11.136:6379 \
+&gt;     10.200.210.77:6379 \
+&gt;     10.200.45.205:6379 \
+&gt;     10.200.11.137:6379 \
+&gt;   --cluster-replicas 1 \
+&gt;   --cluster-yes
+If you don't see a command prompt, try pressing enter.
+..
+&gt;&gt;&gt; Performing Cluster Check (using node 10.200.210.76:6379)
+M: 0d3db136c17df8b0681fe8e2436a4f99203f0507 10.200.210.76:6379
+   slots:[0-5460] (5461 slots) master
+   1 additional replica(s)
+S: a6f78d2a82b2c56fdd8f61794a96e30f2398777f 10.200.11.137:6379
+   slots: (0 slots) slave
+   replicates 931716e199e90bc313c3480661af530d1f32bf08
+S: 4a4baa12df1ada0d81e27b9a1ecc7aa2f9cec0ff 10.200.45.205:6379
+   slots: (0 slots) slave
+   replicates 0d3db136c17df8b0681fe8e2436a4f99203f0507
+S: 6f33cd693707f3109704ca23151a4f1b7716e380 10.200.210.77:6379
+   slots: (0 slots) slave
+   replicates 7a8f9abcbc779faebb10e2b5de9f00be0d7ad482
+M: 7a8f9abcbc779faebb10e2b5de9f00be0d7ad482 10.200.11.136:6379
+   slots:[10923-16383] (5461 slots) master
+   1 additional replica(s)
+M: 931716e199e90bc313c3480661af530d1f32bf08 10.200.45.204:6379
+   slots:[5461-10922] (5462 slots) master
+   1 additional replica(s)
+[OK] All nodes agree about slots configuration.
+&gt;&gt;&gt; Check for open slots...
+&gt;&gt;&gt; Check slots coverage...
+[OK] All 16384 slots covered.
+pod &quot;redis-admin&quot; deleted
+root@101-master1:/opt/k8s-data/yaml/cka/redis-cluster# kubectl exec -n cka redis-0 -- redis-cli -c cluster info
+cluster_state:ok
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_slots_pfail:0
+cluster_slots_fail:0
+cluster_known_nodes:6
+cluster_size:3
+cluster_current_epoch:6
+cluster_my_epoch:1
+cluster_stats_messages_ping_sent:55
+cluster_stats_messages_pong_sent:58
+cluster_stats_messages_sent:113
+cluster_stats_messages_ping_received:53
+cluster_stats_messages_pong_received:55
+cluster_stats_messages_meet_received:5
+cluster_stats_messages_received:113
+root@101-master1:/opt/k8s-data/yaml/cka/redis-cluster# kubectl exec -n cka redis-0 -- redis-cli -c cluster nodes
+a6f78d2a82b2c56fdd8f61794a96e30f2398777f 10.200.11.137:6379@16379 slave 931716e199e90bc313c3480661af530d1f32bf08 0 1755030011982 6 connected
+0d3db136c17df8b0681fe8e2436a4f99203f0507 10.200.210.76:6379@16379 myself,master - 0 1755030010000 1 connected 0-5460
+4a4baa12df1ada0d81e27b9a1ecc7aa2f9cec0ff 10.200.45.205:6379@16379 slave 0d3db136c17df8b0681fe8e2436a4f99203f0507 0 1755030011000 5 connected
+6f33cd693707f3109704ca23151a4f1b7716e380 10.200.210.77:6379@16379 slave 7a8f9abcbc779faebb10e2b5de9f00be0d7ad482 0 1755030011577 4 connected
+7a8f9abcbc779faebb10e2b5de9f00be0d7ad482 10.200.11.136:6379@16379 master - 0 1755030010000 3 connected 10923-16383
+931716e199e90bc313c3480661af530d1f32bf08 10.200.45.204:6379@16379 master - 0 1755030010971 2 connected 5461-10922
+
+[OK] All 16384 slots covered.
+</code></pre>
+<hr>
+<h3 id="排错总结">📌 排错总结</h3>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>原因</th>
+<th>解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>redis-cli: unknown option '--cluster'</code></td>
+<td><code>redis:4.0.14</code> 镜像不支持</td>
+<td>使用 <code>redis:6.2.6</code> 的 <code>redis-cli</code></td>
+</tr>
+<tr>
+<td><code>redis-trib.rb</code> 不存在</td>
+<td>已被移除</td>
+<td>放弃使用</td>
+</tr>
+<tr>
+<td>“same host” 错误</td>
+<td>使用了 ClusterIP 服务</td>
+<td>改用 Pod IP 初始化</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="5️⃣-第五部分验证集群状态">5️⃣ 第五部分：验证集群状态</h2>
+<h3 id="51-检查集群整体状态">5.1 检查集群整体状态</h3>
+<pre><code class="language-bash">kubectl exec -n cka redis-0 -- redis-cli -c cluster info
+</code></pre>
+<blockquote>
+<p>✅ 输出：</p>
+</blockquote>
+<pre><code>cluster_state:ok
+cluster_slots_assigned:16384
+cluster_slots_ok:16384
+cluster_known_nodes:6
+cluster_size:3
+</code></pre>
+<hr>
+<h3 id="52-查看节点拓扑">5.2 查看节点拓扑</h3>
+<pre><code class="language-bash">kubectl exec -n cka redis-0 -- redis-cli -c cluster nodes
+</code></pre>
+<blockquote>
+<p>✅ 输出（节选）：</p>
+</blockquote>
+<pre><code>0d3db136c17df8b0681fe8e2436a4f99203f0507 10.200.210.76:6379@16379 master - 0 1755030010000 1 connected 0-5460
+931716e199e90bc313c3480661af530d1f32bf08 10.200.45.204:6379@16379 master - 0 1755030010971 2 connected 5461-10922
+7a8f9abcbc779faebb10e2b5de9f00be0d7ad482 10.200.11.136:6379@16379 master - 0 1755030010000 3 connected 10923-16383
+</code></pre>
+<blockquote>
+<p>✅ 结论：3 主 3 从，集群健康。</p>
+</blockquote>
+<hr>
+<h2 id="总结">✅ 总结</h2>
+<ul>
+<li>** <code>redis.conf</code> 已通过 ConfigMap 正确挂载**</li>
+<li><strong><code>redis:4.0.14</code> 官方镜像确实不支持 <code>--cluster</code></strong></li>
+<li><strong>必须使用高版本 <code>redis-cli</code>（如 <code>6.2.6</code>）进行集群管理</strong></li>
+<li><strong>初始化必须使用 Pod IP，避免服务名解析问题</strong></li>
+</ul>
+<blockquote>
+<p>🎉 此文档为完整、真实、可执行的部署手册，可用于团队交付。</p>
+</blockquote>
+<hr>
+<h2 id="6️⃣-第六部分一键初始化脚本">6️⃣ 第六部分：一键初始化脚本</h2>
+<h3 id="init-redis-clustersh"><code>init-redis-cluster.sh</code></h3>
+<pre><code class="language-bash">#!/bin/bash
+# init-redis-cluster.sh
+# 一键初始化 Redis 集群（使用 Pod IP + 高版本 redis-cli）
+# 命名空间：cka
+
+set -e
+
+NAMESPACE=&quot;cka&quot;
+APP_LABEL=&quot;app=redis&quot;
+REPLICA_COUNT=1
+
+echo &quot;🔍 获取 Redis Pod 及其 IP 地址...&quot;
+
+POD_IPS=($(kubectl get pods -n $NAMESPACE -l $APP_LABEL -o jsonpath='{.items[*].status.podIP}'))
+POD_NAMES=($(kubectl get pods -n $NAMESPACE -l $APP_LABEL -o jsonpath='{.items[*].metadata.name}'))
+
+if [ ${#POD_IPS[@]} -ne 6 ]; then
+  echo &quot;❌ 错误：期望 6 个 Pod，但只找到 ${#POD_IPS[@]} 个&quot;
+  kubectl get pods -n $NAMESPACE -l $APP_LABEL
+  exit 1
+fi
+
+echo &quot;_Pods: ${POD_NAMES[*]}&quot;
+echo &quot;_Pods IPs: ${POD_IPS[*]}&quot;
+
+echo &quot;🚀 使用 redis:6.2.6 初始化 Redis 集群...&quot;
+
+kubectl run -it --rm --restart=Never \
+  --namespace $NAMESPACE \
+  redis-admin \
+  --image=redis:6.2.6 \
+  -- sh -c &quot;
+    redis-cli --cluster create \
+      ${POD_IPS[0]}:6379 \
+      ${POD_IPS[1]}:6379 \
+      ${POD_IPS[2]}:6379 \
+      ${POD_IPS[3]}:6379 \
+      ${POD_IPS[4]}:6379 \
+      ${POD_IPS[5]}:6379 \
+    --cluster-replicas $REPLICA_COUNT \
+    --cluster-yes
+  &quot;
+
+echo &quot;✅ Redis 集群初始化完成！&quot;
+</code></pre>
+<blockquote>
+<p>✅ 使用方法：</p>
+</blockquote>
+<pre><code class="language-bash">chmod +x init-redis-cluster.sh
+./init-redis-cluster.sh
+</code></pre>
+<hr>
+<h2 id="总结-2">✅ 总结</h2>
+<ul>
+<li><strong><code>redis:4.0.14</code> 官方镜像中的 <code>redis-cli</code> 确实不支持 <code>--cluster</code> 命令</strong>，这是部署中的关键障碍。</li>
+<li><strong>必须使用高版本 <code>redis-cli</code>（如 <code>redis:6.2.6</code>）</strong> 来管理 Redis 4.0.14 集群。</li>
+<li><strong>初始化时必须使用 Pod IP</strong>，避免 ClusterIP 导致的“同一主机”错误。</li>
+</ul>
+<blockquote>
+<p>🎉 此文档真实还原了排错过程，可作为标准操作手册。</p>
+</blockquote>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#kubernetes-redis-4014-%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2%E4%B8%8E%E6%8E%92%E9%94%99%E6%89%8B%E5%86%8C%E7%9C%9F%E5%AE%9E%E9%AA%8C%E8%AF%81%E7%89%88">📚 <strong>Kubernetes Redis 4.0.14 集群部署与排错手册（真实验证版）</strong></a>
+<ul>
+<li><a href="#1%EF%B8%8F%E2%83%A3-%E7%AC%AC%E4%B8%80%E9%83%A8%E5%88%86%E5%BC%95%E8%A8%80">1️⃣ 第一部分：引言</a></li>
+<li><a href="#2%EF%B8%8F%E2%83%A3-%E7%AC%AC%E4%BA%8C%E9%83%A8%E5%88%86%E5%BC%80%E5%A7%8B%E9%83%A8%E7%BD%B2">2️⃣ 第二部分：开始部署</a>
+<ul>
+<li><a href="#21-%E5%87%86%E5%A4%87-nfs-%E5%AD%98%E5%82%A8%E5%9C%A8-nfs-%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%B8%8A%E6%89%A7%E8%A1%8C">2.1 准备 NFS 存储（在 NFS 服务器上执行）</a></li>
+<li><a href="#22-%E5%88%9B%E5%BB%BA-persistentvolumepv">2.2 创建 PersistentVolume（PV）</a>
+<ul>
+<li><a href="#%E5%BA%94%E7%94%A8-pv">应用 PV：</a></li>
+</ul>
+</li>
+<li><a href="#23-%E5%88%9B%E5%BB%BA-redis-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6-redisconf">2.3 创建 Redis 配置文件 <code>redis.conf</code></a></li>
+<li><a href="#24-%E4%BB%8E-redisconf-%E5%88%9B%E5%BB%BA-configmap">2.4 从 <code>redis.conf</code> 创建 ConfigMap</a></li>
+<li><a href="#25-%E9%83%A8%E7%BD%B2-redis-statefulset-%E4%B8%8E-service%E5%90%AB-configmap-%E6%8C%82%E8%BD%BD">2.5 部署 Redis StatefulSet 与 Service（含 ConfigMap 挂载）</a>
+<ul>
+<li><a href="#%E5%BA%94%E7%94%A8%E9%85%8D%E7%BD%AE">应用配置：</a></li>
+</ul>
+</li>
+<li><a href="#26-%E7%AD%89%E5%BE%85-pod-%E5%B0%B1%E7%BB%AA">2.6 等待 Pod 就绪</a></li>
+</ul>
+</li>
+<li><a href="#3%EF%B8%8F%E2%83%A3-%E7%AC%AC%E4%B8%89%E9%83%A8%E5%88%86%E5%88%9D%E5%A7%8B%E5%8C%96%E6%8A%A5%E9%94%99%E9%A6%96%E6%AC%A1%E5%B0%9D%E8%AF%95">3️⃣ 第三部分：初始化报错（首次尝试）</a>
+<ul>
+<li><a href="#%E5%B0%9D%E8%AF%95%E4%BD%BF%E7%94%A8-redis4014-%E9%95%9C%E5%83%8F%E4%B8%AD%E7%9A%84-redis-cli-%E5%88%9D%E5%A7%8B%E5%8C%96%E9%9B%86%E7%BE%A4">尝试使用 <code>redis:4.0.14</code> 镜像中的 <code>redis-cli</code> 初始化集群</a></li>
+<li><a href="#%E6%8A%A5%E9%94%99%E4%BF%A1%E6%81%AF">❌ 报错信息：</a></li>
+</ul>
+</li>
+<li><a href="#4%EF%B8%8F%E2%83%A3-%E7%AC%AC%E5%9B%9B%E9%83%A8%E5%88%86%E6%8E%92%E9%94%99%E4%B8%8E%E9%AA%8C%E8%AF%81">4️⃣ 第四部分：排错与验证</a>
+<ul>
+<li><a href="#%E6%8E%92%E9%94%99-1%E9%AA%8C%E8%AF%81-redis4014-%E6%98%AF%E5%90%A6%E6%94%AF%E6%8C%81-cluster">🔎 排错 1：验证 <code>redis:4.0.14</code> 是否支持 <code>--cluster</code></a></li>
+<li><a href="#%E6%8E%92%E9%94%99-2%E5%B0%9D%E8%AF%95%E4%BD%BF%E7%94%A8-redis-tribrb">🔎 排错 2：尝试使用 <code>redis-trib.rb</code></a></li>
+<li><a href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E4%BD%BF%E7%94%A8%E9%AB%98%E7%89%88%E6%9C%AC-redis-cliredis626-pod-ip">✅ 解决方案：使用高版本 <code>redis-cli</code>（<code>redis:6.2.6</code>） + Pod IP</a>
+<ul>
+<li><a href="#%E8%8E%B7%E5%8F%96-pod-ip">获取 Pod IP：</a></li>
+<li><a href="#%E4%BD%BF%E7%94%A8%E9%AB%98%E7%89%88%E6%9C%AC-redis-cli-%E5%88%9D%E5%A7%8B%E5%8C%96">使用高版本 <code>redis-cli</code> 初始化：</a></li>
+</ul>
+</li>
+<li><a href="#%E6%8E%92%E9%94%99%E6%80%BB%E7%BB%93">📌 排错总结</a></li>
+</ul>
+</li>
+<li><a href="#5%EF%B8%8F%E2%83%A3-%E7%AC%AC%E4%BA%94%E9%83%A8%E5%88%86%E9%AA%8C%E8%AF%81%E9%9B%86%E7%BE%A4%E7%8A%B6%E6%80%81">5️⃣ 第五部分：验证集群状态</a>
+<ul>
+<li><a href="#51-%E6%A3%80%E6%9F%A5%E9%9B%86%E7%BE%A4%E6%95%B4%E4%BD%93%E7%8A%B6%E6%80%81">5.1 检查集群整体状态</a></li>
+<li><a href="#52-%E6%9F%A5%E7%9C%8B%E8%8A%82%E7%82%B9%E6%8B%93%E6%89%91">5.2 查看节点拓扑</a></li>
+</ul>
+</li>
+<li><a href="#%E6%80%BB%E7%BB%93">✅ 总结</a></li>
+<li><a href="#6%EF%B8%8F%E2%83%A3-%E7%AC%AC%E5%85%AD%E9%83%A8%E5%88%86%E4%B8%80%E9%94%AE%E5%88%9D%E5%A7%8B%E5%8C%96%E8%84%9A%E6%9C%AC">6️⃣ 第六部分：一键初始化脚本</a>
+<ul>
+<li><a href="#init-redis-clustersh"><code>init-redis-cluster.sh</code></a></li>
+</ul>
+</li>
+<li><a href="#%E6%80%BB%E7%BB%93-2">✅ 总结</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/kubernetes-125-ji-qun-bu-shu-zhi-nan/">
+              <h3 class="post-title">
+                Kubernetes 1.25 集群部署指南  
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

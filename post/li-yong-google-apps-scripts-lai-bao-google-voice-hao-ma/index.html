@@ -1,0 +1,299 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>利用Google Apps Scripts来保google voice号码 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="利用Google Apps Scripts来保google voice号码 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="编写脚本代码使GV自动回复收到的短信
+此方法类似于在公众号里发送关键词自动回复的一个功能，只不过主体从公众号换成我们的GoogleVoice
+步骤一：打开谷歌官网，点击设置
+
+步骤二：点击创建新的过滤器
+
+步骤三：在包含字词那列，输入一个关..." />
+    <meta name="keywords" content="脚本" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              利用Google Apps Scripts来保google voice号码
+            </h2>
+            <div class="post-info">
+              <span>
+                2021-10-04
+              </span>
+              <span>
+                3 min read
+              </span>
+              
+                <a href="https://orochw.github.io/tag/jlj7i0g0_a/" class="post-tag">
+                  # 脚本
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h1 id="编写脚本代码使gv自动回复收到的短信">编写脚本代码使GV自动回复收到的短信</h1>
+<p>此方法类似于在公众号里发送关键词自动回复的一个功能，只不过主体从公众号换成我们的GoogleVoice</p>
+<h2 id="步骤一打开谷歌官网点击设置">步骤一：打开谷歌官网，点击设置</h2>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004105613.png" alt="" loading="lazy"></figure>
+<h2 id="步骤二点击创建新的过滤器">步骤二：点击创建新的过滤器</h2>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004105658.png" alt="" loading="lazy"></figure>
+<h2 id="步骤三在包含字词那列输入一个关键词点击创建过滤器-这个关键词的作用是邮箱收到包含这个关键词的邮件时过滤这封邮件">步骤三：在包含字词那列，输入一个关键词，点击创建过滤器。这个关键词的作用是：邮箱收到包含这个关键词的邮件时，过滤这封邮件</h2>
+<figure data-type="image" tabindex="3"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004105718.png" alt="" loading="lazy"></figure>
+<h2 id="步骤四勾选跳过收件箱和应用标签-点击选择标签新建一个标签点击创建过滤器">步骤四：勾选跳过收件箱和应用标签。点击选择标签→新建一个标签→点击创建过滤器</h2>
+<p>（例如我新建的标签是：keepGV，这个标签后面要用到，先跟我用一样的）<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004105744.png" alt="" loading="lazy"></p>
+<h2 id="步骤五进入谷歌云端硬盘点击新建新建一个google-apps-script">步骤五：进入谷歌云端硬盘→点击新建→新建一个Google Apps Script</h2>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004105756.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004105807.png" alt="" loading="lazy"></p>
+<h2 id="步骤6把这里的内容删除">步骤6：把这里的内容删除</h2>
+<figure data-type="image" tabindex="4"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004105843.png" alt="" loading="lazy"></figure>
+<pre><code>  function autoReplier() {
+  var labelObj = GmailApp.getUserLabelByName('autoreply');
+  var gmailThreads;
+  var messages;
+  var messagecount;
+  var sender;
+  var num = 2;  //设置连续自动回复邮件的次数（为防止两人都是自动回复，当发送次数达到 9 时将不自动回复）。
+  var hours = 24;  //过了多少小时后又可以自动回复。
+    
+  try {
+    for (var gg = 0; gg &lt; labelObj.getUnreadCount(); gg++) {
+      gmailThreads = labelObj.getThreads()[gg];
+      messages = gmailThreads.getMessages();
+      messagecount = gmailThreads.getMessageCount();
+      //console.log(messages[messagecount - 9].getDate() + &quot;  time&quot;);
+      for (var ii = 0; ii &lt; messages.length; ii++) {
+      
+        if (messages[ii].isUnread()) {
+        
+          msg = messages[ii].getPlainBody();
+          sender = messages[ii].getFrom(); 
+        
+          array = [[&quot;signup&quot;]];
+          var j = Math.floor(Math.random() * (array.length));
+          var temp = array[j];
+        
+          if (messagecount &lt; num){
+            MailApp.sendEmail(sender, &quot;Auto Reply&quot;, temp);
+          }else if( (messages[messagecount - 1].getDate().getTime() - messages[messagecount - num].getDate().getTime()) &gt; hours * 60 * 60 * 1000 ){
+            MailApp.sendEmail(sender, &quot;Auto Reply&quot;, &quot;Hi, 您好！我们已经发了好几条信息了，可以停下来休息休息一下了！本短信由 Google Apps Script 自动发出。&quot;);
+          }
+          messages[ii].markRead();
+          messages[ii].moveToTrash();
+        }
+      }
+    }
+  } catch (err) {
+      console.error('for loop error: ' + e);
+  }
+}
+</code></pre>
+<p>接下来我们点击保存，并为这个项目起名</p>
+<h2 id="步骤7点击修改点击当前项目触发器">步骤7：点击修改→点击当前项目触发器</h2>
+<figure data-type="image" tabindex="5"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004105951.png" alt="" loading="lazy"></figure>
+<h2 id="步骤8点击添加触发器">步骤8：点击添加触发器</h2>
+<figure data-type="image" tabindex="6"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004110111.png" alt="" loading="lazy"></figure>
+<h2 id="步骤9跟着它的指示登陆后来到这个界面点击高级">步骤9：跟着它的指示登陆后来到这个界面，点击高级</h2>
+<figure data-type="image" tabindex="7"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004110134.png" alt="" loading="lazy"></figure>
+<h2 id="步骤10点击允许">步骤10：点击允许</h2>
+<figure data-type="image" tabindex="8"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20211004110147.png" alt="" loading="lazy"></figure>
+<h2 id="其他方法">其他方法</h2>
+<p>还是用大佬的这样方法简单<br>
+https://zhuanlan.zhihu.com/p/157483860</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#%E7%BC%96%E5%86%99%E8%84%9A%E6%9C%AC%E4%BB%A3%E7%A0%81%E4%BD%BFgv%E8%87%AA%E5%8A%A8%E5%9B%9E%E5%A4%8D%E6%94%B6%E5%88%B0%E7%9A%84%E7%9F%AD%E4%BF%A1">编写脚本代码使GV自动回复收到的短信</a>
+<ul>
+<li><a href="#%E6%AD%A5%E9%AA%A4%E4%B8%80%E6%89%93%E5%BC%80%E8%B0%B7%E6%AD%8C%E5%AE%98%E7%BD%91%E7%82%B9%E5%87%BB%E8%AE%BE%E7%BD%AE">步骤一：打开谷歌官网，点击设置</a></li>
+<li><a href="#%E6%AD%A5%E9%AA%A4%E4%BA%8C%E7%82%B9%E5%87%BB%E5%88%9B%E5%BB%BA%E6%96%B0%E7%9A%84%E8%BF%87%E6%BB%A4%E5%99%A8">步骤二：点击创建新的过滤器</a></li>
+<li><a href="#%E6%AD%A5%E9%AA%A4%E4%B8%89%E5%9C%A8%E5%8C%85%E5%90%AB%E5%AD%97%E8%AF%8D%E9%82%A3%E5%88%97%E8%BE%93%E5%85%A5%E4%B8%80%E4%B8%AA%E5%85%B3%E9%94%AE%E8%AF%8D%E7%82%B9%E5%87%BB%E5%88%9B%E5%BB%BA%E8%BF%87%E6%BB%A4%E5%99%A8-%E8%BF%99%E4%B8%AA%E5%85%B3%E9%94%AE%E8%AF%8D%E7%9A%84%E4%BD%9C%E7%94%A8%E6%98%AF%E9%82%AE%E7%AE%B1%E6%94%B6%E5%88%B0%E5%8C%85%E5%90%AB%E8%BF%99%E4%B8%AA%E5%85%B3%E9%94%AE%E8%AF%8D%E7%9A%84%E9%82%AE%E4%BB%B6%E6%97%B6%E8%BF%87%E6%BB%A4%E8%BF%99%E5%B0%81%E9%82%AE%E4%BB%B6">步骤三：在包含字词那列，输入一个关键词，点击创建过滤器。这个关键词的作用是：邮箱收到包含这个关键词的邮件时，过滤这封邮件</a></li>
+<li><a href="#%E6%AD%A5%E9%AA%A4%E5%9B%9B%E5%8B%BE%E9%80%89%E8%B7%B3%E8%BF%87%E6%94%B6%E4%BB%B6%E7%AE%B1%E5%92%8C%E5%BA%94%E7%94%A8%E6%A0%87%E7%AD%BE-%E7%82%B9%E5%87%BB%E9%80%89%E6%8B%A9%E6%A0%87%E7%AD%BE%E6%96%B0%E5%BB%BA%E4%B8%80%E4%B8%AA%E6%A0%87%E7%AD%BE%E7%82%B9%E5%87%BB%E5%88%9B%E5%BB%BA%E8%BF%87%E6%BB%A4%E5%99%A8">步骤四：勾选跳过收件箱和应用标签。点击选择标签→新建一个标签→点击创建过滤器</a></li>
+<li><a href="#%E6%AD%A5%E9%AA%A4%E4%BA%94%E8%BF%9B%E5%85%A5%E8%B0%B7%E6%AD%8C%E4%BA%91%E7%AB%AF%E7%A1%AC%E7%9B%98%E7%82%B9%E5%87%BB%E6%96%B0%E5%BB%BA%E6%96%B0%E5%BB%BA%E4%B8%80%E4%B8%AAgoogle-apps-script">步骤五：进入谷歌云端硬盘→点击新建→新建一个Google Apps Script</a></li>
+<li><a href="#%E6%AD%A5%E9%AA%A46%E6%8A%8A%E8%BF%99%E9%87%8C%E7%9A%84%E5%86%85%E5%AE%B9%E5%88%A0%E9%99%A4">步骤6：把这里的内容删除</a></li>
+<li><a href="#%E6%AD%A5%E9%AA%A47%E7%82%B9%E5%87%BB%E4%BF%AE%E6%94%B9%E7%82%B9%E5%87%BB%E5%BD%93%E5%89%8D%E9%A1%B9%E7%9B%AE%E8%A7%A6%E5%8F%91%E5%99%A8">步骤7：点击修改→点击当前项目触发器</a></li>
+<li><a href="#%E6%AD%A5%E9%AA%A48%E7%82%B9%E5%87%BB%E6%B7%BB%E5%8A%A0%E8%A7%A6%E5%8F%91%E5%99%A8">步骤8：点击添加触发器</a></li>
+<li><a href="#%E6%AD%A5%E9%AA%A49%E8%B7%9F%E7%9D%80%E5%AE%83%E7%9A%84%E6%8C%87%E7%A4%BA%E7%99%BB%E9%99%86%E5%90%8E%E6%9D%A5%E5%88%B0%E8%BF%99%E4%B8%AA%E7%95%8C%E9%9D%A2%E7%82%B9%E5%87%BB%E9%AB%98%E7%BA%A7">步骤9：跟着它的指示登陆后来到这个界面，点击高级</a></li>
+<li><a href="#%E6%AD%A5%E9%AA%A410%E7%82%B9%E5%87%BB%E5%85%81%E8%AE%B8">步骤10：点击允许</a></li>
+<li><a href="#%E5%85%B6%E4%BB%96%E6%96%B9%E6%B3%95">其他方法</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/hong-mi-ax6-shua-openwrtxu-ni-ji-pu-tong-lu-you-ax6/">
+              <h3 class="post-title">
+                红米 AX6 刷 openwrt(虚拟机+普通路由+AX6)
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

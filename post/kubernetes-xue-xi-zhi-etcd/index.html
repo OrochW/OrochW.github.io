@@ -1,0 +1,330 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>kubernetes学习之etcd备份同步恢复 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="kubernetes学习之etcd备份同步恢复 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="
+etcd是一种高度一致的分布式键值存储，它提供了一种可靠的方式来存储需要由分布式系统或机器集群访问的数据。它在网络分区期间优雅地处理领导者选举，并且可以容忍机器故障，即使在领导者节点中也是如此。更多参考etcd文档
+etcd的备份
+1.开..." />
+    <meta name="keywords" content="云原生" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              kubernetes学习之etcd备份同步恢复
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-07-20
+              </span>
+              <span>
+                9 min read
+              </span>
+              
+                <a href="https://orochw.github.io/tag/cZHz0EPaPM/" class="post-tag">
+                  # 云原生
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p><img src="https://orochw.github.io/post-images/1658325543302.png" alt="" loading="lazy"><br>
+etcd是一种高度一致的分布式键值存储，它提供了一种可靠的方式来存储需要由分布式系统或机器集群访问的数据。它在网络分区期间优雅地处理领导者选举，并且可以容忍机器故障，即使在领导者节点中也是如此。<a href="https://etcd.io/docs/v3.5/demo/">更多参考etcd文档</a></p>
+<h2 id="etcd的备份">etcd的备份</h2>
+<h3 id="1开始备份之前先来查看下etcd数据">1.开始备份之前，先来查看下etcd数据</h3>
+<pre><code class="language-bash">[root@master-etcd1-234-31 etcd_backup_dir]# cat /etc/systemd/system/etcd.service
+[Unit]
+Description=Etcd Server
+After=network.target
+After=network-online.target
+Wants=network-online.target
+Documentation=https://github.com/coreos
+
+[Service]
+Type=notify
+WorkingDirectory=/var/lib/etcd
+ExecStart=/usr/bin/etcd \
+  --name=etcd-192.168.234.31 \
+  --cert-file=/etc/kubernetes/ssl/etcd.pem \
+  --key-file=/etc/kubernetes/ssl/etcd-key.pem \
+  --peer-cert-file=/etc/kubernetes/ssl/etcd.pem \
+  --peer-key-file=/etc/kubernetes/ssl/etcd-key.pem \
+  --trusted-ca-file=/etc/kubernetes/ssl/ca.pem \
+  --peer-trusted-ca-file=/etc/kubernetes/ssl/ca.pem \
+  --initial-advertise-peer-urls=https://192.168.234.31:2380 \
+  --listen-peer-urls=https://192.168.234.31:2380 \
+  --listen-client-urls=https://192.168.234.31:2379,http://127.0.0.1:2379 \
+  --advertise-client-urls=https://192.168.234.31:2379 \
+  --initial-cluster-token=etcd-cluster-0 \
+  --initial-cluster=etcd-192.168.234.31=https://192.168.234.31:2380,etcd-192.168.234.32=https://192.168.234.32:2380,etcd-192.168.234.33=https://192.168.234.33:2380 \
+  --initial-cluster-state=new \
+  --data-dir=/var/lib/etcd \ ##当前的etcd的目录
+  --wal-dir= \
+  --snapshot-count=50000 \
+  --auto-compaction-retention=1 \
+  --auto-compaction-mode=periodic \
+  --max-request-bytes=10485760 \
+  --quota-backend-bytes=8589934592
+Restart=always
+RestartSec=15
+LimitNOFILE=65536
+OOMScoreAdjust=-999
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<h3 id="2执行etcd集群数据备份">2.执行etcd集群数据备份</h3>
+<p>在etcd集群的其中一个节点执行备份操作，然后将备份文件拷贝到其他节点上。<br>
+先在etcd集群的每个节点上创建备份目录</p>
+<pre><code class="language-BASH">mkdir -p /data/etcd_backup_dir
+</code></pre>
+<p>在etcd集群其中个一个节点（这里在k8s-master01）上执行备份：</p>
+<pre><code class="language-BASH">[root@master-etcd1-234-31 ~]# mkdir -p /data/etcd_backup_dir
+[root@master-etcd1-234-31 ~]# etcdctl  \
+&gt; snapshot  save /data/etcd_backup_dir/etcd-snapshot-`date +%Y%m%d`.db \
+&gt; --endpoints=https://192.168.234.31:2379 \
+&gt; --cacert=/etc/kubernetes/ssl/ca.pem \
+&gt; --cert=/etc/kubernetes/ssl/etcd.pem \
+&gt; --key=/etc/kubernetes/ssl/etcd-key.pem
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2022-07-19T01:07:55.810-0400&quot;,&quot;caller&quot;:&quot;snapshot/v3_snapshot.go:65&quot;,&quot;msg&quot;:&quot;created temporary db file&quot;,&quot;path&quot;:&quot;/data/etcd_backup_di                       r/etcd-snapshot-20220719.db.part&quot;}
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2022-07-19T01:07:55.815-0400&quot;,&quot;logger&quot;:&quot;client&quot;,&quot;caller&quot;:&quot;v3/maintenance.go:211&quot;,&quot;msg&quot;:&quot;opened snapshot stream; downloading&quot;}
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2022-07-19T01:07:55.815-0400&quot;,&quot;caller&quot;:&quot;snapshot/v3_snapshot.go:73&quot;,&quot;msg&quot;:&quot;fetching snapshot&quot;,&quot;endpoint&quot;:&quot;https://192.168.234.31:2                       379&quot;}
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2022-07-19T01:07:55.837-0400&quot;,&quot;logger&quot;:&quot;client&quot;,&quot;caller&quot;:&quot;v3/maintenance.go:219&quot;,&quot;msg&quot;:&quot;completed snapshot read; closing&quot;}
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2022-07-19T01:07:55.840-0400&quot;,&quot;caller&quot;:&quot;snapshot/v3_snapshot.go:88&quot;,&quot;msg&quot;:&quot;fetched snapshot&quot;,&quot;endpoint&quot;:&quot;https://192.168.234.31:23                       79&quot;,&quot;size&quot;:&quot;2.5 MB&quot;,&quot;took&quot;:&quot;now&quot;}
+{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2022-07-19T01:07:55.840-0400&quot;,&quot;caller&quot;:&quot;snapshot/v3_snapshot.go:97&quot;,&quot;msg&quot;:&quot;saved&quot;,&quot;path&quot;:&quot;/data/etcd_backup_dir/etcd-snapshot-2022                       0719.db&quot;}
+Snapshot saved at /data/etcd_backup_dir/etcd-snapshot-20220719.db
+</code></pre>
+<p>可以将上面k8s-master01节点的etcd备份命令放在脚本里，结合crontab进行定时备份：</p>
+<pre><code class="language-bash">[root@master-etcd1-234-31 ~]cat /data/etcd_backup_dir/etcd_backup.sh
+#!/usr/bin/bash
+ 
+DATE=`date +%Y-%m-%d-%H-%M-%S`
+ETCDCTL_API=3 /opt/kube/bin/etcdctl  \
+snapshot  save /data/etcd_backup_dir/etcd-snapshot-$DATE.db \
+--endpoints=https://192.168.234.31:2379 \
+--cacert=/etc/kubernetes/ssl/ca.pem \
+--cert=/etc/kubernetes/ssl/etcd.pem \
+--key=/etc/kubernetes/ssl/etcd-key.pem
+ 
+# 备份保留30天
+find /data/etcd_backup_dir/ -name &quot;*.db&quot; -mtime +30 -exec rm -f {} \;
+ 
+# 同步到其他两个etcd节点
+scp /data/etcd_backup_dir/etcd-snapshot-$DATE.db 192.168.234.32:/data/etcd_backup_dir/
+scp /data/etcd_backup_dir/etcd-snapshot-$DATE.db 192.168.234.33:/data/etcd_backup_dir
+</code></pre>
+<p>设置crontab定时备份任务，每天凌晨4点执行备份：</p>
+<pre><code class="language-bash">[root@master-etcd1-234-31 ~]# chmod 755 /data/etcd_backup_dir/etcd_backup.sh
+[root@master-etcd1-234-31 ~]# crontab -e
+crontab: installing new crontab
+[root@master-etcd1-234-31 ~]# crontab -l
+*/10 * * * * ntpdate time.windows.com
+0 4 * * * /bin/bash -x /data/etcd_backup_dir/etcd_backup.sh &gt; /dev/null 2&gt;&amp;1
+</code></pre>
+<h3 id="恢复">恢复</h3>
+<pre><code class="language-bash">[root@master-etcd1-234-31 etcd_backup_dir]# pwd
+/data/etcd_backup_dir
+[root@master-etcd1-234-31 etcd_backup_dir]# mkdir /data/opt/etcddir -p
+[root@master-etcd1-234-31 etcd_backup_dir]# etcdctl  snapshot restore etcd-snapshot-20220719.db --data-dir=/data/opt/etcddir/ #将数据恢复到一个新的目录中
+Deprecated: Use `etcdutl snapshot restore` instead.
+
+2022-07-21T16:53:50+08:00       info    snapshot/v3_snapshot.go:248     restoring snapshot      {&quot;path&quot;: &quot;etcd-snapshot-20220719.db&quot;, &quot;wal-dir&quot;: &quot;/data/opt/etcddir/member/wal&quot;, &quot;data-dir&quot;: &quot;/data/opt/etcddir/&quot;, &quot;snap-dir&quot;: &quot;/data/opt/etcddir/member/snap&quot;, &quot;stack&quot;: &quot;go.etcd.io/etcd/etcdutl/v3/snapshot.(*v3Manager).Restore\n\t/go/src/go.etcd.io/etcd/release/etcd/etcdutl/snapshot/v3_snapshot.go:254\ngo.etcd.io/etcd/etcdutl/v3/etcdutl.SnapshotRestoreCommandFunc\n\t/go/src/go.etcd.io/etcd/release/etcd/etcdutl/etcdutl/snapshot_command.go:147\ngo.etcd.io/etcd/etcdctl/v3/ctlv3/command.snapshotRestoreCommandFunc\n\t/go/src/go.etcd.io/etcd/release/etcd/etcdctl/ctlv3/command/snapshot_command.go:129\ngithub.com/spf13/cobra.(*Command).execute\n\t/go/pkg/mod/github.com/spf13/cobra@v1.1.3/command.go:856\ngithub.com/spf13/cobra.(*Command).ExecuteC\n\t/go/pkg/mod/github.com/spf13/cobra@v1.1.3/command.go:960\ngithub.com/spf13/cobra.(*Command).Execute\n\t/go/pkg/mod/github.com/spf13/cobra@v1.1.3/command.go:897\ngo.etcd.io/etcd/etcdctl/v3/ctlv3.Start\n\t/go/src/go.etcd.io/etcd/release/etcd/etcdctl/ctlv3/ctl.go:107\ngo.etcd.io/etcd/etcdctl/v3/ctlv3.MustStart\n\t/go/src/go.etcd.io/etcd/release/etcd/etcdctl/ctlv3/ctl.go:111\nmain.main\n\t/go/src/go.etcd.io/etcd/release/etcd/etcdctl/main.go:59\nruntime.main\n\t/go/gos/go1.16.15/src/runtime/proc.go:225&quot;}
+2022-07-21T16:53:50+08:00       info    membership/store.go:141 Trimming membership information from the backend...
+2022-07-21T16:53:50+08:00       info    membership/cluster.go:421       added member    {&quot;cluster-id&quot;: &quot;cdf818194e3a8c32&quot;, &quot;local-member-id&quot;: &quot;0&quot;, &quot;added-peer-id&quot;: &quot;8e9e05c52164694d&quot;, &quot;added-peer-peer-urls&quot;: [&quot;http://localhost:2380&quot;]}
+2022-07-21T16:53:50+08:00       info    snapshot/v3_snapshot.go:269     restored snapshot       {&quot;path&quot;: &quot;etcd-snapshot-20220719.db&quot;, &quot;wal-dir&quot;: &quot;/data/opt/etcddir/member/wal&quot;, &quot;data-dir&quot;: &quot;/data/opt/etcddir/&quot;, &quot;snap-dir&quot;: &quot;/data/opt/etcddir/member/snap&quot;}
+[root@master-etcd1-234-31 etcd_backup_dir]#
+
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#etcd%E7%9A%84%E5%A4%87%E4%BB%BD">etcd的备份</a>
+<ul>
+<li><a href="#1%E5%BC%80%E5%A7%8B%E5%A4%87%E4%BB%BD%E4%B9%8B%E5%89%8D%E5%85%88%E6%9D%A5%E6%9F%A5%E7%9C%8B%E4%B8%8Betcd%E6%95%B0%E6%8D%AE">1.开始备份之前，先来查看下etcd数据</a></li>
+<li><a href="#2%E6%89%A7%E8%A1%8Cetcd%E9%9B%86%E7%BE%A4%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD">2.执行etcd集群数据备份</a></li>
+<li><a href="#%E6%81%A2%E5%A4%8D">恢复</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/k8skeeplivedhaproxy-an-zhuang-ji-qun/">
+              <h3 class="post-title">
+                K8s+keeplived+haproxy+harbor安装集群
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,360 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>prometheus+node-exporter二进制安装使用 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="prometheus+node-exporter二进制安装使用 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="1.prometheu的安装配置使用
+1.1下载prometheus的二进制包
+下载地址:https://github.com/prometheus/prometheus/releases/download/v2.33.0/promethe..." />
+    <meta name="keywords" content="监控" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              prometheus+node-exporter二进制安装使用
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-08-10
+              </span>
+              <span>
+                5 min read
+              </span>
+              
+                <a href="https://orochw.github.io/tag/cXfqmREkc/" class="post-tag">
+                  # 监控
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="1prometheu的安装配置使用">1.prometheu的安装配置使用</h2>
+<h3 id="11下载prometheus的二进制包">1.1下载prometheus的二进制包</h3>
+<p>下载地址:https://github.com/prometheus/prometheus/releases/download/v2.33.0/prometheus-2.33.0.linux-amd64.tar.gz</p>
+<pre><code class="language-shell">mkdir -p /data/
+tar  xvf prometheus-2.33.0.linux-amd64.tar.gz
+ln -s /data/prometheus-2.33.0.linux-amd64 /data/prometheus
+cd prometheus
+[root@master-etcd1-234-31 prometheus]# ll
+total 196060
+drwxr-xr-x 2 3434 3434        38 Jan 30  2022 console_libraries
+drwxr-xr-x 2 3434 3434       173 Jan 30  2022 consoles
+-rw-r--r-- 1 3434 3434     11357 Jan 30  2022 LICENSE
+-rw-r--r-- 1 3434 3434      3773 Jan 30  2022 NOTICE
+-rwxr-xr-x 1 3434 3434 104419069 Jan 30  2022 prometheus
+-rw-r--r-- 1 3434 3434       934 Jan 30  2022 prometheus.yml
+-rwxr-xr-x 1 3434 3434  96325624 Jan 30  2022 promtool
+
+</code></pre>
+<h3 id="12安装启动配置">1.2安装启动配置</h3>
+<p>配置文件为解压后当前目录会包含默认的Prometheus配置文件promethes.yml，下面配置文件做下简略的解析：</p>
+<pre><code class="language-shell"># 全局配置
+global:
+  scrape_interval:     15s # 设置抓取间隔，默认为1分钟
+  evaluation_interval: 15s #估算规则的默认周期，每15秒计算一次规则。默认1分钟
+  # scrape_timeout  #默认抓取超时，默认为10s
+
+# Alertmanager相关配置
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      # - alertmanager:9093
+
+# 规则文件列表，使用'evaluation_interval' 参数去抓取
+rule_files:
+  # - &quot;first_rules.yml&quot;
+  # - &quot;second_rules.yml&quot;
+
+#  抓取配置列表
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+    - targets: ['localhost:9090']
+</code></pre>
+<h3 id="13创建prometheus的用户及数据存储目录">1.3创建prometheus的用户及数据存储目录</h3>
+<p>为了安全，使用普通用户来启动prometheus服务。作为一个时序型的数据库产品，prometheus的数据默认会存放在应用所在目录下。</p>
+<pre><code class="language-shell">useradd  -s /sbin/nologin -M prometheus 
+#创建数据目录
+mkdir  /data/prometheus/data -p
+#修改目录属主 
+chown -R prometheus:prometheus /data/prometheus/
+</code></pre>
+<h3 id="14prometheus的启动很简单只需要直接启动解压目录的二进制文件prometheus即可但是为了更加方便对prometheus进行管理这里使用systemd来启停prometheus">1.4prometheus的启动很简单，只需要直接启动解压目录的二进制文件prometheus即可，但是为了更加方便对prometheus进行管理，这里使用systemd来启停prometheus。</h3>
+<pre><code class="language-shell">vim /lib/systemd/system/prometheus.service
+[Unit]
+Description=Prometheus
+Documentation=https://prometheus.io/
+After=network.target
+[Service]
+Type=simple
+User=prometheus
+ExecStart=/data/prometheus/prometheus --config.file=/data/prometheus/prometheus.yml --storage.tsdb.path=/data/prometheus/data
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<p>编辑配置文件添加要监控的主机</p>
+<pre><code class="language-shell"># my global config
+global:
+  scrape_interval: 15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - &quot;first_rules.yml&quot;
+  # - &quot;second_rules.yml&quot;
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  # The job name is added as a label `job=&lt;job_name&gt;` to any timeseries scraped from this config.
+  - job_name: &quot;prometheus&quot;
+
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+
+    static_configs:
+      - targets: [&quot;localhost:9090&quot;]
+#prometheus-node 
+  - job_name: &quot;prometheus-node&quot;
+    static_configs: #静态添加监控node
+      - targets: [&quot;192.168.234.41:9100&quot;,&quot;192.168.234.42:9100&quot;,&quot;192.168.234.43:9100&quot;]
+</code></pre>
+<p>修改完成重启服务</p>
+<pre><code class="language-shell">systemctl  start prometheus
+systemctl  enable prometheus
+</code></pre>
+<h2 id="2监控软件node-exporter二进制安装方法">2.监控软件node-exporter二进制安装方法</h2>
+<h3 id="21下载软件包">2.1下载软件包</h3>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220823170818.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220823170911.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220823170936.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220823171012.png" alt="" loading="lazy"></p>
+<pre><code class="language-shell">wget https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz
+
+tar xvf node_exporter-1.3.1.linux-amd64.tar.gz
+ln -s node_exporter-1.3.1.linux-amd64.tar.gz node_exporter
+#封装systemd以便于开机自启
+vim /lib/systemd/system/node_exporter.service
+[Unit]
+Description=Prometheus Node Exporter
+After=network.target
+[Service]
+ExecStart=/apps/node_exporter/node_exporter
+User=prometheus
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<h3 id="22配置启动">2.2配置启动.</h3>
+<pre><code class="language-shell">systemctl  start node_exporter
+systemctl  enable node_exporter
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220823180504.png" alt="" loading="lazy"></figure>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#1prometheu%E7%9A%84%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE%E4%BD%BF%E7%94%A8">1.prometheu的安装配置使用</a>
+<ul>
+<li><a href="#11%E4%B8%8B%E8%BD%BDprometheus%E7%9A%84%E4%BA%8C%E8%BF%9B%E5%88%B6%E5%8C%85">1.1下载prometheus的二进制包</a></li>
+<li><a href="#12%E5%AE%89%E8%A3%85%E5%90%AF%E5%8A%A8%E9%85%8D%E7%BD%AE">1.2安装启动配置</a></li>
+<li><a href="#13%E5%88%9B%E5%BB%BAprometheus%E7%9A%84%E7%94%A8%E6%88%B7%E5%8F%8A%E6%95%B0%E6%8D%AE%E5%AD%98%E5%82%A8%E7%9B%AE%E5%BD%95">1.3创建prometheus的用户及数据存储目录</a></li>
+<li><a href="#14prometheus%E7%9A%84%E5%90%AF%E5%8A%A8%E5%BE%88%E7%AE%80%E5%8D%95%E5%8F%AA%E9%9C%80%E8%A6%81%E7%9B%B4%E6%8E%A5%E5%90%AF%E5%8A%A8%E8%A7%A3%E5%8E%8B%E7%9B%AE%E5%BD%95%E7%9A%84%E4%BA%8C%E8%BF%9B%E5%88%B6%E6%96%87%E4%BB%B6prometheus%E5%8D%B3%E5%8F%AF%E4%BD%86%E6%98%AF%E4%B8%BA%E4%BA%86%E6%9B%B4%E5%8A%A0%E6%96%B9%E4%BE%BF%E5%AF%B9prometheus%E8%BF%9B%E8%A1%8C%E7%AE%A1%E7%90%86%E8%BF%99%E9%87%8C%E4%BD%BF%E7%94%A8systemd%E6%9D%A5%E5%90%AF%E5%81%9Cprometheus">1.4prometheus的启动很简单，只需要直接启动解压目录的二进制文件prometheus即可，但是为了更加方便对prometheus进行管理，这里使用systemd来启停prometheus。</a></li>
+</ul>
+</li>
+<li><a href="#2%E7%9B%91%E6%8E%A7%E8%BD%AF%E4%BB%B6node-exporter%E4%BA%8C%E8%BF%9B%E5%88%B6%E5%AE%89%E8%A3%85%E6%96%B9%E6%B3%95">2.监控软件node-exporter二进制安装方法</a>
+<ul>
+<li><a href="#21%E4%B8%8B%E8%BD%BD%E8%BD%AF%E4%BB%B6%E5%8C%85">2.1下载软件包</a></li>
+<li><a href="#22%E9%85%8D%E7%BD%AE%E5%90%AF%E5%8A%A8">2.2配置启动.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/kubernetes-de-hpa-shi-ji-an-li/">
+              <h3 class="post-title">
+                kubernetes 的hpa实际案例
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

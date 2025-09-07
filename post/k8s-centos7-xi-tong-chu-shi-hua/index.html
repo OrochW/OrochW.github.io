@@ -1,0 +1,302 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>k8s centos7系统初始化 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="k8s centos7系统初始化 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="1.设置系统主机名以及 Host 文件的相互解析
+hostnamectl  set-hostname  k8s-master01
+
+2.安装依赖包
+yum install -y conntrack ntpdate ntp ipvsadm i..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              k8s centos7系统初始化
+            </h2>
+            <div class="post-info">
+              <span>
+                2023-02-23
+              </span>
+              <span>
+                3 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="1设置系统主机名以及-host-文件的相互解析">1.设置系统主机名以及 Host 文件的相互解析</h2>
+<pre><code class="language-bash">hostnamectl  set-hostname  k8s-master01
+</code></pre>
+<h2 id="2安装依赖包">2.安装依赖包</h2>
+<pre><code class="language-bash">yum install -y conntrack ntpdate ntp ipvsadm ipset jq iptables curl sysstat libseccomp wgetvimnet-tools git
+</code></pre>
+<h2 id="3设置防火墙为-iptables-并设置空规则">3.设置防火墙为 Iptables 并设置空规则</h2>
+<pre><code class="language-bash">systemctl  stop firewalld  &amp;&amp;  systemctl  disable firewalldyum -y install iptables-services  &amp;&amp;  systemctl  start iptables  &amp;&amp;  systemctl  enable iptables&amp;&amp;  iptables -F  &amp;&amp;  service iptables save
+</code></pre>
+<h2 id="4关闭-selinux">4.关闭 SELINUX</h2>
+<pre><code class="language-bash">swapoff -a &amp;&amp; sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstabsetenforce 0 &amp;&amp; sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+</code></pre>
+<h2 id="5调整内核参数对于-k8s">5.调整内核参数，对于 K8S</h2>
+<pre><code class="language-bash">cat &gt; kubernetes.conf &lt;&lt;EOF
+net.bridge.bridge-nf-call-iptables=1
+net.bridge.bridge-nf-call-ip6tables=1
+net.ipv4.ip_forward=1
+net.ipv4.tcp_tw_recycle=0
+vm.swappiness=0 # 禁止使用 swap 空间，只有当系统 OOM 时才允许使用它
+vm.overcommit_memory=1 # 不检查物理内存是否够用
+vm.panic_on_oom=0 # 开启 OOM
+fs.inotify.max_user_instances=8192
+fs.inotify.max_user_watches=1048576
+fs.file-max=52706963fs.nr_open=52706963
+net.ipv6.conf.all.disable_ipv6=1
+net.netfilter.nf_conntrack_max=2310720
+EOF
+cp kubernetes.conf  /etc/sysctl.d/kubernetes.conf
+sysctl -p /etc/sysctl.d/kubernetes.conf
+</code></pre>
+<h2 id="6调整系统时区">6.调整系统时区</h2>
+<h1 id="设置系统时区为中国上海">设置系统时区为中国/上海</h1>
+<pre><code class="language-bash">timedatectl set-timezone Asia/Shanghai
+</code></pre>
+<h2 id="7将当前的-utc-时间写入硬件时钟">7.将当前的 UTC 时间写入硬件时钟</h2>
+<pre><code class="language-bash">timedatectl set-local-rtc 0
+</code></pre>
+<h2 id="8重启依赖于系统时间的服务">8.重启依赖于系统时间的服务</h2>
+<pre><code class="language-bash">systemctl restart rsyslog
+systemctl restart crond
+</code></pre>
+<h2 id="9关闭系统不需要服务">9.关闭系统不需要服务</h2>
+<pre><code>systemctl stop postfix &amp;&amp; systemctl disable postfix
+</code></pre>
+<h2 id="10设置-rsyslogd-和-systemd-journald">10.设置 rsyslogd 和 systemd journald</h2>
+<pre><code>mkdir /var/log/journal 
+</code></pre>
+<h2 id="11持久化保存日志的目录">11.持久化保存日志的目录</h2>
+<pre><code class="language-bash">mkdir /etc/systemd/journald.conf.d
+cat &gt; /etc/systemd/journald.conf.d/99-prophet.conf &lt;&lt;EOF
+[Journal]
+# 持久化保存到磁盘Storage=persistent
+# 压缩历史日志Compress=yesSyncIntervalSec=5m
+RateLimitInterval=30sRateLimitBurst=1000
+# 最大占用空间 10GSystemMaxUse=10G
+# 单日志文件最大 200MSystemMaxFileSize=200M
+# 日志保存时间 2 周MaxRetentionSec=2week
+# 不将日志转发到 
+syslogForwardToSyslog=no
+EOF
+systemctl restart systemd-journald
+</code></pre>
+<h2 id="12升级系统内核为-444">12.升级系统内核为 4.44</h2>
+<p>升级系统内核为 4.44CentOS 7.x 系统自带的 3.10.x 内核存在一些 Bugs，导致运行的 Docker、Kubernetes 不稳定，例如： rpm -Uvh<br>
+http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm</p>
+<pre><code class="language-bash">rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
+</code></pre>
+<p>安装完成后检查 /boot/grub2/grub.cfg 中对应内核 menuentry 中是否包含 initrd16 配置，如果没有，再安装一次！</p>
+<pre><code class="language-bash">yum --enablerepo=elrepo-kernel install -y kernel-lt
+</code></pre>
+<p>设置开机从新内核启动</p>
+<pre><code class="language-bash">grub2-set-default 'CentOS Linux (4.4.189-1.el7.elrepo.x86_64) 7 (Core)'
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#1%E8%AE%BE%E7%BD%AE%E7%B3%BB%E7%BB%9F%E4%B8%BB%E6%9C%BA%E5%90%8D%E4%BB%A5%E5%8F%8A-host-%E6%96%87%E4%BB%B6%E7%9A%84%E7%9B%B8%E4%BA%92%E8%A7%A3%E6%9E%90">1.设置系统主机名以及 Host 文件的相互解析</a></li>
+<li><a href="#2%E5%AE%89%E8%A3%85%E4%BE%9D%E8%B5%96%E5%8C%85">2.安装依赖包</a></li>
+<li><a href="#3%E8%AE%BE%E7%BD%AE%E9%98%B2%E7%81%AB%E5%A2%99%E4%B8%BA-iptables-%E5%B9%B6%E8%AE%BE%E7%BD%AE%E7%A9%BA%E8%A7%84%E5%88%99">3.设置防火墙为 Iptables 并设置空规则</a></li>
+<li><a href="#4%E5%85%B3%E9%97%AD-selinux">4.关闭 SELINUX</a></li>
+<li><a href="#5%E8%B0%83%E6%95%B4%E5%86%85%E6%A0%B8%E5%8F%82%E6%95%B0%E5%AF%B9%E4%BA%8E-k8s">5.调整内核参数，对于 K8S</a></li>
+<li><a href="#6%E8%B0%83%E6%95%B4%E7%B3%BB%E7%BB%9F%E6%97%B6%E5%8C%BA">6.调整系统时区</a></li>
+</ul>
+</li>
+<li><a href="#%E8%AE%BE%E7%BD%AE%E7%B3%BB%E7%BB%9F%E6%97%B6%E5%8C%BA%E4%B8%BA%E4%B8%AD%E5%9B%BD%E4%B8%8A%E6%B5%B7">设置系统时区为中国/上海</a>
+<ul>
+<li><a href="#7%E5%B0%86%E5%BD%93%E5%89%8D%E7%9A%84-utc-%E6%97%B6%E9%97%B4%E5%86%99%E5%85%A5%E7%A1%AC%E4%BB%B6%E6%97%B6%E9%92%9F">7.将当前的 UTC 时间写入硬件时钟</a></li>
+<li><a href="#8%E9%87%8D%E5%90%AF%E4%BE%9D%E8%B5%96%E4%BA%8E%E7%B3%BB%E7%BB%9F%E6%97%B6%E9%97%B4%E7%9A%84%E6%9C%8D%E5%8A%A1">8.重启依赖于系统时间的服务</a></li>
+<li><a href="#9%E5%85%B3%E9%97%AD%E7%B3%BB%E7%BB%9F%E4%B8%8D%E9%9C%80%E8%A6%81%E6%9C%8D%E5%8A%A1">9.关闭系统不需要服务</a></li>
+<li><a href="#10%E8%AE%BE%E7%BD%AE-rsyslogd-%E5%92%8C-systemd-journald">10.设置 rsyslogd 和 systemd journald</a></li>
+<li><a href="#11%E6%8C%81%E4%B9%85%E5%8C%96%E4%BF%9D%E5%AD%98%E6%97%A5%E5%BF%97%E7%9A%84%E7%9B%AE%E5%BD%95">11.持久化保存日志的目录</a></li>
+<li><a href="#12%E5%8D%87%E7%BA%A7%E7%B3%BB%E7%BB%9F%E5%86%85%E6%A0%B8%E4%B8%BA-444">12.升级系统内核为 4.44</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/ceph/">
+              <h3 class="post-title">
+                ceph 
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

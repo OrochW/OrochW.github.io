@@ -1,0 +1,333 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>XIAOMI  AX3600刷大雕的openwrt | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="XIAOMI  AX3600刷大雕的openwrt | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="感谢
++天灵大佬解锁脚本
+https://github.com/shell-script/unlock-redmi-ax3000
++lean团队开发贡献
+1.先获取ssh
+1.1准备
+一台能插网线的电脑（Windows 需要安装 Putty..." />
+    <meta name="keywords" content="路由器" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              XIAOMI  AX3600刷大雕的openwrt
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-10-27
+              </span>
+              <span>
+                4 min read
+              </span>
+              
+                <a href="https://orochw.github.io/tag/TA05VrDg2/" class="post-tag">
+                  # 路由器
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>感谢<br>
++天灵大佬解锁脚本<br>
+https://github.com/shell-script/unlock-redmi-ax3000<br>
++lean团队开发贡献</p>
+<h1 id="1先获取ssh">1.先获取ssh</h1>
+<h2 id="11准备">1.1准备</h2>
+<p>一台能插网线的电脑（Windows 需要安装 Putty 和 WinSCP｜Mac 使用命令行即可）<br>
+另外一台已经是 openwrt 的路由器（打开了 SSH，用来当服务器）<br>
+下载好降级固件和解锁脚本<br>
+固件版本miwifi_r3600_firmware_5da25_1.0.17自行获取</p>
+<h2 id="12操作步骤">1.2操作步骤</h2>
+<p>打开小米路由器后台。记住地址栏的stok 记住小米路由器的后台密码(或许同wifi密码)<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221027173408.png" alt="" loading="lazy"><br>
+连上openwrt路由</p>
+<pre><code class="language-shell">sh wireless.sh
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221027172710.png" alt="" loading="lazy"><br>
+此脚本会修改wifi设置将openwrt路由器的5G连接<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221027172913.png" alt="" loading="lazy"><br>
+如上图所示</p>
+<pre><code class="language-shell">ssid=MEDIATEK-ARM-IS-GREAT
+password=ARE-YOU-OK
+运行完脚本会提示
+ For Redmi AX6 AX3000:
+       Open your browser, access the following URL:
+         http://192.168.31.1/cgi-bin/luci/;stok=/api/misystem/extendwifi_connect?ssid=MEDIATEK-ARM-IS-GREAT&amp;password=ARE-YOU-OK
+       If the return code is 0, then access this URL:
+         http://192.168.31.1/cgi-bin/luci/;stok=/api/xqsystem/oneclick_get_remote_token?username=xxx&amp;password=xxx&amp;nonce=xxx
+</code></pre>
+<blockquote>
+<p>(重点)<br>
+但是之前设置好的2.4G频段的无线信号SSID密码不会变<br>
+根据提示用浏览器访问</p>
+</blockquote>
+<pre><code class="language-html">http://192.168.31.1/cgi-bin/luci/;stok=xxx/api/misystem/extendwifi_connect?ssid=MEDIATEK-ARM-IS-GREAT&amp;password=ARE-YOU-OK
+如果出现
+{&quot;msg&quot;:&quot;dhcp failed!&quot;,&quot;code&quot;:1619}
+这样的提示
+就将ssid=MEDIATEK-ARM-IS-GREAT&amp;password=ARE-YOU-OK
+
+换成没有被脚本修改的2.4g的频段
+ssid=ElonMusk&amp;password=12345678
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221027174346.png" alt="" loading="lazy"><br>
+继续访问</p>
+<pre><code class="language-html">http://192.168.31.1/cgi-bin/luci/;stok=aeabaf2082a29dc3f563cc19076d804f/api/misystem/extendwifi_connect?ssid=ElonMusk&amp;password=01011301
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221027174454.png" alt="" loading="lazy"><br>
+继续</p>
+<pre><code class="language-html">http://192.168.31.1/cgi-bin/luci/;stok=aeabaf2082a29dc3f563cc19076d804f/api/xqsystem/oneclick_get_remote_token?username=xxx&amp;password=xxx&amp;nonce=xxx
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221027174548.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221027174640.png" alt="" loading="lazy"></p>
+<h1 id="2备份">2.备份</h1>
+<p>上述已经可以连接ssh<br>
+备份ssh</p>
+<pre><code class="language-shell">mkdir /tmp/syslogbackup/
+dd if=/dev/mtd9 of=/tmp/syslogbackup/mtd9
+</code></pre>
+<p>浏览器请求该地址下载备份</p>
+<pre><code>http://192.168.31.1/backup/log/mtd9
+</code></pre>
+<h1 id="3固化ssh">3.固化ssh</h1>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221027174917.png" alt="" loading="lazy"><br>
+上传图中的脚本到小米路由器</p>
+<pre><code class="language-shell">sh ax3000.sh unlock
+</code></pre>
+<p>然后在小米路由器 上执行脚本重启</p>
+<pre><code class="language-shell">sh ax3000.sh unlock
+</code></pre>
+<p>路由器会自行重启，重启后执行</p>
+<pre><code class="language-shell">sh ax3000.sh hack
+</code></pre>
+<p>ssh固完毕</p>
+<h1 id="4刷openwrt">4.刷openwrt</h1>
+<p>提到的文件皆要上传</p>
+<ul>
+<li>xiaomimtd12.bin 自行获取</li>
+<li>ax3600-mibib.bin  此为收费文件不公开</li>
+<li>uboot-xiaomi-ax3600.bin 此为收费文件不公开</li>
+</ul>
+<h2 id="41修改env">4.1修改env</h2>
+<pre><code class="language-shell">nvram set flag_last_success=0
+nvram set flag_boot_rootfs=0
+nvram set boot_wait=on
+nvram set uart_en=1
+nvram set telnet_en=1
+nvram set ssh_en=1
+nvram commit
+</code></pre>
+<h2 id="42刷入qsdk固件">4.2刷入qsdk固件</h2>
+<pre><code class="language-shell">mtd write xiaomimtd12.bin rootfs
+</code></pre>
+<p>拔电重启</p>
+<h2 id="43刷入uboot和大分区">4.3刷入Uboot和大分区</h2>
+<pre><code>刷ax3600-mibib.bin 大分区合并
+mtd erase /dev/mtd1
+mtd write ax3600-mibib.bin /dev/mtd1
+刷不死uboot
+mtd erase /dev/mtd7
+mtd write uboot-xiaomi-ax3600.bin /dev/mtd7
+</code></pre>
+<p>重启路由器进uboot完活</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#1%E5%85%88%E8%8E%B7%E5%8F%96ssh">1.先获取ssh</a>
+<ul>
+<li><a href="#11%E5%87%86%E5%A4%87">1.1准备</a></li>
+<li><a href="#12%E6%93%8D%E4%BD%9C%E6%AD%A5%E9%AA%A4">1.2操作步骤</a></li>
+</ul>
+</li>
+<li><a href="#2%E5%A4%87%E4%BB%BD">2.备份</a></li>
+<li><a href="#3%E5%9B%BA%E5%8C%96ssh">3.固化ssh</a></li>
+<li><a href="#4%E5%88%B7openwrt">4.刷openwrt</a>
+<ul>
+<li><a href="#41%E4%BF%AE%E6%94%B9env">4.1修改env</a></li>
+<li><a href="#42%E5%88%B7%E5%85%A5qsdk%E5%9B%BA%E4%BB%B6">4.2刷入qsdk固件</a></li>
+<li><a href="#43%E5%88%B7%E5%85%A5uboot%E5%92%8C%E5%A4%A7%E5%88%86%E5%8C%BA">4.3刷入Uboot和大分区</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/kubernetes-de-node-qin-he-andpod-qin-he/">
+              <h3 class="post-title">
+                kubernetes的node亲和&amp;pod亲和
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

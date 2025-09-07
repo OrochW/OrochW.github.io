@@ -1,0 +1,374 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>kubernetes Ingress tls的部署案例 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="kubernetes Ingress tls的部署案例 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="1.安装ingress 按照官方文档我已经安装完成了
+[root@master-etcd1-234-31 ingress]# kubectl get pods -n ingress-nginx
+NAME                   ..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              kubernetes Ingress tls的部署案例
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-08-07
+              </span>
+              <span>
+                11 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="1安装ingress-按照官方文档我已经安装完成了">1.安装ingress 按照官方文档我已经安装完成了</h2>
+<pre><code class="language-bash">[root@master-etcd1-234-31 ingress]# kubectl get pods -n ingress-nginx
+NAME                                      READY   STATUS      RESTARTS       AGE
+ingress-nginx-admission-create--1-6v54t   0/1     Completed   0              17h
+ingress-nginx-admission-patch--1-cbhbq    0/1     Completed   0              17h
+ingress-nginx-controller-2j7kr            1/1     Running     1 (106m ago)   16h
+ingress-nginx-controller-5gfwf            1/1     Running     1 (106m ago)   16h
+ingress-nginx-controller-cp8m4            1/1     Running     1 (106m ago)   16h
+ingress-nginx-controller-jggwn            1/1     Running     1 (107m ago)   16h
+ingress-nginx-controller-t4g4s            1/1     Running     6 (106m ago)   16h
+ingress-nginx-controller-xshjn            1/1     Running     6 (106m ago)   16h
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220807145734.png" alt="" loading="lazy"></figure>
+<h2 id="2安装部署ingress-tls">2.安装部署ingress tls</h2>
+<pre><code class="language-bash">[root@master-etcd1-234-31 ingress]# kubectl get pods -n ingress-nginx
+NAME                                      READY   STATUS      RESTARTS       AGE
+ingress-nginx-admission-create--1-6v54t   0/1     Completed   0              17h
+ingress-nginx-admission-patch--1-cbhbq    0/1     Completed   0              17h
+ingress-nginx-controller-2j7kr            1/1     Running     1 (106m ago)   16h
+ingress-nginx-controller-5gfwf            1/1     Running     1 (106m ago)   16h
+ingress-nginx-controller-cp8m4            1/1     Running     1 (106m ago)   16h
+ingress-nginx-controller-jggwn            1/1     Running     1 (107m ago)   16h
+ingress-nginx-controller-t4g4s            1/1     Running     6 (106m ago)   16h
+ingress-nginx-controller-xshjn            1/1     Running     6 (106m ago)   16h
+total 4
+-rw-r--r-- 1 root root 3939 Aug  7 14:50 ingress-tls.yaml
+[root@master-etcd1-234-31 ingress]# bash ~/secret/1k-key-crt.sh
+请输入要签发证书的域名：www.orochw.com
+Generating RSA private key, 4096 bit long modulus
+...........................................................................................++
+.............++
+e is 65537 (0x10001)
+Signature ok
+subject=/C=CN/ST=BeiJing/L=BeiJing/O=pskzs/CN=PSKZS CA Center
+Getting Private key
+Generating RSA private key, 2048 bit long modulus
+.........................................+++
+.........................................................................+++
+e is 65537 (0x10001)
+Signature ok
+subject=/C=CN/ST=BeiJing/L=BeiJing/O=pskzs/CN=www.orochw.com
+Getting CA Private Key
+key:server.key
+crt:server.crt
+[root@master-etcd1-234-31 ingress]# ll
+total 32
+-rw-r--r-- 1 root root 1866 Aug  7 14:59 ca.crt
+-rw-r--r-- 1 root root 1679 Aug  7 14:59 ca.csr
+-rw-r--r-- 1 root root 3243 Aug  7 14:59 ca.key
+-rw-r--r-- 1 root root   17 Aug  7 14:59 ca.srl
+-rw-r--r-- 1 root root 3939 Aug  7 14:50 ingress-tls.yaml
+-rw-r--r-- 1 root root 1574 Aug  7 14:59 server.crt
+-rw-r--r-- 1 root root 1058 Aug  7 14:59 server.csr
+-rw-r--r-- 1 root root 1675 Aug  7 14:59 server.key
+drwxr-xr-x 2 root root   40 Aug  7 14:59 www.orochw.com
+</code></pre>
+<p>使用的一键签发证书的脚本<br>
+https://raw.githubusercontent.com/OrochW/scripts/master/1k-key-crt.sh</p>
+<h2 id="3-创建一个secret为ingress使用">3. 创建一个secret为ingress使用</h2>
+<pre><code class="language-bash">kubectl  create secret generic tls-secret --from-file=tls.crt=server.crt --from-file=tls.key=server.key -n test
+</code></pre>
+<h3 id="31报错排错">3.1报错排错</h3>
+<pre><code class="language-bash">[root@master-etcd1-234-31 ingress]# kubectl apply -f  ingress-tls-single.yaml
+Error from server (BadRequest): error when creating &quot;ingress-tls-single.yaml&quot;: admission webhook &quot;validate.nginx.ingress.kubernetes.io&quot; denied the request: host &quot;www.orochw.com&quot; and path &quot;/&quot; is already defined in ingress test/tls-ingress
+[root@master-etcd1-234-31 ingress]#  kubectl get ValidatingWebhookConfiguration
+NAME                      WEBHOOKS   AGE
+ingress-nginx-admission   1          17h
+[root@master-etcd1-234-31 ingress]# kubectl delete -A ValidatingWebhookConfiguration ingress-nginx-admission
+validatingwebhookconfiguration.admissionregistration.k8s.io &quot;ingress-nginx-admission&quot; deleted
+[root@master-etcd1-234-31 ingress]# kubectl apply -f  ingress-tls-single.yaml
+ingress.networking.k8s.io/nginx-web created
+</code></pre>
+<h3 id="32-使用的namespace-pod-svc">3.2 使用的namespace &amp;&amp; pod  &amp;&amp; svc</h3>
+<pre><code class="language-bash">[root@master-etcd1-234-31 ingress]# kubectl get ns -A
+NAME              STATUS   AGE
+default           Active   24h
+ingress-nginx     Active   17h
+kube-node-lease   Active   24h
+kube-public       Active   24h
+kube-system       Active   24h
+linux             Active   22h
+test              Active   16h
+python            Active   22h
+
+
+[root@master-etcd1-234-31 ingress]# kubectl get pod -A -o wide
+NAMESPACE       NAME                                             READY   STATUS      RESTARTS       AGE   IP               NODE             NOMINATED NODE   READINESS GATES
+default         net-test-centos-pod3                             1/1     Running     1 (151m ago)   22h   10.20.214.140    192.168.234.41   &lt;none&gt;           &lt;none&gt;
+ingress-nginx   ingress-nginx-admission-create--1-6v54t          0/1     Completed   0              17h   &lt;none&gt;           192.168.234.41   &lt;none&gt;           &lt;none&gt;
+ingress-nginx   ingress-nginx-admission-patch--1-cbhbq           0/1     Completed   0              17h   &lt;none&gt;           192.168.234.43   &lt;none&gt;           &lt;none&gt;
+ingress-nginx   ingress-nginx-controller-2j7kr                   1/1     Running     1 (151m ago)   17h   192.168.234.43   192.168.234.43   &lt;none&gt;           &lt;none&gt;
+ingress-nginx   ingress-nginx-controller-5gfwf                   1/1     Running     1 (151m ago)   17h   192.168.234.41   192.168.234.41   &lt;none&gt;           &lt;none&gt;
+ingress-nginx   ingress-nginx-controller-cp8m4                   1/1     Running     1 (151m ago)   17h   192.168.234.42   192.168.234.42   &lt;none&gt;           &lt;none&gt;
+ingress-nginx   ingress-nginx-controller-jggwn                   1/1     Running     1 (152m ago)   17h   192.168.234.31   192.168.234.31   &lt;none&gt;           &lt;none&gt;
+ingress-nginx   ingress-nginx-controller-t4g4s                   1/1     Running     6 (151m ago)   17h   192.168.234.33   192.168.234.33   &lt;none&gt;           &lt;none&gt;
+ingress-nginx   ingress-nginx-controller-xshjn                   1/1     Running     6 (151m ago)   17h   192.168.234.32   192.168.234.32   &lt;none&gt;           &lt;none&gt;
+kube-system     calico-kube-controllers-59df8b6856-8qkd5         1/1     Running     2 (157m ago)   24h   192.168.234.43   192.168.234.43   &lt;none&gt;           &lt;none&gt;
+kube-system     calico-node-27wpq                                1/1     Running     3 (151m ago)   24h   192.168.234.33   192.168.234.33   &lt;none&gt;           &lt;none&gt;
+kube-system     calico-node-67vv9                                1/1     Running     4 (152m ago)   24h   192.168.234.31   192.168.234.31   &lt;none&gt;           &lt;none&gt;
+kube-system     calico-node-nkkgv                                1/1     Running     2 (151m ago)   24h   192.168.234.41   192.168.234.41   &lt;none&gt;           &lt;none&gt;
+kube-system     calico-node-rmztm                                1/1     Running     2 (151m ago)   24h   192.168.234.43   192.168.234.43   &lt;none&gt;           &lt;none&gt;
+kube-system     calico-node-v848h                                1/1     Running     2 (151m ago)   24h   192.168.234.32   192.168.234.32   &lt;none&gt;           &lt;none&gt;
+kube-system     calico-node-wf2v6                                1/1     Running     2 (151m ago)   24h   192.168.234.42   192.168.234.42   &lt;none&gt;           &lt;none&gt;
+linux           linux-nginx-deployment-5cd9566d7f-qh8b4          1/1     Running     1 (151m ago)   21h   10.20.216.205    192.168.234.42   &lt;none&gt;           &lt;none&gt;
+linux           linux-tomcat-app1-deployment-6f8864d5d9-8ljqc    1/1     Running     1 (151m ago)   21h   10.20.146.74     192.168.234.43   &lt;none&gt;           &lt;none&gt;
+linux           net-test-centos-pod1                             1/1     Running     1 (151m ago)   22h   10.20.216.204    192.168.234.42   &lt;none&gt;           &lt;none&gt;
+test            test-tomcat-app1-deployment-6b6b655ddc-dqhbw     1/1     Running     1 (151m ago)   16h   10.20.214.141    192.168.234.41   &lt;none&gt;           &lt;none&gt;
+test            test-tomcat-app2-deployment-555d558d49-6jvhh     1/1     Running     1 (151m ago)   16h   10.20.146.73     192.168.234.43   &lt;none&gt;           &lt;none&gt;
+python          net-test-centos-pod2                             1/1     Running     1 (151m ago)   22h   10.20.146.75     192.168.234.43   &lt;none&gt;           &lt;none&gt;
+python          python-nginx-deployment-7bbc6bf578-bmq6r         1/1     Running     1 (151m ago)   21h   10.20.214.142    192.168.234.41   &lt;none&gt;           &lt;none&gt;
+python          python-tomcat-app1-deployment-6b795c66d5-bh97w   1/1     Running     1 (151m ago)   21h   10.20.216.203    192.168.234.42   &lt;none&gt;           &lt;none&gt;
+
+
+[root@master-etcd1-234-31 ingress]# kubectl get svc -A
+NAMESPACE       NAME                                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+default         kubernetes                           ClusterIP   10.100.0.1       &lt;none&gt;        443/TCP                      24h
+ingress-nginx   ingress-nginx-controller-admission   ClusterIP   10.100.71.67     &lt;none&gt;        443/TCP                      17h
+linux           linux-nginx-service                  NodePort    10.100.56.67     &lt;none&gt;        80:30004/TCP,443:30443/TCP   21h
+linux           linux-tomcat-app1-service            NodePort    10.100.117.202   &lt;none&gt;        80:30005/TCP                 21h
+test            test-tomcat-app1-service             NodePort    10.100.78.216    &lt;none&gt;        80:30080/TCP                 16h
+test            test-tomcat-app2-service             NodePort    10.100.190.157   &lt;none&gt;        80:30081/TCP                 16h
+python          python-nginx-service                 NodePort    10.100.154.110   &lt;none&gt;        80:30014/TCP,443:30453/TCP   21h
+python          python-tomcat-app1-service           NodePort    10.100.188.3     &lt;none&gt;        80:30015/TCP                 21h
+</code></pre>
+<h2 id="4编辑ingress的yaml文件">4.编辑ingress的yaml文件</h2>
+<pre><code class="language-bash">#apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-web
+  namespace: test ##namespace
+  annotations:
+    kubernetes.io/ingress.class: &quot;nginx&quot; ##指定Ingress Controller的类型
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true' #SSL重定向，即将http请求强制重定向至https，等于nginx中的全站https
+spec:
+  tls:
+  - hosts:
+    - www.orochw.com #使用tls的域名
+    secretName: tls-secret #刚创建的secret名字
+  rules:
+  - host: www.orochw.com #域名
+    http:
+      paths:
+      - pathType: Prefix
+        path: &quot;/&quot;
+        backend:
+          service:
+            name: test-tomcat-app1-service  ## 访问http://www.orochw.com 强制转到回https://www.orochw.com 访问orochw的根直接跳到test-tomcat-app1-service
+            port:
+              number: 80
+
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220807154548.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220807154610.png" alt="" loading="lazy"></p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#1%E5%AE%89%E8%A3%85ingress-%E6%8C%89%E7%85%A7%E5%AE%98%E6%96%B9%E6%96%87%E6%A1%A3%E6%88%91%E5%B7%B2%E7%BB%8F%E5%AE%89%E8%A3%85%E5%AE%8C%E6%88%90%E4%BA%86">1.安装ingress 按照官方文档我已经安装完成了</a></li>
+<li><a href="#2%E5%AE%89%E8%A3%85%E9%83%A8%E7%BD%B2ingress-tls">2.安装部署ingress tls</a></li>
+<li><a href="#3-%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AAsecret%E4%B8%BAingress%E4%BD%BF%E7%94%A8">3. 创建一个secret为ingress使用</a>
+<ul>
+<li><a href="#31%E6%8A%A5%E9%94%99%E6%8E%92%E9%94%99">3.1报错排错</a></li>
+<li><a href="#32-%E4%BD%BF%E7%94%A8%E7%9A%84namespace-pod-svc">3.2 使用的namespace &amp;&amp; pod  &amp;&amp; svc</a></li>
+</ul>
+</li>
+<li><a href="#4%E7%BC%96%E8%BE%91ingress%E7%9A%84yaml%E6%96%87%E4%BB%B6">4.编辑ingress的yaml文件</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/kubernetes-pvandpvc-shi-ji-an-li/">
+              <h3 class="post-title">
+                kubernetes pv&amp;pvc实际案例
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

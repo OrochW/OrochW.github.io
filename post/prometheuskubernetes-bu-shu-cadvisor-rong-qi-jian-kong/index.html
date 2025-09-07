@@ -1,0 +1,567 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>prometheus+kubernetes部署cadvisor容器监控 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="prometheus+kubernetes部署cadvisor容器监控 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="1.通过daemonset 安装cadvisor
+让所有的kubernetes节点安装cadvisor
+github项目官网
+
+可供参考的yaml文件
+https://github.com/google/cadvisor/blob/mast..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              prometheus+kubernetes部署cadvisor容器监控
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-11-03
+              </span>
+              <span>
+                6 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h1 id="1通过daemonset-安装cadvisor">1.通过daemonset 安装cadvisor</h1>
+<p>让所有的kubernetes节点安装cadvisor<br>
+<a href="!https://github.com/google/cadvisor">github项目官网</a></p>
+<blockquote>
+<p>可供参考的yaml文件<br>
+https://github.com/google/cadvisor/blob/master/deploy/kubernetes/base/daemonset.yaml<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221103015714.png" alt="" loading="lazy"><br>
+下载github镜像上传到本地的harbo仓库</p>
+</blockquote>
+<pre><code class="language-shell">docker pull gcr.io/cadvisor/cadvisor-amd64:v0.45.0
+docker tag gcr.io/cadvisor/cadvisor-amd64:v0.45.0 192.168.234.121/baseimages/cadvisor:v0.45.0
+docker push 192.168.234.121/baseimages/cadvisor:v0.45.0
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221103020055.png" alt="" loading="lazy"></figure>
+<h1 id="2修改好github的yaml文件">2.修改好github的yaml文件</h1>
+<pre><code class="language-shell">#创建一个monitoring的namespace
+kubectl create ns monitoring
+</code></pre>
+<pre><code class="language-shell">cat 1.daemonset-deploy-cadvisor
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cadvisor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: cAdvisor
+  template:
+    metadata:
+      labels:
+        app: cAdvisor
+    spec:
+      tolerations:    #污点容忍,忽略master的NoSchedule
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+      hostNetwork: true
+      restartPolicy: Always   # 重启策略
+      containers:
+      - name: cadvisor
+        image: 192.168.234.121/baseimages/cadvisor:v0.45.0
+        imagePullPolicy: IfNotPresent  # 镜像策略
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+          - name: root
+            mountPath: /rootfs
+          - name: run
+            mountPath: /var/run
+          - name: sys
+            mountPath: /sys
+          - name: docker
+            mountPath: /var/lib/containerd
+      volumes:
+      - name: root
+        hostPath:
+          path: /
+      - name: run
+        hostPath:
+          path: /var/run
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: docker
+        hostPath:
+          path: /var/lib/containerd
+
+</code></pre>
+<p>验证<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221103020424.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221103020503.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221103020533.png" alt="" loading="lazy"></p>
+<h1 id="3k8s部署prometheus的node-exporter在所有node节点上">3.K8S部署prometheus的node-exporter在所有node节点上</h1>
+<pre><code class="language-shell">cat  2.daemonset-deploy-node-exporter.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: monitoring 
+  labels:
+    k8s-app: node-exporter
+spec:
+  selector:
+    matchLabels:
+        k8s-app: node-exporter
+  template:
+    metadata:
+      labels:
+        k8s-app: node-exporter
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+      containers:
+      - image: prom/node-exporter:v1.3.1 
+        imagePullPolicy: IfNotPresent
+        name: prometheus-node-exporter
+        ports:
+        - containerPort: 9100
+          hostPort: 9100
+          protocol: TCP
+          name: metrics
+        volumeMounts:
+        - mountPath: /host/proc
+          name: proc
+        - mountPath: /host/sys
+          name: sys
+        - mountPath: /host
+          name: rootfs
+        args:
+        - --path.procfs=/host/proc
+        - --path.sysfs=/host/sys
+        - --path.rootfs=/host
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: rootfs
+          hostPath:
+            path: /
+      hostNetwork: true
+      hostPID: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: &quot;true&quot;
+  labels:
+    k8s-app: node-exporter
+  name: node-exporter
+  namespace: monitoring 
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 9100
+    nodePort: 39100
+    protocol: TCP
+  selector:
+    k8s-app: node-exporter
+
+</code></pre>
+<p>验证<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221103161007.png" alt="" loading="lazy"></p>
+<h1 id="4-在所有node-exporter中选择一个部署prometheus的server端">4. 在所有node-exporter中选择一个部署prometheus的server端</h1>
+<h2 id="41准备好prometheus的配置文件">4.1准备好prometheus的配置文件</h2>
+<pre><code class="language-shell">cat 3.1-prometheus-cfg.yaml
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  labels:
+    app: prometheus
+  name: prometheus-config
+  namespace: monitoring 
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      scrape_timeout: 10s
+      evaluation_interval: 1m
+    scrape_configs:
+    - job_name: 'kubernetes-node'
+      kubernetes_sd_configs:
+      - role: node
+      relabel_configs:
+      - source_labels: [__address__]
+        regex: '(.*):10250'
+        replacement: '${1}:9100'
+        target_label: __address__
+        action: replace
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+    - job_name: 'kubernetes-node-cadvisor'
+      kubernetes_sd_configs:
+      - role:  node
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+
+    - job_name: 'kubernetes-service-endpoints'
+      kubernetes_sd_configs:
+      - role: endpoints
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+        action: replace
+        target_label: __scheme__
+        regex: (https?)
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+      - action: labelmap
+        regex: __meta_kubernetes_service_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        action: replace
+        target_label: kubernetes_name
+
+
+
+    - job_name: 'kubernetes-apiserver'
+      kubernetes_sd_configs:
+      - role: endpoints
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+</code></pre>
+<h2 id="42部署prometheus-server">4.2部署prometheus-server</h2>
+<pre><code class="language-shell">cat 3.2prometheus-deployment.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-server
+  namespace: monitoring
+  labels:
+    app: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+      component: server
+    #matchExpressions:
+    #- {key: app, operator: In, values: [prometheus]}
+    #- {key: component, operator: In, values: [server]}
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        component: server
+      annotations:
+        prometheus.io/scrape: 'false'
+    spec:
+      nodeName: 192.168.234.43 #选择集群node43当prometheus的server
+      serviceAccountName: monitor
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v2.31.2
+        imagePullPolicy: IfNotPresent
+        command:
+          - prometheus
+          - --config.file=/etc/prometheus/prometheus.yml
+          - --storage.tsdb.path=/prometheus
+          - --storage.tsdb.retention=720h
+        ports:
+        - containerPort: 9090
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /etc/prometheus/prometheus.yml
+          name: prometheus-config
+          subPath: prometheus.yml
+        - mountPath: /prometheus/
+          name: prometheus-storage-volume
+      volumes:
+        - name: prometheus-config
+          configMap:
+            name: prometheus-config
+            items:
+              - key: prometheus.yml
+                path: prometheus.yml
+                mode: 0644
+        - name: prometheus-storage-volume
+          hostPath:
+           path: /data/prometheusdata
+           type: Directory
+
+</code></pre>
+<h2 id="43暴露端口给grafana">4.3暴露端口给grafana</h2>
+<pre><code class="language-shell">cat 3.3prometheus-svc.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app: prometheus
+spec:
+  type: NodePort
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 30090
+      protocol: TCP
+  selector:
+    app: prometheus
+    component: server
+
+</code></pre>
+<h1 id="5修改prometheus的配置文件">5.修改prometheus的配置文件</h1>
+<pre><code class="language-shell">scrape_configs:
+  # The job name is added as a label `job=&lt;job_name&gt;` to any timeseries scraped from this config.
+  - job_name: &quot;prometheus&quot;
+
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+
+    static_configs:
+      - targets: [&quot;localhost:9090&quot;]
+#prometheus-node
+  - job_name: &quot;prometheus-node&quot;
+    static_configs:
+      - targets: [&quot;192.168.234.121:9100&quot;]
+#prometheus-node
+  - job_name: &quot;prometheus-k8s&quot;
+    static_configs:
+      - targets: [&quot;192.168.234.43:9100&quot;]
+#prometheus-pod
+  - job_name: &quot;prometheus-pod&quot;
+    static_configs:
+      - targets: [&quot;192.168.234.31:9100&quot;,&quot;192.168.234.32:9100&quot;,&quot;192.168.234.33:9100&quot;,&quot;192.168.234.41:9100&quot;,&quot;192.168.234.42:9100&quot;,&quot;192.168.234.43:9100&quot;]
+~
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221103161731.png" alt="" loading="lazy"></figure>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#1%E9%80%9A%E8%BF%87daemonset-%E5%AE%89%E8%A3%85cadvisor">1.通过daemonset 安装cadvisor</a></li>
+<li><a href="#2%E4%BF%AE%E6%94%B9%E5%A5%BDgithub%E7%9A%84yaml%E6%96%87%E4%BB%B6">2.修改好github的yaml文件</a></li>
+<li><a href="#3k8s%E9%83%A8%E7%BD%B2prometheus%E7%9A%84node-exporter%E5%9C%A8%E6%89%80%E6%9C%89node%E8%8A%82%E7%82%B9%E4%B8%8A">3.K8S部署prometheus的node-exporter在所有node节点上</a></li>
+<li><a href="#4-%E5%9C%A8%E6%89%80%E6%9C%89node-exporter%E4%B8%AD%E9%80%89%E6%8B%A9%E4%B8%80%E4%B8%AA%E9%83%A8%E7%BD%B2prometheus%E7%9A%84server%E7%AB%AF">4. 在所有node-exporter中选择一个部署prometheus的server端</a>
+<ul>
+<li><a href="#41%E5%87%86%E5%A4%87%E5%A5%BDprometheus%E7%9A%84%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6">4.1准备好prometheus的配置文件</a></li>
+<li><a href="#42%E9%83%A8%E7%BD%B2prometheus-server">4.2部署prometheus-server</a></li>
+<li><a href="#43%E6%9A%B4%E9%9C%B2%E7%AB%AF%E5%8F%A3%E7%BB%99grafana">4.3暴露端口给grafana</a></li>
+</ul>
+</li>
+<li><a href="#5%E4%BF%AE%E6%94%B9prometheus%E7%9A%84%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6">5.修改prometheus的配置文件</a></li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/xiaomi-ax3600-shua-da-diao-de-openwrt/">
+              <h3 class="post-title">
+                XIAOMI  AX3600刷大雕的openwrt
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

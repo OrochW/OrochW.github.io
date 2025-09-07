@@ -1,0 +1,417 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>kubernetes添加升级master和node | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="kubernetes添加升级master和node | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="目前只有2个master和2个node节点
+[root@master-etcd1-234-31 sbin]# kubectl get nodes
+NAME             STATUS                     ROL..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              kubernetes添加升级master和node
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-07-21
+              </span>
+              <span>
+                12 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>目前只有2个master和2个node节点</p>
+<pre><code class="language-bash">[root@master-etcd1-234-31 sbin]# kubectl get nodes
+NAME             STATUS                     ROLES    AGE     VERSION
+192.168.234.31   Ready,SchedulingDisabled   master   2d18h   v1.24.2
+192.168.234.32   Ready,SchedulingDisabled   master   2d18h   v1.24.2
+192.168.234.41   Ready                      node     2d18h   v1.24.2
+192.168.234.42   Ready                      node     2d18h   v1.24.2
+</code></pre>
+<p>因为安装的kubernetes是用的github上面的项目安装的<br>
+所以还是用安装kubernetes的工具来添加master和node</p>
+<h2 id="1添加master节点">1.添加master节点</h2>
+<p>因为是kubeasz 安装的所以添加节点还是要用kubeasz工具</p>
+<pre><code class="language-bash">#之前安装执行的
+#dk ezctl setup k8s-01 01
+#添加节点也用dk命令
+[root@master-etcd1-234-31 sbin]# dk ezctl add-master k8s-01 192.168.234.33
+/root/.bashrc: line 14: kubectl: command not found
+ln: failed to create symbolic link ‘/usr/bin/python’: File exists
+
+2022-07-21 09:42:22 INFO add 192.168.234.33 into 'kube_master' group
+2022-07-21 09:42:22 INFO start to add a master node:192.168.234.33 into cluster:k8s-01
+…………………………………………………………………………………………………………
+TASK [ex-lb : 创建l4lb的配置文件] *******************************************************************************************************************************************************************************************************************************************************************
+fatal: [192.168.234.33]: FAILED! =&gt; {&quot;changed&quot;: false, &quot;checksum&quot;: &quot;7e5b87b5deb96119be37b177ec9f83c051405043&quot;, &quot;msg&quot;: &quot;Destination directory /etc/l4lb/conf does not exist&quot;}
+fatal: [192.168.234.32]: FAILED! =&gt; {&quot;changed&quot;: false, &quot;checksum&quot;: &quot;7e5b87b5deb96119be37b177ec9f83c051405043&quot;, &quot;msg&quot;: &quot;Destination directory /etc/l4lb/conf does not exist&quot;}
+fatal: [192.168.234.31]: FAILED! =&gt; {&quot;changed&quot;: false, &quot;checksum&quot;: &quot;7e5b87b5deb96119be37b177ec9f83c051405043&quot;, &quot;msg&quot;: &quot;Destination directory /etc/l4lb/conf does not exist&quot;}
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.234.31             : ok=3    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+192.168.234.32             : ok=3    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+192.168.234.33             : ok=3    changed=1    unreachable=0    failed=1    skipped=0    rescued=0    ignored=0
+[root@master-etcd1-234-31 sbin]# kubectl get nodes
+NAME             STATUS                     ROLES    AGE     VERSION
+192.168.234.31   Ready,SchedulingDisabled   master   2d18h   v1.24.2
+192.168.234.32   Ready,SchedulingDisabled   master   2d18h   v1.24.2
+192.168.234.33   Ready,SchedulingDisabled   master   5m42s   v1.24.2
+192.168.234.41   Ready                      node     2d18h   v1.24.2
+192.168.234.42   Ready                      node     2d18h   v1.24.2
+</code></pre>
+<h2 id="2添加node节点相同">2.添加node节点相同</h2>
+<pre><code>[root@master-etcd1-234-31 sbin]# dk ezctl add-node k8s-01 192.168.234.43
+————————————————————————————————
+TASK [calico : 轮询等待calico-node 运行，视下载镜像速度而定] *************************************************************************************************************************************************************************************************************************************************
+changed: [192.168.234.43]
+
+PLAY RECAP ***********************************************************************************************************************************************************************************************************************************************************************************
+192.168.234.43             : ok=82   changed=74   unreachable=0    failed=0    skipped=168  rescued=0    ignored=0
+
+[root@master-etcd1-234-31 sbin]# kubectl get nodes
+NAME             STATUS                     ROLES    AGE     VERSION
+192.168.234.31   Ready,SchedulingDisabled   master   2d18h   v1.24.2
+192.168.234.32   Ready,SchedulingDisabled   master   2d18h   v1.24.2
+192.168.234.33   Ready,SchedulingDisabled   master   10m     v1.24.2
+192.168.234.41   Ready                      node     2d18h   v1.24.2
+192.168.234.42   Ready                      node     2d18h   v1.24.2
+192.168.234.43   Ready                      node     23s     v1.24.2
+
+</code></pre>
+<p>删除同理</p>
+<h2 id="3升级master3">3.升级master3</h2>
+<p>查看现在K8s的版本为1.24.2</p>
+<pre><code class="language-bash">[root@master-etcd1-234-31 sbin]# kubectl get nodes
+NAME             STATUS                        ROLES    AGE     VERSION
+192.168.234.31   Ready,SchedulingDisabled      master   2d21h   v1.24.2
+192.168.234.32   Ready,SchedulingDisabled      master   2d21h   v1.24.2
+192.168.234.33   NotReady,SchedulingDisabled   master   161m    v1.24.2
+192.168.234.41   Ready                         node     2d21h   v1.24.2
+192.168.234.42   Ready                         node     2d21h   v1.24.2
+192.168.234.43   Ready                         node     151m    v1.24.2
+</code></pre>
+<p>haproxy负载均衡器先停掉转到master3的请求还有停K8s自带的kube-lb负载均衡器</p>
+<pre><code class="language-bash">[root@master-etcd3-234-33 ~]# cat /etc/haproxy/haproxy.cfg
+listen k8s-6443
+        bind 192.168.234.61:6443
+        mode  tcp
+        server 192.168.234.31 192.168.234.31:6443 check inter 2s fall 3 rise 3
+        server 192.168.234.32 192.168.234.32:6443 check inter 2s fall 3 rise 3
+#       server 192.168.234.33 192.168.234.33:6443 check inter 2s fall 3 rise 3
+[root@master-etcd3-234-33 ~]# systemctl reload haproxy.service
+[root@master-etcd1-234-31 sbin]# vim /etc/kube-lb/conf/kube-lb.conf
+user root;
+worker_processes 1;
+
+error_log  /etc/kube-lb/logs/error.log warn;
+
+events {
+    worker_connections  3000;
+}
+
+stream {
+    upstream backend {
+        server 192.168.234.33:6443    max_fails=2 fail_timeout=3s;
+        server 192.168.234.31:6443    max_fails=2 fail_timeout=3s;
+#        server 192.168.234.32:6443    max_fails=2 fail_timeout=3s;
+    }
+
+    server {
+        listen 127.0.0.1:6443;
+        proxy_connect_timeout 1s;
+        proxy_pass backend;
+    }
+}
+[root@master-etcd1-234-31 sbin]# systemctl status kube-lb.service
+● kube-lb.service - l4 nginx proxy for kube-apiservers
+   Loaded: loaded (/etc/systemd/system/kube-lb.service; enabled; vendor preset: disabled)
+   Active: active (running) since Thu 2022-07-21 17:43:56 CST; 2h 42min ago
+  Process: 24791 ExecStart=/etc/kube-lb/sbin/kube-lb -c /etc/kube-lb/conf/kube-lb.conf -p /etc/kube-lb (code=exited, status=0/SUCCESS)
+  Process: 24783 ExecStartPre=/etc/kube-lb/sbin/kube-lb -c /etc/kube-lb/conf/kube-lb.conf -p /etc/kube-lb -t (code=exited, status=0/SUCCESS)
+ Main PID: 24795 (kube-lb)
+    Tasks: 2
+   Memory: 1.6M
+   CGroup: /system.slice/kube-lb.service
+           ├─24795 nginx: master process /etc/kube-lb/sbin/kube-lb -c /etc/kube-lb/conf/kube-lb.conf -p /etc/kube-lb
+           └─24796 nginx: worker process
+
+Jul 21 17:43:55 master-etcd1-234-31 systemd[1]: Starting l4 nginx proxy for kube-apiservers...
+Jul 21 17:43:55 master-etcd1-234-31 kube-lb[24783]: nginx: the configuration file /etc/kube-lb/conf/kube-lb.conf syntax is ok
+Jul 21 17:43:55 master-etcd1-234-31 kube-lb[24783]: nginx: configuration file /etc/kube-lb/conf/kube-lb.conf test is successful
+Jul 21 17:43:56 master-etcd1-234-31 systemd[1]: Started l4 nginx proxy for kube-apiservers.
+[root@master-etcd1-234-31 sbin]# systemctl reload kube-lb.service
+
+</code></pre>
+<p>然后开始升级master3</p>
+<pre><code class="language-bash">[root@master-etcd3-234-33 ~]# kube
+kube-apiserver           kube-controller-manager  kubectl                  kubelet                  kube-proxy               kube-scheduler
+[root@master-etcd3-234-33 ~]# systemctl restart kube-apiserver kube-controller-manager kubelet kube-proxy kube-scheduler
+</code></pre>
+<p><a href="https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG/CHANGELOG-1.24.md">官方升级迭代日志</a><br>
+下载Clinet Binaies v1.24.3<br>
+https://dl.k8s.io/v1.24.3/kubernetes-client-darwin-amd64.tar.gz</p>
+<pre><code class="language-bash">[root@master-etcd3-234-33 bin]# pwd
+/usr/local/src/kubernetes-server/server/bin
+[root@master-etcd3-234-33 bin]# ll
+total 1089104
+-rw-r--r-- 1 root root  55402496 Jul 21 22:10 apiextensions-apiserver
+drwxr-xr-x 2 root root       114 Jul 21 22:11 binbak
+-rw-r--r-- 1 root root  44376064 Jul 21 22:09 kubeadm
+-rw-r--r-- 1 root root  49496064 Jul 21 22:10 kube-aggregator
+-rwxr-xr-x 1 root root 125865984 Jul 21 22:10 kube-apiserver
+-rw-r--r-- 1 root root         8 Jul 21 22:10 kube-apiserver.docker_tag
+-rw-r--r-- 1 root root 131066880 Jul 21 22:10 kube-apiserver.tar
+-rwxr-xr-x 1 root root 115515392 Jul 21 22:10 kube-controller-manager
+-rw-r--r-- 1 root root         8 Jul 21 22:10 kube-controller-manager.docker_tag
+-rw-r--r-- 1 root root 120716288 Jul 21 22:10 kube-controller-manager.tar
+-rw-r--r-- 1 root root  45711360 Jul 21 22:09 kubectl
+-rw-r--r-- 1 root root  55036584 Jul 21 22:09 kubectl-convert
+-rwxr-xr-x 1 root root 116013432 Jul 21 22:09 kubelet
+-rw-r--r-- 1 root root   1486848 Jul 21 22:10 kube-log-runner
+-rwxr-xr-x 1 root root  41762816 Jul 21 22:10 kube-proxy
+-rw-r--r-- 1 root root         8 Jul 21 22:10 kube-proxy.docker_tag
+-rw-r--r-- 1 root root 111863808 Jul 21 22:10 kube-proxy.tar
+-rwxr-xr-x 1 root root  47144960 Jul 21 22:09 kube-scheduler
+-rw-r--r-- 1 root root         8 Jul 21 22:09 kube-scheduler.docker_tag
+-rw-r--r-- 1 root root  52345856 Jul 21 22:09 kube-scheduler.tar
+-rw-r--r-- 1 root root   1413120 Jul 21 22:09 mounter
+[root@master-etcd3-234-33 bin]# mkdir binbak
+[root@master-etcd3-234-33 bin]# mv kube-apiserver  kube-controller-manager kube-scheduler kubelet kube-proxy /usr/local/src/kubernetes-server/server/bin/binbak/ ##移动备份k8s二进制命令
+[root@master-etcd3-234-33 bin]# chmod a+x kube-apiserver  kube-controller-manager kube-scheduler kubelet kube-proxy #给所有的要升级的master二进制文件加上x的权限
+[root@master-etcd3-234-33 bin]# cp  kube-apiserver  kube-controller-manager kube-scheduler kubelet kube-proxy  /usr/bin/ #复制升级的命令到 /usr/bin/
+[root@master-etcd3-234-33 bin]# systemctl restart kube-apiserver.service kube-controller-manager.service  kube-scheduler.service kubelet  kube-proxy.service #重启服务
+[root@master-etcd3-234-33 bin]# kubectl get nodes
+NAME             STATUS                     ROLES    AGE     VERSION
+192.168.234.31   Ready,SchedulingDisabled   master   2d23h   v1.24.2
+192.168.234.32   Ready,SchedulingDisabled   master   2d23h   v1.24.2
+192.168.234.33   Ready,SchedulingDisabled   master   4h32m   v1.24.3 #升级完成
+192.168.234.41   Ready                      node     2d23h   v1.24.2
+192.168.234.42   Ready                      node     2d23h   v1.24.2
+192.168.234.43   Ready                      node     4h23m   v1.24.2
+</code></pre>
+<h2 id="4升级node">4.升级node</h2>
+<p>同理只需要升级kube-proxy和kubelet就行</p>
+<pre><code class="language-bash">[root@master-etcd1-234-31 sbin]# kubectl get nodes
+NAME             STATUS                     ROLES    AGE     VERSION
+192.168.234.31   Ready,SchedulingDisabled   master   2d23h   v1.24.2
+192.168.234.32   Ready,SchedulingDisabled   master   2d23h   v1.24.2
+192.168.234.33   Ready,SchedulingDisabled   master   4h47m   v1.24.3
+192.168.234.41   Ready                      node     2d23h   v1.24.3
+192.168.234.42   Ready                      node     2d23h   v1.24.2
+192.168.234.43   Ready                      node     4h37m   v1.24.2
+</code></pre>
+<blockquote>
+<p>为了以后添加master和node节点是最新的版本<br>
+将kubeasz里面所有的二进制都替换掉</p>
+</blockquote>
+<pre><code class="language-bash">[root@master-etcd3-234-33 bin]# scp kube-apiserver  kube-controller-manager kube-scheduler kubelet kube-proxy  192.168.234.31:/etc/kubeasz/bin/
+[root@master-etcd1-234-31 bin]# ll
+total 972648
+-rwxr-xr-x 1 root root 125865984 Jun 15 22:34 kube-apiserver
+-rwxr-xr-x 1 root root 115507200 Jun 15 22:34 kube-controller-manager
+-rwxr-xr-x 1 root root  45711360 Jun 15 22:34 kubectl
+-rwxr-xr-x 1 root root 116353400 Jun 15 22:34 kubelet
+-rwxr-xr-x 1 root root  41762816 Jun 15 22:34 kube-proxy
+-rwxr-xr-x 1 root root  47144960 Jun 15 22:34 kube-scheduler
+[root@master-etcd1-234-31 bin]# ll
+total 972324
+-rwxr-xr-x 1 root root 125865984 Jul 21 22:37 kube-apiserver
+-rwxr-xr-x 1 root root 115515392 Jul 21 22:37 kube-controller-manager
+-rwxr-xr-x 1 root root  45711360 Jun 15 22:34 kubectl
+-rwxr-xr-x 1 root root 116013432 Jul 21 22:37 kubelet
+-rwxr-xr-x 1 root root  41762816 Jul 21 22:37 kube-proxy
+-rwxr-xr-x 1 root root  47144960 Jul 21 22:37 kube-scheduler
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#1%E6%B7%BB%E5%8A%A0master%E8%8A%82%E7%82%B9">1.添加master节点</a></li>
+<li><a href="#2%E6%B7%BB%E5%8A%A0node%E8%8A%82%E7%82%B9%E7%9B%B8%E5%90%8C">2.添加node节点相同</a></li>
+<li><a href="#3%E5%8D%87%E7%BA%A7master3">3.升级master3</a></li>
+<li><a href="#4%E5%8D%87%E7%BA%A7node">4.升级node</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/linux-shi-jian-tong-bu/">
+              <h3 class="post-title">
+                Linux 时间同步
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

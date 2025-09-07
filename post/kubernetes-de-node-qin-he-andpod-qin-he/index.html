@@ -1,0 +1,418 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>kubernetes的node亲和&amp;pod亲和 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="kubernetes的node亲和&amp;pod亲和 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="k8s的亲和性有node亲和和pod亲和3
+1.亲和性的Deployment模板
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name:  my-name
+  la..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              kubernetes的node亲和&amp;pod亲和
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-10-26
+              </span>
+              <span>
+                4 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>k8s的亲和性有node亲和和pod亲和3</p>
+<h1 id="1亲和性的deployment模板">1.亲和性的Deployment模板</h1>
+<pre><code class="language-shell">apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name:  my-name
+  labels:
+    name:  my-name
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name:  my-name
+    spec:
+      containers:
+      - image:  ipedrazas/docmock
+        name:  my-name
+</code></pre>
+<blockquote>
+<p>提前说明</p>
+</blockquote>
+<ul>
+<li>node亲和性是全局的</li>
+<li>pod的亲和性是ns下的</li>
+</ul>
+<h1 id="2node亲和">2.node亲和</h1>
+<pre><code class="language-shell">#示例1
+#节点亲和nodeSelector 同时满足
+      nodeSelector:
+        project: test
+        disktype: ssd
+        
+#示例2
+#硬要求nodeSelectorTerms匹配多个matchExpressions 只要满足任意matchExpressions中的任意一个即可
+      affinity:
+        nodeAffinity: #node亲和
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions: #匹配条件1,多个values可以调度
+              - key: disktype
+                operator: In
+                values:
+                - ssd # 只有一个value是匹配成功也可以调度
+                - hdd
+            - matchExpressions: #匹配条件2,多个matchExpressions加上以及每个matchExpressions values只有其中一个value匹配成功就可以调度
+              - key: project
+                operator: In
+                values:
+                - mmm  #即使这俩条件2的都匹配不上也可以调度
+                - nnn
+#要求disktype=ssd/hdd project=aaa/bbb 4个条件满足一个即可
+
+#示例3
+#硬限制nodeSelectorTerms匹配单个matchExpressions 要满足 disktype=ssd+project=test或者disktype=hdd+project=test
+      affinity:
+        nodeAffinity: #node亲和
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions: #匹配条件1
+              - key: disktype
+                operator: In
+                values:
+                - ssd
+                - hdd #同个key的多个value只有有一个匹配成功就行
+              - key: project #条件1和条件2必须同时满足,否则不调度
+                operator: In
+                values:
+                - test
+#组合disktype=ssd+project=test disktype=hdd+project=test 即可 二选1不存在其他情况
+
+#示例4
+#软限制亲和性
+      affinity:
+        nodeAffinity: #node亲和
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 80  #优先权重大的80
+            preference: 
+              matchExpressions: 
+              - key: project 
+                operator: In 
+                values: 
+                  - test
+          - weight: 60 #而后权重60
+            preference: 
+              matchExpressions: 
+              - key: disktype
+                operator: In 
+                values: 
+                  - ssdX
+#如果都没有按照schedule自行调度
+
+#示例5
+#优先硬限制匹配 不成功软限制
+      affinity:
+        nodeAffinity: #node亲和  NotIn 否定亲和
+          requiredDuringSchedulingIgnoredDuringExecution: #硬限制
+            nodeSelectorTerms:
+            - matchExpressions: #硬匹配条件1
+              - key: &quot;kubernetes.io/role&quot; 
+                operator: NotIn
+                values:
+                - &quot;master&quot; #硬性匹配key 的值kubernetes.io/role不包含master的节点,即绝对不会调度到master节点(node反亲和)
+          preferredDuringSchedulingIgnoredDuringExecution: #软限制
+          - weight: 80 
+            preference: 
+              matchExpressions: 
+              - key: project 
+                operator: In 
+                values: 
+                  - test
+          - weight: 100 
+            preference: 
+              matchExpressions: 
+              - key: disktype
+                operator: In 
+                values: 
+                  - ssd
+
+#示例6
+#节点反亲和
+      affinity:
+        nodeAffinity: #node亲和 NotIn 否定亲和
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions: #匹配条件1
+              - key: disktype
+                operator: NotIn
+                values:
+                - hdd #如果匹配disktype=hdd则绝对不会调度到hdd的节点
+</code></pre>
+<h1 id="3pod亲和">3.pod亲和</h1>
+<pre><code class="language-shell">#示例7
+#pod亲和性
+      affinity:
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: project 
+                  operator: In
+                  values:
+                    - python
+              topologyKey: kubernetes.io/hostname 
+              namespaces: 
+                - test
+#软限制权重如果将生成的pod调度到亲和性配置为project=python的pod宿主机上
+#说明 topologyKey 官方文档
+#Pod 反亲和性需要节点上存在一致性的标签。换言之， 集群中每个节点都必须拥有与 topologyKey 匹配的标签。 如果某些或者所有节点上不存在所指定的 topologyKey 标签，调度行为可能与预期的不同。
+
+#示例8
+#硬限制将pod调度到project=python的pod宿主机
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: project
+                operator: In
+                values:
+                  - python
+            topologyKey: &quot;kubernetes.io/hostname&quot;
+            namespaces:
+              - test
+
+#示例9
+#硬限制将pod不被调度到project=python的pod宿主机
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: project
+                operator: In
+                values:
+                  - python
+            topologyKey: &quot;kubernetes.io/hostname&quot;
+            namespaces:
+              - test
+
+#示例10
+#软限制反亲和 将要调度的pod匹配不被允许调度在project=python的宿主机
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: project 
+                  operator: In
+                  values:
+                    - python
+              topologyKey: kubernetes.io/hostname 
+              namespaces: 
+                - test
+
+</code></pre>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#1%E4%BA%B2%E5%92%8C%E6%80%A7%E7%9A%84deployment%E6%A8%A1%E6%9D%BF">1.亲和性的Deployment模板</a></li>
+<li><a href="#2node%E4%BA%B2%E5%92%8C">2.node亲和</a></li>
+<li><a href="#3pod%E4%BA%B2%E5%92%8C">3.pod亲和</a></li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/elk-ji-qun-de-bu-shu/">
+              <h3 class="post-title">
+                elk集群的部署
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

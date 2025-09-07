@@ -1,0 +1,925 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>kubernetes+elk的日志收集 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="kubernetes+elk的日志收集 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="一、搭建elk集群
+
+
+
+节点
+服务端口
+选举端口
+目录
+
+
+
+
+192.168.234.201
+9200
+9300
+/usr/local/src/node1
+
+
+192.168.234.201
+9201
+9301
+/usr/local/s..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              kubernetes+elk的日志收集
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-12-29
+              </span>
+              <span>
+                21 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h1 id="一-搭建elk集群">一、搭建elk集群</h1>
+<table>
+<thead>
+<tr>
+<th>节点</th>
+<th>服务端口</th>
+<th>选举端口</th>
+<th>目录</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>192.168.234.201</td>
+<td>9200</td>
+<td>9300</td>
+<td>/usr/local/src/node1</td>
+</tr>
+<tr>
+<td>192.168.234.201</td>
+<td>9201</td>
+<td>9301</td>
+<td>/usr/local/src/node2</td>
+</tr>
+<tr>
+<td>192.168.234.201</td>
+<td>9202</td>
+<td>9302</td>
+<td>/usr/local/src/node3</td>
+</tr>
+</tbody>
+</table>
+<h2 id="1-准备elasticsearch集群">1、准备elasticsearch集群</h2>
+<h3 id="elasticsearch搭建">elasticsearch搭建</h3>
+<pre><code class="language-shell">#下载elasticsearch包解压
+cd /usr/local/src/
+wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.17.3-linux-x86_64.tar.gz
+tar -zxvf elasticsearch-7.17.3-linux-x86_64.tar.gz
+</code></pre>
+<p>修改elasticsearch配置</p>
+<pre><code>vim elasticsearch-7.17.3/config/jvm.options
+
+-Xms3g
+-Xmx3g
+</code></pre>
+<p>#配置elasticsearch.yml 此为node1可用</p>
+<pre><code>vim elasticsearch-7.17.3/config/elasticsearch.yml
+
+# 集群名称，三台集群，要配置相同的集群名称！！！
+cluster.name: my-application
+# 节点名称
+node.name: node-1
+# 是否有资格被选举为master，ES默认集群中第一台机器为主节点
+node.master: true
+# 是否存储数据
+node.data: true
+#最⼤集群节点数，为了避免脑裂，集群节点数最少为 半数+1
+node.max_local_storage_nodes: 3
+# 数据目录
+path.data: /usr/local/src/node-1/data
+# log目录
+path.logs: /usr/local/src/node-1/logs
+# 修改 network.host 为 0.0.0.0，表示对外开放，如对特定ip开放则改为指定ip
+network.host: 0.0.0.0
+# 设置对外服务http端口，默认为9200
+http.port: 9200
+# 内部节点之间沟通端⼝
+transport.tcp.port: 9300
+# 写⼊候选主节点的设备地址，在开启服务后可以被选为主节点
+discovery.seed_hosts: [&quot;localhost:9300&quot;, &quot;localhost:9301&quot;, &quot;localhost:9302&quot;]
+# 初始化⼀个新的集群时需要此配置来选举master
+cluster.initial_master_nodes: [&quot;node-1&quot;, &quot;node-2&quot;,&quot;node-3&quot;]
+# 设置集群中N个节点启动时进行数据恢复，默认为1
+gateway.recover_after_nodes: 3
+# 下面的两个配置在安装elasticsearch-head的时候会用到
+# 开启跨域访问支持，默认为false
+http.cors.enabled: true
+# 跨域访问允许的域名地址，(允许所有域名)以上使用正则
+http.cors.allow-origin: &quot;*&quot;
+#关闭xpack
+xpack.security.enabled: false
+</code></pre>
+<p>上述配置文件准备好以后，将elasticsearch目录按照node1、node2、node3复制过去</p>
+<pre><code class="language-shell">#创建目录
+mkdir node-{1..3}
+cp -r /usr/local/elasticsearch-7.17.3/ /usr/local/node-1
+cp -r /usr/local/elasticsearch-7.17.3/ /usr/local/node-2
+cp -r /usr/local/elasticsearch-7.17.3/ /usr/local/node-3
+#创建elasticsearch的数据目录和日志目录
+mkdir -p /usr/local/node-1/data
+mkdir -p /usr/local/node-1/logs
+mkdir -p /usr/local/node-2/data
+mkdir -p /usr/local/node-2/logs
+mkdir -p /usr/local/node-3/data
+mkdir -p /usr/local/node-3/logs
+</code></pre>
+<p>修改es(node-2)的配置文件</p>
+<pre><code>vim node-2/config/elasticsearch.yml
+
+cluster.name: my-application
+# 节点名称
+node.name: node-2
+# 是否有资格被选举为master，ES默认集群中第一台机器为主节点
+node.master: true
+# 是否存储数据
+node.data: true
+#最⼤集群节点数，为了避免脑裂，集群节点数最少为 半数+1
+node.max_local_storage_nodes: 3
+# 数据目录
+path.data: /usr/local/node-2/data
+# log目录
+path.logs: /usr/local/node-2/logs
+# 修改 network.host 为 0.0.0.0，表示对外开放，如对特定ip开放则改为指定ip
+network.host: 0.0.0.0
+# 设置对外服务http端口，默认为9200 node-2为9201
+http.port: 9201
+# 内部节点之间沟通端⼝ 
+transport.tcp.port: 9301
+# 写⼊候选主节点的设备地址，在开启服务后可以被选为主节点
+discovery.seed_hosts: [&quot;localhost:9300&quot;, &quot;localhost:9301&quot;, &quot;localhost:9302&quot;]
+# 初始化⼀个新的集群时需要此配置来选举master
+cluster.initial_master_nodes: [&quot;node-1&quot;, &quot;node-2&quot;,&quot;node-3&quot;]
+# 设置集群中N个节点启动时进行数据恢复，默认为1
+gateway.recover_after_nodes: 3
+# 下面的两个配置在安装elasticsearch-head的时候会用到
+# 开启跨域访问支持，默认为false
+http.cors.enabled: true
+# 跨域访问允许的域名地址，(允许所有域名)以上使用正则
+http.cors.allow-origin: &quot;*&quot;
+#关闭xpack
+xpack.security.enabled: false
+
+</code></pre>
+<p>修改es(node-3)的配置文件</p>
+<pre><code>vim node-3/config/elasticsearch.yml
+
+# 集群名称，三台集群，要配置相同的集群名称！！！
+cluster.name: my-application
+# 节点名称
+node.name: node-3
+# 是否有资格被选举为master，ES默认集群中第一台机器为主节点
+node.master: true
+# 是否存储数据
+node.data: true
+#最⼤集群节点数，为了避免脑裂，集群节点数最少为 半数+1
+node.max_local_storage_nodes: 3
+# 数据目录
+path.data: /usr/local/node-3/data
+# log目录
+path.logs: /usr/local/node-3/logs
+# 修改 network.host 为 0.0.0.0，表示对外开放，如对特定ip开放则改为指定ip
+network.host: 0.0.0.0
+# 设置对外服务http端口，默认为9200
+http.port: 9203
+# 内部节点之间沟通端⼝
+transport.tcp.port: 9303
+# 写⼊候选主节点的设备地址，在开启服务后可以被选为主节点
+discovery.seed_hosts: [&quot;localhost:9300&quot;, &quot;localhost:9301&quot;, &quot;localhost:9302&quot;]
+# 初始化⼀个新的集群时需要此配置来选举master
+cluster.initial_master_nodes: [&quot;node-1&quot;, &quot;node-2&quot;,&quot;node-3&quot;]
+# 设置集群中N个节点启动时进行数据恢复，默认为1
+gateway.recover_after_nodes: 3
+
+
+# 下面的两个配置在安装elasticsearch-head的时候会用到
+# 开启跨域访问支持，默认为false
+http.cors.enabled: true
+# 跨域访问允许的域名地址，(允许所有域名)以上使用正则
+http.cors.allow-origin: &quot;*&quot;
+
+#关闭xpack
+xpack.security.enabled: false
+</code></pre>
+<p>启动elasticsearch集群</p>
+<pre><code class="language-shell">groupadd elasticsearch
+useradd elasticsearch -G elasticsearch -p 123456
+chown -R elasticsearch:elasticsearch /usr/local/src/elasticsearch-7.17.3
+chown -R elasticsearch:elasticsearch /usr/local/src/node-3
+chown -R elasticsearch:elasticsearch /usr/local/src/node-2
+chown -R elasticsearch:elasticsearch /usr/local/src/node-1
+#将全部elasticsearch的目录所有者所属组改为elasticsearch
+su elasticsearch
+cd /usr/local/src/
+./node-1/bin/elasticsearch -d
+./node-2/bin/elasticsearch -d
+./node-3/bin/elasticsearch -d
+</code></pre>
+<p>启动elasticsearch集群<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221229230649.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221229230735.png" alt="" loading="lazy"></p>
+<h2 id="2-准备kafka">2、准备kafka</h2>
+<p>环境准备</p>
+<table>
+<thead>
+<tr>
+<th>节点</th>
+<th>服务端口</th>
+<th>程序目录</th>
+<th>数据目录</th>
+<th>日志目录</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>192.168.234.204</td>
+<td>2181</td>
+<td>/apps/zookeeper</td>
+<td>/data/zookeeper/data</td>
+<td>/data/zookeeper/logs</td>
+</tr>
+<tr>
+<td>192.168.234.205</td>
+<td>2181</td>
+<td>/apps/zookeeper</td>
+<td>/data/zookeeper/data</td>
+<td>/data/zookeeper/logs</td>
+</tr>
+<tr>
+<td>192.168.234.206</td>
+<td>2181</td>
+<td>/apps/zookeeper</td>
+<td>/data/zookeeper/data</td>
+<td>/data/zookeeper/logs</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-shell">#下载安装zookeeper
+cd /apps
+wget https://archive.apache.org/dist/zookeeper/zookeeper-3.5.7/apache-zookeeper-3.5.7-bin.tar.gz
+tar xf apache-zookeeper-3.5.7-bin.tar.gz
+ln -sv apache-zookeeper-3.5.7-bin zookeeper
+echo &quot;export ZK_HOME=/apps/zookeeper&quot; &gt;&gt; /etc/profile
+echo &quot;export PATH=\$PATH:\$ZK_HOME/bin&quot; &gt;&gt; /etc/profile
+source /etc/profile
+</code></pre>
+<pre><code class="language-shell">vim /apps/zookeeper/conf/zoo.cfg
+# The number of milliseconds of each tick
+tickTime=2000
+# The number of ticks that the initial
+# synchronization phase can take
+initLimit=10
+# The number of ticks that can pass between
+# sending a request and getting an acknowledgement
+syncLimit=5
+# the directory where the snapshot is stored.
+# do not use /tmp for storage, /tmp here is just
+# example sakes.
+dataDir=/data/zookeeper/data
+dataLogDir=/data/zookeeper/logs
+# the port at which the clients will connect
+clientPort=2181
+server.1=192.168.234.204:2888:3888
+server.2=192.168.234.205:2888:3888
+server.3=192.168.234.206:2888:3888
+# the maximum number of client connections.
+# increase this if you need to handle more clients
+#maxClientCnxns=60
+#
+# Be sure to read the maintenance section of the
+# administrator guide before turning on autopurge.
+#
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+#
+# The number of snapshots to retain in dataDir
+#autopurge.snapRetainCount=3
+# Purge task interval in hours
+# Set to &quot;0&quot; to disable auto purge feature
+#autopurge.purgeInterval=1
+
+</code></pre>
+<p>集群配置</p>
+<pre><code class="language-shell">#192.168.234.204机器配置myid
+echo 1 &gt; /data/zookeeper/data/myid
+#192.168.234.205机器配置myid
+echo 2 &gt; /data/zookeeper/data/myid
+#192.168.234.206机器配置myid
+echo 3 &gt; /data/zookeeper/data/myid
+
+</code></pre>
+<p>启动zookeeper</p>
+<pre><code class="language-shell">#192.168.234.204 #192.168.234.205 #192.168.234.206
+#全部执行启动命令
+./zkServer.sh start
+</code></pre>
+<p>验证集群<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221229234036.png" alt="" loading="lazy"></p>
+<h2 id="3-准备kafka">3、准备kafka</h2>
+<pre><code class="language-shell">#下载kafka
+mkdir /data/kafka/kafka-logs
+cd /apps
+wget https://archive.apache.org/dist/kafka/2.6.0/kafka_2.13-2.6.0.tgz
+tar xvf kafka_2.13-2.6.0.tgz
+ln -sv kafka_2.13-2.6.0 kafka
+cd kafka
+echo &quot;export KAFKA_HOME=/apps/kafka&quot; &gt;&gt; /etc/profile
+echo &quot;export PATH=\$PATH:\$KAFKA_HOME/bin&quot; &gt;&gt; /etc/profile
+source /etc/profile
+</code></pre>
+<pre><code class="language-shell">#配置kafka
+cp config/server.properties config/server.properties.bak
+rm -rf config/server.properties
+
+cat &lt;&lt;'EOF' &gt;&gt; /config/server.properties
+#192.168.234.204 配置1
+#192.168.234.205 配置2
+#192.168.234.206 配置3
+broker.id=1 
+#监听本地902端口 
+#其他zookeeper需要修改ip 
+#192.168.234.205
+#192.168.234.206
+listeners=PLAINTEXT://192.168.234.204:9092
+#listeners=PLAINTEXT://192.168.234.205:9092
+#listeners=PLAINTEXT://192.168.234.206:9092
+num.network.threads=3
+num.io.threads=8
+socket.send.buffer.bytes=102400
+socket.receive.buffer.bytes=102400
+socket.request.max.bytes=104857600
+log.dirs=/data/kafka/logs
+num.recovery.threads.per.data.dir=1
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+log.retention.hours=168
+log.segment.bytes=1073741824
+log.retention.check.interval.ms=300000
+#zookeeper集群
+zookeeper.connect=192.168.234.204:2181,192.168.234.205:2181,192.168.234.206:2181
+zookeeper.connection.timeout.ms=18000
+group.initial.rebalance.delay.ms=0
+EOF
+</code></pre>
+<pre><code class="language-shell">#启动kafka集群其他192.168.234.205 192.168.234.206均执行
+apps/kafka/bin/kafka-server-start.sh -daemon apps/kafka/config/server.properties
+</code></pre>
+<p>使用kafka tool2 验证kafka<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221229235220.png" alt="" loading="lazy"></p>
+<h2 id="4-准备kibana">4、准备kibana</h2>
+<pre><code class="language-shell">#下载解压kibana
+wget https://artifacts.elastic.co/downloads/kibana/kibana-7.17.3-linux-x86_64.tar.gz
+tar kibana-7.17.3-linux-x86_64.tar.gz xf
+tar xf kibana-7.17.3-linux-x86_64.tar.gz
+</code></pre>
+<p>配置kibana</p>
+<pre><code>vim kibana-7.17.3-linux-x86_64/config/kibana.yml
+
+server.port: 5601
+#配置为es集群地址
+elasticsearch.hosts: [&quot;http://192.168.234.201:9200&quot;,&quot;http://192.168.234.201:9201&quot;,&quot;http://192.168.234.201:9202&quot;]
+i18n.locale: &quot;zh-CN&quot;
+</code></pre>
+<p>启动kibana</p>
+<pre><code class="language-shell">./kibana  --allow-root &amp;
+</code></pre>
+<p>验证5601端口服务启动<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221229231116.png" alt="" loading="lazy"></p>
+<h2 id="5-准备logstash">5、准备logstash</h2>
+<p>机器ip 192.168.234.200</p>
+<pre><code class="language-shell">#下载安装logstash
+yum install -y  https://artifacts.elastic.co/downloads/logstash/logstash-7.17.3-x86_64.rpm
+#配置kafka
+vim /etc/logstash/conf.d/kafka-es.conf
+
+input {
+  kafka {
+    bootstrap_servers =&gt; &quot;192.168.234.204:9092,192.168.234.205:9092,192.168.234.206:9092&quot;
+    topics =&gt; [&quot;test-n60-app1&quot;]
+    codec =&gt; &quot;json&quot;
+  }
+}
+
+
+output {
+  if [fields][type] == &quot;tomcat-accesslog&quot; {
+    elasticsearch {
+      hosts =&gt; [&quot;192.168.234.201:9200&quot;,&quot;192.168.234.201:9201&quot;,&quot;192.168.234.201:9203&quot;]
+      index =&gt; &quot;test-app1-accesslog-%{+YYYY.MM.dd}&quot;
+    }
+  }
+
+  if [fields][type] == &quot;tomcat-catalina&quot; {
+    elasticsearch {
+      hosts =&gt; [&quot;192.168.234.201:9200&quot;,&quot;192.168.234.201:9201&quot;,&quot;192.168.234.201:9203&quot;]
+      index =&gt; &quot;test-app1-catalinalog-%{+YYYY.MM.dd}&quot;
+    }
+  }
+}
+
+</code></pre>
+<h1 id="二-准备kubernetes-测试环境">二、准备kubernetes 测试环境</h1>
+<p>准备一个tomcat pod来测试日志收集<br>
+centos容器镜像准备好</p>
+<pre><code class="language-shell">[root@master1-etcd-234-31 centos]# ll
+total 31848
+-rw-r--r-- 1 root root      424 Dec 24 20:45 build-command.sh
+-rw-r--r-- 1 root root      404 Dec 24 20:44 Dockerfile
+-rw-r--r-- 1 root root 32600353 Dec 24 20:24 filebeat-7.12.1-x86_64.rpm
+[root@master1-etcd-234-31 centos]# vim Dockerfile
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221229235640.png" alt="" loading="lazy"></figure>
+<pre><code>FROM centos:7.9.2009
+
+ADD filebeat-7.12.1-x86_64.rpm /tmp
+RUN yum install -y /tmp/filebeat-7.12.1-x86_64.rpm vim wget tree  lrzsz gcc gcc-c++ automake pcre pcre-devel zlib zlib-devel openssl openssl-devel iproute net-tools iotop &amp;&amp;  rm -rf /etc/localtime /tmp/filebeat-7.12.1-x86_64.rpm &amp;&amp; ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime  &amp;&amp; useradd nginx -u 2022
+
+</code></pre>
+<p>准备一个jdk镜像将java环境profile配置到centos重新构建镜像</p>
+<pre><code class="language-shell">[root@master1-etcd-234-31 jdk-1.8.212]# ll
+total 190456
+-rw-r--r-- 1 root root       454 Dec 24 21:25 build-command.sh
+-rw-r--r-- 1 root root       392 Dec 24 21:14 Dockerfile
+-rw-r--r-- 1 root root 195013152 Dec 24 20:24 jdk-8u212-linux-x64.tar.gz
+-rw-r--r-- 1 root root      2105 Dec 24 20:24 profile
+[root@master1-etcd-234-31 jdk-1.8.212]# cat Dockerfile profile
+#JDK Base Image
+FROM  192.168.234.121/baseimages/centos@sha256:5ebca0651a91576b518cf369776062d2e2b1a41d43839b7f30bafdebb027ac64
+ADD jdk-8u212-linux-x64.tar.gz /usr/local/src/
+RUN ln -sv /usr/local/src/jdk1.8.0_212 /usr/local/jdk
+ADD profile /etc/profile
+ENV JAVA_HOME /usr/local/jdk
+ENV JRE_HOME $JAVA_HOME/jre
+ENV CLASSPATH $JAVA_HOME/lib/:$JRE_HOME/lib/
+ENV PATH $PATH:$JAVA_HOME/bin
+# /etc/profile
+
+# System wide environment and startup programs, for login setup
+# Functions and aliases go in /etc/bashrc
+
+# It's NOT a good idea to change this file unless you know what you
+# are doing. It's much better to create a custom.sh shell script in
+# /etc/profile.d/ to make custom changes to your environment, as this
+# will prevent the need for merging in future updates.
+
+pathmunge () {
+    case &quot;:${PATH}:&quot; in
+        *:&quot;$1&quot;:*)
+            ;;
+        *)
+            if [ &quot;$2&quot; = &quot;after&quot; ] ; then
+                PATH=$PATH:$1
+            else
+                PATH=$1:$PATH
+            fi
+    esac
+}
+
+
+if [ -x /usr/bin/id ]; then
+    if [ -z &quot;$EUID&quot; ]; then
+        # ksh workaround
+        EUID=`/usr/bin/id -u`
+        UID=`/usr/bin/id -ru`
+    fi
+    USER=&quot;`/usr/bin/id -un`&quot;
+    LOGNAME=$USER
+    MAIL=&quot;/var/spool/mail/$USER&quot;
+fi
+
+# Path manipulation
+if [ &quot;$EUID&quot; = &quot;0&quot; ]; then
+    pathmunge /usr/sbin
+    pathmunge /usr/local/sbin
+else
+    pathmunge /usr/local/sbin after
+    pathmunge /usr/sbin after
+fi
+
+HOSTNAME=`/usr/bin/hostname 2&gt;/dev/null`
+HISTSIZE=1000
+if [ &quot;$HISTCONTROL&quot; = &quot;ignorespace&quot; ] ; then
+    export HISTCONTROL=ignoreboth
+else
+    export HISTCONTROL=ignoredups
+fi
+
+export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE HISTCONTROL
+
+# By default, we want umask to get set. This sets it for login shell
+# Current threshold for system reserved uid/gids is 200
+# You could check uidgid reservation validity in
+# /usr/share/doc/setup-*/uidgid file
+if [ $UID -gt 199 ] &amp;&amp; [ &quot;`/usr/bin/id -gn`&quot; = &quot;`/usr/bin/id -un`&quot; ]; then
+    umask 002
+else
+    umask 022
+fi
+
+for i in /etc/profile.d/*.sh /etc/profile.d/sh.local ; do
+    if [ -r &quot;$i&quot; ]; then
+        if [ &quot;${-#*i}&quot; != &quot;$-&quot; ]; then
+            . &quot;$i&quot;
+        else
+            . &quot;$i&quot; &gt;/dev/null
+        fi
+    fi
+done
+
+unset i
+unset -f pathmunge
+export LANG=en_US.UTF-8
+export HISTTIMEFORMAT=&quot;%F %T `whoami` &quot;
+
+export JAVA_HOME=/usr/local/jdk
+export TOMCAT_HOME=/apps/tomcat
+export PATH=$JAVA_HOME/bin:$JAVA_HOME/jre/bin:$TOMCAT_HOME/bin:$PATH
+export CLASSPATH=.$CLASSPATH:$JAVA_HOME/lib:$JAVA_HOME/jre/lib:$JAVA_HOME/lib/tools.jar
+</code></pre>
+<p>准备Tomcat镜像</p>
+<pre><code class="language-shell">#Tomcat 8.5.43基础镜像
+FROM  192.168.234.121/pub-images/jdk@sha256:9f17292bc4b2572f6b6936ae56a43d0d952ed53092252fcf9b1cc024fc9dd2ae
+RUN mkdir /apps /data/tomcat/webapps /data/tomcat/logs -pv
+ADD apache-tomcat-8.5.43.tar.gz  /apps
+RUN useradd tomcat -u 2050 &amp;&amp; ln -sv /apps/apache-tomcat-8.5.43 /apps/tomcat &amp;&amp; chown -R tomcat.tomcat /apps /data -R
+</code></pre>
+<p>准备tomcat业务镜像</p>
+<pre><code class="language-shell">[root@master1-etcd-234-31 tomcat-app1]# ll
+total 56
+-rw-r--r-- 1 root root   146 Dec 24 20:24 app1.tar.gz
+-rw-r--r-- 1 root root   455 Dec 28 16:22 build-command.sh
+-rw-r--r-- 1 root root 23611 Dec 24 20:24 catalina.sh
+-rw-r--r-- 1 root root   629 Dec 30 00:06 Dockerfile
+-rw-r--r-- 1 root root   670 Dec 28 22:07 filebeat.yml
+-rw-r--r-- 1 root root    63 Dec 24 20:24 index.html
+drwxr-xr-x 2 root root    24 Dec 24 20:24 myapp
+-rw-r--r-- 1 root root   371 Dec 28 21:54 run_tomcat.sh
+-rw-r--r-- 1 root root  6462 Dec 24 20:24 server.xml
+
+#配置vim filebeat.yml
+vim filebeat.yml
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+  #定义的tomcat的日志目录
+    - /apps/tomcat/logs/catalina.out
+  fields:
+    type: tomcat-catalina
+- type: log
+  enabled: true
+  paths:
+    - /apps/tomcat/logs/localhost_access_log.*.txt
+  fields:
+    type: tomcat-accesslog
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+setup.template.settings:
+  index.number_of_shards: 1
+setup.kibana:
+
+output.kafka:
+  hosts: [&quot;192.168.234.204:9092&quot;]
+  required_acks: 1
+  #topic kafka用的
+  topic: &quot;test-app1&quot;
+  compression: gzip
+  max_message_bytes: 1000000
+</code></pre>
+<p>tomcat业务镜像需要的代码和tomcat配置</p>
+<pre><code class="language-shell">#tomcat web1
+FROM 192.168.234.121/pub-images/tomcat-base@sha256:5231b823f63ebc41d8421cc082e11ad9d0900f0ec1aefce60438938799319e72
+
+ADD catalina.sh /apps/tomcat/bin/catalina.sh
+ADD server.xml /apps/tomcat/conf/server.xml
+ADD myapp/* /data/tomcat/webapps/myapp/
+ADD app1.tar.gz /data/tomcat/webapps/myapp/
+ADD run_tomcat.sh /apps/tomcat/bin/run_tomcat.sh
+ADD filebeat.yml /etc/filebeat/filebeat.yml
+RUN chown  -R nginx.nginx /data/ /apps/
+#RUN cd /tmp &amp;&amp; yum localinstall -y filebeat-7.5.1-amd64.deb
+RUN chmod +x /apps/tomcat/bin/run_tomcat.sh /apps/tomcat/bin/catalina.sh
+EXPOSE 8080 8443
+
+CMD [&quot;/apps/tomcat/bin/run_tomcat.sh&quot;]
+
+</code></pre>
+<p>启动tomcat以及filebeat需要的脚本内容</p>
+<pre><code class="language-shell">#!/bin/bash
+#echo &quot;nameserver 223.6.6.6&quot; &gt; /etc/resolv.conf
+#echo &quot;192.168.7.248 k8s-vip.example.com&quot; &gt;&gt; /etc/hosts
+
+/usr/share/filebeat/bin/filebeat -e -c /etc/filebeat/filebeat.yml -path.home /usr/share/filebeat -path.config /etc/filebeat -path.data /var/lib/filebeat -path.logs /var/log/filebeat &amp;
+su - nginx -c &quot;/apps/tomcat/bin/catalina.sh start&quot;
+tail -f /etc/hosts
+
+</code></pre>
+<p>准备kubernetes要启动的tomcat pod yaml 文件</p>
+<pre><code class="language-shell">kind: Deployment
+#apiVersion: extensions/v1beta1
+apiVersion: apps/v1
+metadata:
+  labels:
+    app: test-tomcat-app1-deployment-label
+  name: test-tomcat-app1-deployment
+  namespace: test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-tomcat-app1-selector
+  template:
+    metadata:
+      labels:
+        app: test-tomcat-app1-selector
+    spec:
+      containers:
+      - name: test-tomcat-app1-container
+        image: 192.168.234.121/test/tomcatv8.5.43:20221228_221249
+        #command: [&quot;/apps/tomcat/bin/run_tomcat.sh&quot;]
+        #imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+          name: http
+        env:
+        - name: &quot;password&quot;
+          value: &quot;123456&quot;
+        - name: &quot;age&quot;
+          value: &quot;18&quot;
+        resources:
+          limits:
+            cpu: 1
+            memory: &quot;512Mi&quot;
+          requests:
+            cpu: 500m
+            memory: &quot;512Mi&quot;
+        volumeMounts:
+        - name: test-images
+          mountPath: /usr/local/nginx/html/webapp/images
+          readOnly: false
+        - name: test-static
+          mountPath: /usr/local/nginx/html/webapp/static
+          readOnly: false
+      volumes:
+      - name: test-images
+        nfs:
+          server: 192.168.234.131
+          path: /data/k8sdata/test/images
+      - name: test-static
+        nfs:
+          server: 192.168.234.131
+          path: /data/k8sdata/test/static
+#      nodeSelector:
+#        project: test
+#        app: tomcat
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: test-tomcat-app1-service-label
+  name: test-tomcat-app1-service
+  namespace: test
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+    nodePort: 30092
+  selector:
+    app: test-tomcat-app1-selector
+</code></pre>
+<p>启动pod<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221230001741.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221230001937.png" alt="" loading="lazy"></p>
+<h1 id="三-验证日志收集">三、验证日志收集</h1>
+<p>进入192.168.234.201:5601<br>
+创建索引<br>
+test-app1-accesslog-*<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221230002414.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20221230002239.png" alt="" loading="lazy"></p>
+<h1 id="四-总结">四、总结</h1>
+<p>1、部署es集群<br>
+2、部署zookeeper集群<br>
+3、部署kafka集群<br>
+4、部署logstash<br>
+5、修改filebeat.yaml<br>
+6、准备kibana<br>
+7、修改好kafka-es的配置文件<br>
+8、准备好业务yaml文件</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#%E4%B8%80-%E6%90%AD%E5%BB%BAelk%E9%9B%86%E7%BE%A4">一、搭建elk集群</a>
+<ul>
+<li><a href="#1-%E5%87%86%E5%A4%87elasticsearch%E9%9B%86%E7%BE%A4">1、准备elasticsearch集群</a>
+<ul>
+<li><a href="#elasticsearch%E6%90%AD%E5%BB%BA">elasticsearch搭建</a></li>
+</ul>
+</li>
+<li><a href="#2-%E5%87%86%E5%A4%87kafka">2、准备kafka</a></li>
+<li><a href="#3-%E5%87%86%E5%A4%87kafka">3、准备kafka</a></li>
+<li><a href="#4-%E5%87%86%E5%A4%87kibana">4、准备kibana</a></li>
+<li><a href="#5-%E5%87%86%E5%A4%87logstash">5、准备logstash</a></li>
+</ul>
+</li>
+<li><a href="#%E4%BA%8C-%E5%87%86%E5%A4%87kubernetes-%E6%B5%8B%E8%AF%95%E7%8E%AF%E5%A2%83">二、准备kubernetes 测试环境</a></li>
+<li><a href="#%E4%B8%89-%E9%AA%8C%E8%AF%81%E6%97%A5%E5%BF%97%E6%94%B6%E9%9B%86">三、验证日志收集</a></li>
+<li><a href="#%E5%9B%9B-%E6%80%BB%E7%BB%93">四、总结</a></li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/prometheuskubernetes-bu-shu-cadvisor-rong-qi-jian-kong/">
+              <h3 class="post-title">
+                prometheus+kubernetes部署cadvisor容器监控
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

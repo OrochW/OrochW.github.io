@@ -1,0 +1,831 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>rsync同步 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="rsync同步 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="rsync
+一、介绍
+rsync 是一个功能强大的、高效的用于数据镜像（备份）、文件传输和同步的工具。它可以在本地主机和远程主机之间进行快速同步，并且只传输两个机器之间不同的部分。
+基本用法
+rsync [选项] 源目录 目标目录
+
+
+源目..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              rsync同步
+            </h2>
+            <div class="post-info">
+              <span>
+                2024-10-20
+              </span>
+              <span>
+                18 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h1 id="rsync">rsync</h1>
+<h2 id="一-介绍">一、介绍</h2>
+<p><code>rsync</code> 是一个功能强大的、高效的用于数据镜像（备份）、文件传输和同步的工具。它可以在本地主机和远程主机之间进行快速同步，并且只传输两个机器之间不同的部分。</p>
+<h3 id="基本用法">基本用法</h3>
+<pre><code class="language-bash">rsync [选项] 源目录 目标目录
+</code></pre>
+<ul>
+<li><strong>源目录</strong>：要同步的源文件或目录。</li>
+<li><strong>目标目录</strong>：同步的目标文件或目录。</li>
+</ul>
+<h3 id="常用选项">常用选项</h3>
+<ul>
+<li><code>-a</code>：归档模式，保留所有文件属性，包括权限、时间、组、所有者等。等同于 <code>-rlptgoD</code>。</li>
+<li><code>-r</code>：递归处理目录。</li>
+<li><code>-l</code>：保留软链接。</li>
+<li><code>-p</code>：保留权限。</li>
+<li><code>-t</code>：保留修改时间。</li>
+<li><code>-g</code>：保留组。</li>
+<li><code>-o</code>：保留所有者。</li>
+<li><code>-D</code>：保留设备文件和特殊文件。</li>
+<li><code>-v</code>：详细模式，显示详细的传输过程。</li>
+<li><code>-z</code>：压缩传输数据，可以加快传输速度，尤其是对于文本文件。</li>
+<li><code>-e</code>：指定远程 shell，通常为 <code>ssh</code>。</li>
+<li><code>--delete</code>：删除目标目录中不存在于源目录的文件。</li>
+<li><code>--exclude=PATTERN</code>：排除符合 PATTERN 的文件或目录。</li>
+<li><code>--include=PATTERN</code>：仅包含符合 PATTERN 的文件或目录。</li>
+</ul>
+<h2 id="二-安装配置">二、安装配置</h2>
+<h3 id="1-检查是否安装">1. 检查是否安装</h3>
+<pre><code class="language-bash">[root@234-12 ~]# rpm -qa | grep rsync
+rsync-3.1.2-12.el7_9.x86_64
+</code></pre>
+<p>如果命令结果为空，可以使用以下命令安装：</p>
+<pre><code class="language-bash">yum install -y rsync
+</code></pre>
+<h3 id="2-配置文件解析">2. 配置文件解析</h3>
+<h4 id="查看-rsync-安装文件情况">查看 rsync 安装文件情况</h4>
+<pre><code class="language-bash">[root@234-12 ~]# rpm -ql rsync
+/etc/rsyncd.conf          # 配置文件
+/etc/sysconfig/rsyncd     # 守护进程配置
+/usr/bin/rsync            # 命令所在目录
+/usr/lib/systemd/system/rsyncd.service  # systemctl 服务管理
+/usr/lib/systemd/system/rsyncd.socket    # 进程生成的套接字文件
+/usr/lib/systemd/system/rsyncd@.service
+/usr/share/doc/rsync-3.1.2
+/usr/share/doc/rsync-3.1.2/COPYING
+/usr/share/doc/rsync-3.1.2/NEWS
+/usr/share/doc/rsync-3.1.2/OLDNEWS
+/usr/share/doc/rsync-3.1.2/README
+/usr/share/doc/rsync-3.1.2/support
+/usr/share/doc/rsync-3.1.2/support/Makefile
+/usr/share/doc/rsync-3.1.2/support/atomic-rsync
+/usr/share/doc/rsync-3.1.2/support/cvs2includes
+/usr/share/doc/rsync-3.1.2/support/deny-rsync
+/usr/share/doc/rsync-3.1.2/support/file-attr-restore
+/usr/share/doc/rsync-3.1.2/support/files-to-excludes
+/usr/share/doc/rsync-3.1.2/support/git-set-file-times
+/usr/share/doc/rsync-3.1.2/support/instant-rsyncd
+/usr/share/doc/rsync-3.1.2/support/logfilter
+/usr/share/doc/rsync-3.1.2/support/lsh
+/usr/share/doc/rsync-3.1.2/support/lsh.sh
+/usr/share/doc/rsync-3.1.2/support/mapfrom
+/usr/share/doc/rsync-3.1.2/support/mapto
+/usr/share/doc/rsync-3.1.2/support/mnt-excl
+/usr/share/doc/rsync-3.1.2/support/munge-symlinks
+/usr/share/doc/rsync-3.1.2/support/rrsync
+/usr/share/doc/rsync-3.1.2/support/rsync-no-vanished
+/usr/share/doc/rsync-3.1.2/support/rsync-slash-strip
+/usr/share/doc/rsync-3.1.2/support/rsyncstats
+/usr/share/doc/rsync-3.1.2/support/savetransfer.c
+/usr/share/doc/rsync-3.1.2/tech_report.tex
+/usr/share/man/man1/rsync.1.gz
+/usr/share/man/man5/rsyncd.conf.5.gz
+</code></pre>
+<h4 id="rsync-配置文件详解">rsync 配置文件详解</h4>
+<pre><code class="language-bash"># rsync 配置文件详解
+
+# uid = nobody  # 指定 rsyncd 运行时的用户
+# gid = nobody  # 指定 rsyncd 运行时的组
+# use chroot = yes  # 启用 chroot 功能，提高安全性
+# max connections = 4  # 限制同时可以连接到 rsyncd 的最大连接数
+# pid file = /var/run/rsyncd.pid  # 指定 rsyncd 进程的 PID 文件
+# exclude = lost+found/  # 排除 lost+found 目录
+# transfer logging = yes  # 启用传输日志记录
+# timeout = 900  # 设置连接超时时间
+# ignore nonreadable = yes  # 忽略无法读取的文件
+# dont compress = *.gz *.tgz *.zip *.z *.Z *.rpm *.deb *.bz2  # 不压缩某些类型的文件
+
+# [ftp]
+#       path = /home/ftp  # 指定 &quot;ftp&quot; 模块的同步根目录
+#       comment = ftp export area  # 注释，说明 &quot;ftp&quot; 模块的作用
+</code></pre>
+<h2 id="三-本地同步">三、本地同步</h2>
+<p>以下是实现文件监控和自动同步的方案：</p>
+<h3 id="1-安装-inotify-tools">1. 安装 inotify-tools</h3>
+<p><code>inotify-tools</code> 是一个 Linux 实时文件系统监控工具，可以监控目录的文件变动。首先，你需要在 CentOS 上安装它。</p>
+<pre><code class="language-bash">sudo yum install inotify-tools -y
+</code></pre>
+<h3 id="2-创建监控和同步脚本">2. 创建监控和同步脚本</h3>
+<p>编写一个脚本，当 <code>/home/zhangsan</code>、<code>/home/lisi</code>、<code>/home/wangwu</code> 目录发生变动时自动触发 <code>rsync</code> 同步到 <code>/backup</code> 目录。</p>
+<h4 id="脚本示例rsync_inotify_syncsh">脚本示例：<code>rsync_inotify_sync.sh</code></h4>
+<pre><code class="language-bash">#!/bin/bash
+
+# 定义要监控的目录
+SOURCE_DIRS=(&quot;/home/zhangsan&quot; &quot;/home/lisi&quot; &quot;/home/wangwu&quot;)
+BACKUP_DIR=&quot;/backup&quot;
+
+# 创建备份目录
+mkdir -p &quot;$BACKUP_DIR&quot;
+
+# 监控目录并实时同步
+for dir in &quot;${SOURCE_DIRS[@]}&quot;; do
+    # 获取当前目录的名称
+    BASENAME=$(basename &quot;$dir&quot;)
+
+    echo &quot;正在监控目录：$dir&quot;
+
+    # 使用 inotifywait 监控创建、修改和删除事件
+    inotifywait -mrq -e modify,create,delete &quot;$dir&quot; | while read path action file; do
+        echo &quot;检测到 $dir 中的变化，正在同步到 $BACKUP_DIR/$BASENAME&quot;
+        # 使用 rsync 同步变化的目录
+        rsync -av --delete &quot;$dir/&quot; &quot;$BACKUP_DIR/$BASENAME/&quot;
+        echo &quot;[$(date)] $dir 同步到 $BACKUP_DIR/$BASENAME 完成&quot;
+    done &amp;
+done
+</code></pre>
+<h4 id="赋予脚本执行权限">赋予脚本执行权限</h4>
+<p>将脚本保存为 <code>/usr/local/bin/rsync_inotify_sync.sh</code>，并赋予执行权限：</p>
+<pre><code class="language-bash">sudo chmod +x /usr/local/bin/rsync_inotify_sync.sh
+</code></pre>
+<h3 id="3-后台运行脚本">3. 后台运行脚本</h3>
+<p>为了让监控和同步脚本长期运行，你可以将其放在后台执行。例如，使用 <code>nohup</code> 或 <code>&amp;</code> 让脚本在后台运行：</p>
+<pre><code class="language-bash">nohup /usr/local/bin/rsync_inotify_sync.sh &gt; /var/log/rsync_inotify_sync.log 2&gt;&amp;1 &amp;
+</code></pre>
+<p>这里使用 <code>nohup</code> 确保脚本在你退出终端后仍然运行。日志将记录在 <code>/var/log/rsync_inotify_sync.log</code> 中。</p>
+<h3 id="4-使用-systemd-实现自动启动">4. 使用 systemd 实现自动启动</h3>
+<p>如果你希望系统启动时自动开始文件监控，可以创建一个 systemd 服务。</p>
+<h4 id="创建-systemd-服务文件">创建 systemd 服务文件</h4>
+<p>创建一个服务文件 <code>/etc/systemd/system/rsync_inotify.service</code>：</p>
+<pre><code class="language-bash">[Unit]
+Description=Rsync Inotify File Sync
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/rsync_inotify_sync.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<h4 id="启用并启动服务">启用并启动服务</h4>
+<p>执行以下命令以启用并启动该服务：</p>
+<pre><code class="language-bash">sudo systemctl daemon-reload
+sudo systemctl enable rsync_inotify.service
+sudo systemctl start rsync_inotify.service
+</code></pre>
+<h3 id="5-日志管理">5. 日志管理</h3>
+<p>脚本运行时会产生日志。你可以使用 <code>logrotate</code> 来管理日志文件，以防日志过大。创建 <code>logrotate</code> 配置文件 <code>/etc/logrotate.d/rsync_inotify_sync</code>：</p>
+<pre><code class="language-bash">/var/log/rsync_inotify_sync.log {
+    weekly
+    rotate 4
+    compress
+    missingok
+    notifempty
+    create 640 root root
+}
+</code></pre>
+<h2 id="四-远端同步-服务器-a-和服务器-b-配置文档">四、远端同步 服务器 A 和服务器 B 配置文档</h2>
+<h3 id="服务器信息">服务器信息</h3>
+<table>
+<thead>
+<tr>
+<th>服务器</th>
+<th>IP 地址</th>
+<th>角色</th>
+<th>安装的软件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>服务器 A</td>
+<td>192.168.234.11</td>
+<td>源服务器：负责监控 <code>/data/nfs_share</code> 目录的变化，并通过 <code>rsync</code> 将变化同步到服务器 B</td>
+<td><code>nfs-utils</code>, <code>rsync</code>, <code>sersync</code></td>
+</tr>
+<tr>
+<td>服务器 B</td>
+<td>192.168.234.12</td>
+<td>目标服务器：接收来自服务器 A 的文件同步，并存储在 <code>/data/backup</code> 目录中</td>
+<td><code>nfs-utils</code>, <code>rsync</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="服务器-a-19216823411">服务器 A (192.168.234.11)</h3>
+<h4 id="角色">角色</h4>
+<ul>
+<li><strong>源服务器</strong>：负责监控 <code>/data/nfs_share</code> 目录的变化，并通过 <code>rsync</code> 将变化同步到服务器 B。</li>
+</ul>
+<h4 id="流程">流程</h4>
+<ol>
+<li>
+<p><strong>安装必要的软件</strong></p>
+<ul>
+<li><code>nfs-utils</code>：用于设置 NFS 共享。</li>
+<li><code>rsync</code>：用于文件同步。</li>
+<li><code>sersync</code>：用于实时监控目录变化并触发 <code>rsync</code> 同步。</li>
+</ul>
+</li>
+<li>
+<p><strong>设置系统参数</strong></p>
+<ul>
+<li>设置 <code>inotify</code> 参数以支持更多的文件系统事件监听。
+<ul>
+<li>设置 <code>inotify</code> 参数：
+<ul>
+<li><code>fs.inotify.max_user_watches=50000000</code></li>
+<li><code>fs.inotify.max_queued_events=327679</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>配置 NFS 共享</strong></p>
+<ul>
+<li>创建共享目录 <code>/data/nfs_share</code>。</li>
+<li>编辑 <code>/etc/exports</code> 文件，允许服务器 B 访问共享目录。</li>
+<li>启动 NFS 服务并导出共享目录。
+<ul>
+<li>创建共享目录 <code>/data/nfs_share</code> 并设置权限。</li>
+<li>编辑 <code>/etc/exports</code> 文件，添加共享目录配置。</li>
+<li>启动 NFS 服务并导出共享目录。</li>
+<li>查看导出的目录。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>配置 <code>rsync</code></strong></p>
+<ul>
+<li>创建 <code>rsync</code> 密码文件 <code>/etc/rsync.password</code>。
+<ul>
+<li>创建密码文件并设置权限。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>配置 <code>sersync</code></strong></p>
+<ul>
+<li>解压 <code>sersync</code> 软件包并将其移动到 <code>/app/sersync2</code>。</li>
+<li>编辑 <code>sersync</code> 配置文件 <code>/app/sersync2/confxml.xml</code>，配置监控目录和远程服务器信息。</li>
+<li>启动 <code>sersync</code> 服务并设置开机自启动。
+<ul>
+<li>编辑 <code>sersync</code> 配置文件。</li>
+<li>启动 <code>sersync</code> 服务。</li>
+<li>设置 <code>sersync</code> 开机自启动。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h4 id="安装的软件">安装的软件</h4>
+<ul>
+<li><code>nfs-utils</code></li>
+<li><code>rsync</code></li>
+<li><code>sersync</code></li>
+</ul>
+<h4 id="脚本a并执行">脚本A并执行</h4>
+<pre><code class="language-bash">#!/bin/bash
+
+# 设置系统参数
+echo 50000000 &gt; /proc/sys/fs/inotify/max_user_watches
+echo 327679 &gt; /proc/sys/fs/inotify/max_queued_events
+
+# 永久设置系统参数
+echo 'fs.inotify.max_user_watches=50000000' | sudo tee -a /etc/sysctl.conf
+echo 'fs.inotify.max_queued_events=327679' | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+# 解压 sersync 软件包并设置路径
+cd /app
+# 确保解压到正确的目录，并命名为 sersync2
+tar -xzvf sersync2.5.4_64bit_binary_stable_final.tar.gz
+# 检查解压后的文件夹
+if [ -d &quot;GNU-Linux-x86&quot; ]; then
+    mv GNU-Linux-x86 sersync2
+else
+    echo &quot;sersync 解压失败，检查软件包路径或压缩文件。&quot;
+    exit 1
+fi
+
+# 添加 sersync2 到 PATH
+echo 'export PATH=$PATH:/app/sersync2' | sudo tee -a /etc/profile
+source /etc/profile
+
+# 安装和配置 NFS 服务
+sudo yum install -y nfs-utils
+
+# 创建共享目录
+sudo mkdir -p /data/nfs_share
+sudo chown -R nobody:nobody /data/nfs_share
+sudo chmod -R 777 /data/nfs_share
+
+# 编辑 NFS 配置文件
+echo '/data/nfs_share 192.168.234.12(rw,sync,no_subtree_check)' | sudo tee -a /etc/exports
+
+# 启动和配置 NFS 服务
+sudo systemctl start rpcbind
+sudo systemctl start nfs-server
+sudo systemctl enable rpcbind
+sudo systemctl enable nfs-server
+
+# 导出共享目录
+sudo exportfs -a
+
+# 查看导出的目录
+sudo showmount -e
+
+# 安装 rsync
+sudo yum install -y rsync
+
+# 编辑 sersync 配置文件
+sudo tee /app/sersync2/confxml.xml &lt;&lt;EOF
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;head version=&quot;2.5&quot;&gt;
+    &lt;!-- 主机配置，监听本地的 8008 端口 --&gt;
+    &lt;host hostip=&quot;localhost&quot; port=&quot;8008&quot;&gt;&lt;/host&gt;
+
+    &lt;!-- 调试模式，关闭调试 --&gt;
+    &lt;debug start=&quot;false&quot;/&gt;
+
+    &lt;!-- 文件系统配置，关闭对 XFS 文件系统的支持 --&gt;
+    &lt;fileSystem xfs=&quot;false&quot;/&gt;
+
+    &lt;!-- 文件过滤规则，当前关闭文件过滤功能 --&gt;
+    &lt;filter start=&quot;false&quot;&gt;
+        &lt;exclude expression=&quot;(.*)\.svn&quot;&gt;&lt;/exclude&gt; &lt;!-- 排除 .svn 目录 --&gt;
+        &lt;exclude expression=&quot;(.*)\.gz&quot;&gt;&lt;/exclude&gt; &lt;!-- 排除 .gz 文件 --&gt;
+        &lt;exclude expression=&quot;^info/*&quot;&gt;&lt;/exclude&gt; &lt;!-- 排除 info 目录下的文件 --&gt;
+        &lt;exclude expression=&quot;^static/*&quot;&gt;&lt;/exclude&gt; &lt;!-- 排除 static 目录下的文件 --&gt;
+    &lt;/filter&gt;
+
+    &lt;!-- inotify 事件监听配置，启用关键文件事件监听 --&gt;
+    &lt;inotify&gt;
+        &lt;delete start=&quot;true&quot;/&gt; &lt;!-- 监听文件删除事件 --&gt;
+        &lt;createFolder start=&quot;true&quot;/&gt; &lt;!-- 监听目录创建事件 --&gt;
+        &lt;createFile start=&quot;true&quot;/&gt; &lt;!-- 监听文件创建事件 --&gt;
+        &lt;closeWrite start=&quot;true&quot;/&gt; &lt;!-- 监听文件关闭写入事件 --&gt;
+        &lt;moveFrom start=&quot;true&quot;/&gt; &lt;!-- 监听文件移动前事件 --&gt;
+        &lt;moveTo start=&quot;true&quot;/&gt; &lt;!-- 监听文件移动后事件 --&gt;
+        &lt;attrib start=&quot;false&quot;/&gt; &lt;!-- 关闭文件属性变更事件的监听 --&gt;
+        &lt;modify start=&quot;false&quot;/&gt; &lt;!-- 关闭文件修改事件的监听 --&gt;
+    &lt;/inotify&gt;
+
+    &lt;!-- sersync 配置 --&gt;
+    &lt;sersync&gt;
+        &lt;!-- 本地路径监听 --&gt;
+        &lt;localpath watch=&quot;/data/nfs_share&quot;&gt;
+            &lt;!-- 远程服务器配置，备份到远程服务器 --&gt;
+            &lt;remote ip=&quot;192.168.234.12&quot; name=&quot;backup&quot;/&gt;
+        &lt;/localpath&gt;
+
+        &lt;!-- rsync 配置 --&gt;
+        &lt;rsync&gt;
+            &lt;commonParams params=&quot;-avz&quot;/&gt; &lt;!-- rsync 常用参数，压缩并详细输出 --&gt;
+            &lt;auth start=&quot;true&quot; users=&quot;rsync_user&quot; passwordfile=&quot;/etc/rsync.password&quot;/&gt; &lt;!-- 启用认证，使用密码文件 --&gt;
+            &lt;userDefinedPort start=&quot;false&quot; port=&quot;874&quot;/&gt; &lt;!-- 自定义端口，未启用 --&gt;
+            &lt;timeout start=&quot;false&quot; time=&quot;100&quot;/&gt; &lt;!-- 超时时间配置，未启用 --&gt;
+            &lt;ssh start=&quot;false&quot;/&gt; &lt;!-- 不使用 SSH 进行同步 --&gt;
+        &lt;/rsync&gt;
+
+        &lt;!-- 失败日志配置 --&gt;
+        &lt;failLog path=&quot;/tmp/rsync_fail_log.sh&quot; timeToExecute=&quot;60&quot;/&gt; &lt;!-- 定期执行失败日志处理，每 60 秒执行一次 --&gt;
+
+        &lt;!-- 定时任务配置，当前未启用 --&gt;
+        &lt;crontab start=&quot;false&quot; schedule=&quot;600&quot;&gt;
+            &lt;crontabfilter start=&quot;false&quot;&gt;
+                &lt;exclude expression=&quot;*.php&quot;/&gt; &lt;!-- 排除 .php 文件 --&gt;
+                &lt;exclude expression=&quot;info/*&quot;/&gt; &lt;!-- 排除 info 目录下的文件 --&gt;
+            &lt;/crontabfilter&gt;
+        &lt;/crontab&gt;
+
+        &lt;!-- 插件配置，当前未启用 --&gt;
+        &lt;plugin start=&quot;false&quot; name=&quot;command&quot;/&gt;
+    &lt;/sersync&gt;
+&lt;/head&gt;
+
+EOF
+
+# 创建密码文件
+echo &quot;123456&quot; | sudo tee /etc/rsync.password
+sudo chmod 600 /etc/rsync.password
+
+# 启动 sersync 服务
+if [ -f &quot;/app/sersync2/sersync2&quot; ]; then
+    /app/sersync2/sersync2 -r -d -o /app/sersync2/confxml.xml
+else
+    echo &quot;sersync2 程序文件不存在，请检查软件包解压路径。&quot;
+    exit 1
+fi
+
+# 设置 sersync 开机自启动
+sudo tee -a /etc/rc.local &lt;&lt;EOF
+#!/bin/bash
+/app/sersync2/sersync2 -r -d -o /app/sersync2/confxml.xml
+EOF
+sudo chmod +x /etc/rc.local
+
+</code></pre>
+<h3 id="服务器-b-19216823412">服务器 B (192.168.234.12)</h3>
+<h4 id="角色-2">角色</h4>
+<ul>
+<li><strong>目标服务器</strong>：接收来自服务器 A 的文件同步，并存储在 <code>/data/backup</code> 目录中。</li>
+</ul>
+<h4 id="流程-2">流程</h4>
+<ol>
+<li>
+<p><strong>安装必要的软件</strong></p>
+<ul>
+<li><code>nfs-utils</code>：用于挂载 NFS 共享。</li>
+<li><code>rsync</code>：用于接收文件同步。</li>
+</ul>
+</li>
+<li>
+<p><strong>挂载 NFS 共享</strong></p>
+<ul>
+<li>创建挂载点 <code>/data/backup</code>。</li>
+<li>编辑 <code>/etc/fstab</code> 文件，自动挂载 NFS 共享。</li>
+<li>挂载 NFS 共享。</li>
+</ul>
+</li>
+<li>
+<p><strong>配置 <code>rsync</code></strong></p>
+<ul>
+<li>创建 <code>rsync</code> 密码文件 <code>/etc/rsync.password</code>。
+<ul>
+<li>创建密码文件并设置权限。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>测试同步</strong></p>
+<ul>
+<li>手动运行 <code>rsync</code> 命令测试同步。</li>
+<li>确认同步成功后，可以通过 <code>sersync</code> 自动同步。</li>
+</ul>
+</li>
+</ol>
+<h4 id="安装的软件-2">安装的软件</h4>
+<ul>
+<li><code>nfs-utils</code></li>
+<li><code>rsync</code></li>
+</ul>
+<h4 id="脚本b并执行">脚本B并执行</h4>
+<pre><code class="language-bash">#!/bin/bash
+
+# 设置系统参数
+echo 50000000 &gt; /proc/sys/fs/inotify/max_user_watches
+echo 327679 &gt; /proc/sys/fs/inotify/max_queued_events
+
+# 永久设置系统参数
+echo 'fs.inotify.max_user_watches=50000000' | sudo tee -a /etc/sysctl.conf
+echo 'fs.inotify.max_queued_events=327679' | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+# 安装和配置 NFS 客户端
+sudo yum install -y nfs-utils
+
+# 创建挂载点
+sudo mkdir -p /mnt/nfs_share
+
+# 挂载 NFS 共享目录
+sudo mount 192.168.234.11:/data/nfs_share /mnt/nfs_share
+
+# 验证挂载是否成功
+df -h
+
+# 安装 rsync
+sudo yum install -y rsync
+
+# 编辑 rsync 配置文件
+sudo tee /etc/rsyncd.conf &lt;&lt;EOF
+uid = root
+gid = root
+use chroot = no
+max connections = 4
+timeout = 600
+pid file = /var/run/rsyncd.pid
+lock file = /var/run/rsync.lock
+log file = /var/log/rsync.log
+
+[backup]
+path = /data/backup
+comment = backup data
+read only = no
+auth users = rsync_user
+secrets file = /etc/rsyncd.secrets
+hosts allow = 192.168.234.11
+EOF
+
+# 创建密码文件
+echo &quot;rsync:123456&quot; | sudo tee /etc/rsyncd.secrets
+sudo chmod 600 /etc/rsyncd.secrets
+
+# 创建备份目录
+sudo mkdir -p /data/backup
+sudo chown -R nobody:nobody /data/backup
+sudo chmod -R 777 /data/backup
+
+# 创建 rsync 的 systemd 服务文件
+sudo tee /etc/systemd/system/rsync.service &lt;&lt;EOF
+[Unit]
+Description=rsync daemon
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/rsync --daemon --config=/etc/rsyncd.conf
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 重新加载 systemd 配置
+sudo systemctl daemon-reload
+
+# 启动并启用 rsync 服务
+sudo systemctl start rsync
+sudo systemctl enable rsync
+
+# 设置 rsync 开机自启动
+sudo tee -a /etc/rc.local &lt;&lt;EOF
+#!/bin/bash
+systemctl start rsync
+EOF
+sudo chmod +x /etc/rc.local
+
+</code></pre>
+<h4 id="在服务器-b-上验证同步结果">在服务器 B 上验证同步结果</h4>
+<pre><code class="language-bash"># 检查 `/data/backup` 目录中的文件是否与服务器 A 的 `/data/nfs_share` 目录一致
+ls -l /data/backup
+</code></pre>
+<h2 id="总结">总结</h2>
+<ol>
+<li><strong>安装 rsync 和 inotify-tools</strong>：用 <code>yum</code> 安装。</li>
+<li><strong>编写脚本</strong>：用 <code>inotifywait</code> 监控文件变化，并用 <code>rsync</code> 实时同步。</li>
+<li><strong>后台运行</strong>：使用 <code>nohup</code> 或 <code>systemd</code> 将脚本作为后台服务运行。</li>
+<li><strong>日志管理</strong>：通过 <code>logrotate</code> 管理日志文件，避免日志过大。</li>
+<li><strong>远端同步</strong>：配置服务器 A 和服务器 B，实现文件的实时同步。</li>
+<li><strong>测试同步</strong>：手动触发同步并验证结果，确保配置正确。</li>
+</ol>
+<p>这样，你就可以实现基于文件变化的实时同步了。每当 <code>zhangsan</code>、<code>lisi</code> 或 <code>wangwu</code> 目录有文件更改时，会自动同步到备份目录。同时，服务器 A 和服务器 B 之间的文件也可以实现远端同步。</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#rsync">rsync</a>
+<ul>
+<li><a href="#%E4%B8%80-%E4%BB%8B%E7%BB%8D">一、介绍</a>
+<ul>
+<li><a href="#%E5%9F%BA%E6%9C%AC%E7%94%A8%E6%B3%95">基本用法</a></li>
+<li><a href="#%E5%B8%B8%E7%94%A8%E9%80%89%E9%A1%B9">常用选项</a></li>
+</ul>
+</li>
+<li><a href="#%E4%BA%8C-%E5%AE%89%E8%A3%85%E9%85%8D%E7%BD%AE">二、安装配置</a>
+<ul>
+<li><a href="#1-%E6%A3%80%E6%9F%A5%E6%98%AF%E5%90%A6%E5%AE%89%E8%A3%85">1. 检查是否安装</a></li>
+<li><a href="#2-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E8%A7%A3%E6%9E%90">2. 配置文件解析</a>
+<ul>
+<li><a href="#%E6%9F%A5%E7%9C%8B-rsync-%E5%AE%89%E8%A3%85%E6%96%87%E4%BB%B6%E6%83%85%E5%86%B5">查看 rsync 安装文件情况</a></li>
+<li><a href="#rsync-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E8%AF%A6%E8%A7%A3">rsync 配置文件详解</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#%E4%B8%89-%E6%9C%AC%E5%9C%B0%E5%90%8C%E6%AD%A5">三、本地同步</a>
+<ul>
+<li><a href="#1-%E5%AE%89%E8%A3%85-inotify-tools">1. 安装 inotify-tools</a></li>
+<li><a href="#2-%E5%88%9B%E5%BB%BA%E7%9B%91%E6%8E%A7%E5%92%8C%E5%90%8C%E6%AD%A5%E8%84%9A%E6%9C%AC">2. 创建监控和同步脚本</a>
+<ul>
+<li><a href="#%E8%84%9A%E6%9C%AC%E7%A4%BA%E4%BE%8Brsync_inotify_syncsh">脚本示例：<code>rsync_inotify_sync.sh</code></a></li>
+<li><a href="#%E8%B5%8B%E4%BA%88%E8%84%9A%E6%9C%AC%E6%89%A7%E8%A1%8C%E6%9D%83%E9%99%90">赋予脚本执行权限</a></li>
+</ul>
+</li>
+<li><a href="#3-%E5%90%8E%E5%8F%B0%E8%BF%90%E8%A1%8C%E8%84%9A%E6%9C%AC">3. 后台运行脚本</a></li>
+<li><a href="#4-%E4%BD%BF%E7%94%A8-systemd-%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%8A%A8%E5%90%AF%E5%8A%A8">4. 使用 systemd 实现自动启动</a>
+<ul>
+<li><a href="#%E5%88%9B%E5%BB%BA-systemd-%E6%9C%8D%E5%8A%A1%E6%96%87%E4%BB%B6">创建 systemd 服务文件</a></li>
+<li><a href="#%E5%90%AF%E7%94%A8%E5%B9%B6%E5%90%AF%E5%8A%A8%E6%9C%8D%E5%8A%A1">启用并启动服务</a></li>
+</ul>
+</li>
+<li><a href="#5-%E6%97%A5%E5%BF%97%E7%AE%A1%E7%90%86">5. 日志管理</a></li>
+</ul>
+</li>
+<li><a href="#%E5%9B%9B-%E8%BF%9C%E7%AB%AF%E5%90%8C%E6%AD%A5-%E6%9C%8D%E5%8A%A1%E5%99%A8-a-%E5%92%8C%E6%9C%8D%E5%8A%A1%E5%99%A8-b-%E9%85%8D%E7%BD%AE%E6%96%87%E6%A1%A3">四、远端同步 服务器 A 和服务器 B 配置文档</a>
+<ul>
+<li><a href="#%E6%9C%8D%E5%8A%A1%E5%99%A8%E4%BF%A1%E6%81%AF">服务器信息</a></li>
+<li><a href="#%E6%9C%8D%E5%8A%A1%E5%99%A8-a-19216823411">服务器 A (192.168.234.11)</a>
+<ul>
+<li><a href="#%E8%A7%92%E8%89%B2">角色</a></li>
+<li><a href="#%E6%B5%81%E7%A8%8B">流程</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85%E7%9A%84%E8%BD%AF%E4%BB%B6">安装的软件</a></li>
+<li><a href="#%E8%84%9A%E6%9C%ACa%E5%B9%B6%E6%89%A7%E8%A1%8C">脚本A并执行</a></li>
+</ul>
+</li>
+<li><a href="#%E6%9C%8D%E5%8A%A1%E5%99%A8-b-19216823412">服务器 B (192.168.234.12)</a>
+<ul>
+<li><a href="#%E8%A7%92%E8%89%B2-2">角色</a></li>
+<li><a href="#%E6%B5%81%E7%A8%8B-2">流程</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85%E7%9A%84%E8%BD%AF%E4%BB%B6-2">安装的软件</a></li>
+<li><a href="#%E8%84%9A%E6%9C%ACb%E5%B9%B6%E6%89%A7%E8%A1%8C">脚本B并执行</a></li>
+<li><a href="#%E5%9C%A8%E6%9C%8D%E5%8A%A1%E5%99%A8-b-%E4%B8%8A%E9%AA%8C%E8%AF%81%E5%90%8C%E6%AD%A5%E7%BB%93%E6%9E%9C">在服务器 B 上验证同步结果</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#%E6%80%BB%E7%BB%93">总结</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/zi-dong-hua-yun-wei-ansible/">
+              <h3 class="post-title">
+                自动化运维 Ansible
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

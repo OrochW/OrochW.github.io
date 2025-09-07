@@ -1,0 +1,836 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Elasticsearch 8.0.0 集群部署文档 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Elasticsearch 8.0.0 集群部署文档 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="📚 Elasticsearch 8.0.0 三节点集群部署文档
+
+版本：v1.1
+编写日期：2025年9月7日
+目标：搭建高可用 ES 集群（3节点）
+部署方式：Tarball + 自定义脚本管理
+环境：Linux（Ubuntu/Cent..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Elasticsearch 8.0.0 集群部署文档
+            </h2>
+            <div class="post-info">
+              <span>
+                2023-01-05
+              </span>
+              <span>
+                14 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h1 id="elasticsearch-800-三节点集群部署文档">📚 Elasticsearch 8.0.0 三节点集群部署文档</h1>
+<blockquote>
+<p><strong>版本</strong>：v1.1<br>
+<strong>编写日期</strong>：2025年9月7日<br>
+<strong>目标</strong>：搭建高可用 ES 集群（3节点）<br>
+<strong>部署方式</strong>：Tarball + 自定义脚本管理<br>
+<strong>环境</strong>：Linux（Ubuntu/CentOS 类）</p>
+</blockquote>
+<hr>
+<h2 id="一-操作目标">一、操作目标</h2>
+<ul>
+<li>部署 3 个 Elasticsearch 8.0.0 节点，组成高可用集群</li>
+<li>实现节点间自动发现、主节点选举、数据分片分配</li>
+<li>提供统一的启停脚本，便于运维管理</li>
+<li>验证集群健康状态</li>
+</ul>
+<hr>
+<h2 id="二-操作环境">二、操作环境</h2>
+<table>
+<thead>
+<tr>
+<th>节点</th>
+<th>主机名</th>
+<th>IP 地址</th>
+<th>角色</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>121-es1</code></td>
+<td><code>172.31.7.121</code></td>
+<td>master/data/ingest</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>122-es2</code></td>
+<td><code>172.31.7.122</code></td>
+<td>master/data/ingest</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>123-es3</code></td>
+<td><code>172.31.7.123</code></td>
+<td>master/data/ingest</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>所有节点配置相同，均为 master-eligible。</p>
+</blockquote>
+<hr>
+<h2 id="三-操作步骤-你执行的动作">三、操作步骤（✅ 你执行的动作）</h2>
+<h3 id="1-分发软件包所有节点">1. 分发软件包（所有节点）</h3>
+<pre><code class="language-bash"># 在 121 上执行
+scp elasticsearch-8.0.0-linux-x86_64.tar.gz 172.31.7.122:/apps
+scp elasticsearch-8.0.0-linux-x86_64.tar.gz 172.31.7.123:/apps
+</code></pre>
+<hr>
+<h3 id="2-安装与目录准备所有节点">2. 安装与目录准备（所有节点）</h3>
+<pre><code class="language-bash">cd /apps
+tar xf elasticsearch-8.0.0-linux-x86_64.tar.gz
+ln -sv elasticsearch-8.0.0 elasticsearch
+</code></pre>
+<hr>
+<h3 id="3-创建专用用户所有节点">3. 创建专用用户（所有节点）</h3>
+<pre><code class="language-bash">groupadd es
+useradd es -g es
+</code></pre>
+<hr>
+<h3 id="4-创建数据与日志目录所有节点">4. 创建数据与日志目录（所有节点）</h3>
+<pre><code class="language-bash">mkdir -p /data/elasticsearch/data
+mkdir -p /data/elasticsearch/logs
+chown -R es:es /apps/elasticsearch
+chown -R es:es /data/elasticsearch
+</code></pre>
+<hr>
+<h3 id="5-配置-elasticsearchyml所有节点">5. 配置 <code>elasticsearch.yml</code>（所有节点）</h3>
+<pre><code class="language-bash">vim /apps/elasticsearch/config/elasticsearch.yml
+</code></pre>
+<h4 id="配置内容示例121-es1">配置内容（示例：<code>121-es1</code>）</h4>
+<pre><code class="language-yaml"># =================================== 集群配置 ===================================
+# 集群名称（所有节点必须一致）
+# 同一个网络内，相同 cluster.name 的节点会自动组成集群
+cluster.name: elasticsearch
+
+
+# 节点名称（每个节点必须唯一！）
+# ❗ 在 node-1、node-2、node-3 上分别设置为：
+#    node-1: node.name: node-1
+#    node-2: node.name: node-2
+#    node-3: node.name: node-3
+node.name: node-1
+
+
+# 节点角色定义（默认已启用 master/data/ingest）
+# 可选值：master, data, ingest, remote_cluster_client, ml, voting_only 等
+# 当前为通用节点，承担主节点选举、数据存储、数据预处理
+node.roles: [master, data, ingest]
+
+
+# =================================== 网络配置 ===================================
+# 绑定的网络接口，0.0.0.0 表示监听所有网卡
+network.host: 0.0.0.0
+
+# HTTP 服务端口（默认 9200），用于 REST API
+http.port: 9200
+
+# Transport 端口（默认 9300），用于节点间通信
+transport.port: 9300
+
+
+# =================================== 发现与集群形成 ===================================
+# 初始主节点候选列表（仅在集群首次启动时生效！）
+# ❗ 首次启动后必须注释或删除此行，否则重启可能出错
+# ❗ 所有 master-eligible 节点的 node.name 必须在此列表中
+cluster.initial_master_nodes: [&quot;node-1&quot;, &quot;node-2&quot;, &quot;node-3&quot;]
+
+# 集群种子主机列表（所有节点都需配置）
+# 格式：[&quot;ip:port&quot;, &quot;ip:port&quot;, ...]
+# 用于节点发现和集群组建
+# ❗ 所有 master-eligible 节点的 IP:9300 都应在此列出
+discovery.seed_hosts: 
+  - &quot;172.31.7.121:9300&quot;
+  - &quot;172.31.7.122:9300&quot;
+  - &quot;172.31.7.123:9300&quot;
+
+
+# =================================== 数据与日志路径 ===================================
+# 数据存储路径（建议独立磁盘）
+path.data: /data/elasticsearch/data
+
+# 日志存储路径
+path.logs: /data/elasticsearch/logs
+
+
+# =================================== 安全配置（测试环境关闭） ===================================
+# ❌ 测试环境关闭安全功能（生产环境必须开启）
+xpack.security.enabled: false
+
+# ❌ 关闭 HTTPS 和传输层 SSL 加密（生产环境必须开启）
+xpack.security.http.ssl.enabled: false
+xpack.security.transport.ssl.enabled: false
+
+# ❌ 关闭监控数据收集（可选）
+xpack.monitoring.collection.enabled: false
+
+
+# =================================== JVM 与性能调优（可选） ===================================
+# 堆内存大小（建议不超过物理内存 50%，且不超过 32GB）
+# 修改位置：config/jvm.options
+# 示例：-Xms4g
+#       -Xmx4g
+
+# 文件描述符限制（需系统配置）
+# 确保系统 ulimit -n &gt;= 65536
+
+# 最大映射数量（必须设置）
+# sysctl -w vm.max_map_count=262144
+</code></pre>
+<blockquote>
+<p>🔁 注意：</p>
+<ul>
+<li><code>node.name</code> 每台机器唯一（<code>node-1</code>, <code>node-2</code>, <code>node-3</code>）</li>
+<li><code>cluster.initial_master_nodes</code> 仅在首次启动时配置</li>
+</ul>
+</blockquote>
+<hr>
+<h3 id="6-调整系统参数所有节点">6. 调整系统参数（所有节点）</h3>
+<pre><code class="language-bash">echo &quot;vm.max_map_count=262144&quot; &gt;&gt; /etc/sysctl.conf
+sysctl -p
+</code></pre>
+<hr>
+<h2 id="四-为什么要写启动脚本">四、为什么要写启动脚本？</h2>
+<h3 id="问题">❓ 问题</h3>
+<ul>
+<li>Elasticsearch 以 <code>java</code> 进程运行，直接启动不易管理</li>
+<li>需要以 <code>es</code> 用户运行，不能用 <code>root</code> 启动</li>
+<li>缺少 <code>start</code> / <code>stop</code> / <code>status</code> 统一接口</li>
+<li>无法快速判断进程状态和 API 可达性</li>
+</ul>
+<h3 id="解决方案编写-start_essh-脚本">✅ 解决方案：编写 <code>start_es.sh</code> 脚本</h3>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>start</code></td>
+<td>以 <code>es</code> 用户后台启动 ES</td>
+</tr>
+<tr>
+<td><code>stop</code></td>
+<td>安全停止进程，支持优雅关闭</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>检查进程 + API + 集群健康</td>
+</tr>
+<tr>
+<td><code>restart</code></td>
+<td>重启服务</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="五-脚本设计思路">五、脚本设计思路</h2>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>实现方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>启动</td>
+<td><code>su - es -c &quot;nohup ./elasticsearch -d&quot;</code></td>
+</tr>
+<tr>
+<td>停止</td>
+<td><code>pgrep -f elasticsearch</code> + <code>kill -15</code></td>
+</tr>
+<tr>
+<td>状态</td>
+<td>检查进程 + <code>curl</code> 测试 API + 集群健康</td>
+</tr>
+<tr>
+<td>用户</td>
+<td>固定为 <code>es</code>，避免权限问题</td>
+</tr>
+<tr>
+<td>日志</td>
+<td>输出彩色信息，便于识别</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="六-启动脚本内容rootstart_essh">六、启动脚本内容（<code>/root/start_es.sh</code>）</h2>
+<pre><code class="language-bash">#!/bin/bash
+
+# ========================================
+# Elasticsearch 管理脚本
+# 支持: start | stop | status
+# 日志路径: /data/elasticsearch/logs
+# ========================================
+
+# 配置变量
+ES_USER=&quot;es&quot;
+ES_HOME=&quot;/apps/elasticsearch&quot;
+ES_LOG_DIR=&quot;/data/elasticsearch/logs&quot;
+ES_PID_FILE=&quot;/var/run/elasticsearch.pid&quot;  # PID 文件位置
+ES_CMD=&quot;cd ${ES_HOME} &amp;&amp; ./bin/elasticsearch -d&quot;
+
+# 颜色输出
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# 确保日志目录存在（可选）
+ensure_log_dir() {
+    if ! su - ${ES_USER} -c &quot;test -d ${ES_LOG_DIR}&quot;; then
+        echo -e &quot;${YELLOW}警告: 日志目录 ${ES_LOG_DIR} 不存在，尝试创建...${NC}&quot;
+        mkdir -p ${ES_LOG_DIR}
+        chown ${ES_USER}:${ES_USER} ${ES_LOG_DIR}
+        chmod 755 ${ES_USER} ${ES_LOG_DIR}
+    fi
+}
+
+# 检查 es 用户家目录
+ensure_home_dir() {
+    if [ ! -d &quot;/home/es&quot; ]; then
+        echo &quot;创建 es 用户家目录 /home/es&quot;
+        mkdir -p /home/es
+        chown ${ES_USER}:${ES_USER} /home/es
+        chmod 755 /home/es
+    fi
+}
+
+# 启动 Elasticsearch
+start() {
+    ensure_home_dir
+    ensure_log_dir
+
+    if pgrep -u ${ES_USER} elasticsearch &gt; /dev/null; then
+        echo -e &quot;${YELLOW}Elasticsearch 已在运行。${NC}&quot;
+        status
+        exit 1
+    fi
+
+    echo &quot;正在以用户 ${ES_USER} 启动 Elasticsearch...&quot;
+    if su - ${ES_USER} -c &quot;${ES_CMD}&quot;; then
+        # 等待 PID 文件或进程稳定
+        sleep 3
+        local pid=$(pgrep -u ${ES_USER} elasticsearch)
+        if [ -n &quot;$pid&quot; ]; then
+            echo $pid &gt; ${ES_PID_FILE}
+            chown ${ES_USER}:${ES_USER} ${ES_PID_FILE} 2&gt;/dev/null || true
+            echo -e &quot;${GREEN}✅ Elasticsearch 已成功启动，PID: ${pid}${NC}&quot;
+        else
+            echo -e &quot;${RED}❌ 启动成功但无法获取 PID，请检查日志。${NC}&quot;
+        fi
+    else
+        echo -e &quot;${RED}❌ 启动失败，请检查日志: ${ES_LOG_DIR}${NC}&quot;
+        exit 1
+    fi
+}
+
+# 停止 Elasticsearch
+stop() {
+    # 使用 -f 匹配命令行中的 elasticsearch
+    local pids=($(pgrep -u ${ES_USER} -f elasticsearch))
+
+    if [ ${#pids[@]} -eq 0 ]; then
+        echo -e &quot;${YELLOW}Elasticsearch 未运行。${NC}&quot;
+        return 0
+    fi
+
+    echo -e &quot;${YELLOW}发现 ${#pids[@]} 个 Elasticsearch 进程：${pids[*]}${NC}&quot;
+
+    # 尝试优雅停止
+    for pid in &quot;${pids[@]}&quot;; do
+        echo &quot;正在停止 PID: $pid&quot;
+        kill -15 $pid
+    done
+
+    # 等待最多 30 秒
+    for i in {1..30}; do
+        local running=0
+        for pid in &quot;${pids[@]}&quot;; do
+            if kill -0 $pid 2&gt;/dev/null; then
+                running=1
+            fi
+        done
+        if [ $running -eq 0 ]; then
+            echo -e &quot;${GREEN}✅ 所有 Elasticsearch 进程已停止。${NC}&quot;
+            rm -f ${ES_PID_FILE}
+            return 0
+        fi
+        sleep 1
+    done
+
+    # 超时，强制终止
+    echo -e &quot;${RED}超时，正在强制终止...${NC}&quot;
+    for pid in &quot;${pids[@]}&quot;; do
+        if kill -0 $pid 2&gt;/dev/null; then
+            kill -9 $pid
+            echo &quot;已强制终止 PID: $pid&quot;
+        fi
+    done
+    rm -f ${ES_PID_FILE}
+    echo -e &quot;${GREEN}✅ 强制停止完成。${NC}&quot;
+}
+# 查看状态：本地进程 + 集群健康
+status() {
+    echo -e &quot;${YELLOW}🔍 正在检查 Elasticsearch 状态...${NC}&quot;
+
+    # 使用 pgrep -f 匹配命令行，支持 java -cp ... elasticsearch
+    local pids=($(pgrep -u ${ES_USER} -f elasticsearch 2&gt;/dev/null))
+
+    # 检查是否有运行中的进程
+    if [ ${#pids[@]} -gt 0 ]; then
+        local main_pid=${pids[0]}
+        if [ ${#pids[@]} -eq 1 ]; then
+            echo -e &quot;${GREEN}🟢 Elasticsearch 正在运行${NC}&quot;
+            echo -e &quot;   PID: ${main_pid}&quot;
+        else
+            echo -e &quot;${YELLOW}🟡 检测到多个 Elasticsearch 进程（可能存在残留）${NC}&quot;
+            printf &quot;   PID 列表: &quot;
+            printf '%s ' &quot;${pids[@]}&quot;
+            echo
+            echo -e &quot;   主 PID: ${main_pid}&quot;
+        fi
+
+        # 检查 REST API 是否响应
+        local http_url=&quot;http://localhost:9200&quot;
+        echo -e &quot;\n${YELLOW}📡 正在连接 REST API: ${http_url}${NC}&quot;
+
+        if ! command -v curl &amp;&gt; /dev/null; then
+            echo -e &quot;${RED}❌ 错误: curl 未安装，无法检查 API 状态${NC}&quot;
+            return 1
+        fi
+
+        # 尝试获取根端点
+        if curl -s --connect-timeout 5 --max-time 10 &quot;${http_url}&quot; &gt; /dev/null; then
+            echo -e &quot;${GREEN}✅ REST API 可访问${NC}&quot;
+
+            # 尝试获取集群健康状态
+            echo -e &quot;\n${YELLOW}📊 集群健康状态:${NC}&quot;
+            local health_output=$(curl -s -X GET &quot;${http_url}/_cluster/health?pretty&quot; 2&gt;/dev/null)
+            local status_code=$(echo &quot;$health_output&quot; | grep -o '&quot;status&quot; *: *&quot;[^&quot;]*&quot;' | head -1 | cut -d '&quot;' -f4)
+
+            if [ -n &quot;$status_code&quot; ]; then
+                echo &quot;$health_output&quot; | sed 's/^/  | /'
+            else
+                local error_reason=$(echo &quot;$health_output&quot; | grep -o '&quot;reason&quot; *: *[^,}]*' | head -1 | cut -d ':' -f2- | xargs || echo &quot;unknown&quot;)
+                echo &quot;  | ❌ 集群状态异常: $error_reason&quot;
+                echo &quot;  |    建议: 检查 elasticsearch.yml 中的 discovery 配置&quot;
+                echo &quot;  |    常见修复: 添加 discovery.type: single-node（单节点模式）&quot;
+            fi
+
+            # 获取节点列表
+            echo -e &quot;\n${YELLOW}🔍 集群节点信息:${NC}&quot;
+            local nodes_output=$(curl -s -X GET &quot;${http_url}/_cat/nodes?v&quot; 2&gt;/dev/null)
+            if echo &quot;$nodes_output&quot; | grep -q &quot;master_not_discovered_exception&quot;; then
+                echo &quot;  | ❌ 无法获取节点信息: master_not_discovered_exception&quot;
+            else
+                echo &quot;$nodes_output&quot; | sed 's/^/  | /'
+            fi
+
+        else
+            echo -e &quot;${RED}❌ REST API 无法访问，请检查服务是否完全启动${NC}&quot;
+            echo -e &quot;${YELLOW}💡 提示: 可能正在启动中，或配置了安全认证${NC}&quot;
+        fi
+
+        # 显示日志尾部
+        if [ -d &quot;${ES_LOG_DIR}&quot; ] &amp;&amp; [ -n &quot;$(ls ${ES_LOG_DIR}/*.log 2&gt;/dev/null)&quot; ]; then
+            local log_file=$(ls ${ES_LOG_DIR}/*.log | head -n1)
+            echo -e &quot;\n${YELLOW}📄 最近日志 (${log_file}):${NC}&quot;
+            tail -n 5 &quot;${log_file}&quot; | sed 's/^/  | /'
+        else
+            echo -e &quot;\n${YELLOW}📄 日志目录: ${ES_LOG_DIR} 不存在或无日志文件${NC}&quot;
+        fi
+
+    else
+        # 没有找到进程
+        if [ -f &quot;${ES_PID_FILE}&quot; ]; then
+            local old_pid=$(cat &quot;${ES_PID_FILE}&quot;)
+            echo -e &quot;${RED}❌ Elasticsearch 未运行，但存在 PID 文件: ${old_pid}${NC}&quot;
+            echo -e &quot;${YELLOW}💡 请检查是否残留或手动 kill 进程${NC}&quot;
+        else
+            echo -e &quot;${YELLOW}⚪ Elasticsearch 未运行${NC}&quot;
+        fi
+    fi
+}
+# 主逻辑
+case &quot;$1&quot; in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status
+        ;;
+    restart)
+        stop
+        sleep 2
+        start
+        ;;
+    *)
+        echo &quot;用法: $0 {start|stop|status|restart}&quot;
+        exit 1
+        ;;
+esac
+
+exit 0
+
+</code></pre>
+<h3 id="赋予权限">赋予权限：</h3>
+<pre><code class="language-bash">chmod +x /root/start_es.sh
+</code></pre>
+<hr>
+<h2 id="七-启动集群操作步骤">七、启动集群（操作步骤）</h2>
+<h3 id="1-清空数据目录首次启动">1. 清空数据目录（首次启动）</h3>
+<pre><code class="language-bash">rm -rf /data/elasticsearch/data/*
+</code></pre>
+<h3 id="2-启动所有节点同时">2. 启动所有节点（同时）</h3>
+<pre><code class="language-bash">/root/start_es.sh start
+</code></pre>
+<hr>
+<h2 id="八-验证与展示步骤-查看结果">八、验证与展示步骤（✅ 查看结果）</h2>
+<h3 id="1-检查状态122-es2-输出">1. 检查状态（<code>122-es2</code> 输出）</h3>
+<pre><code class="language-bash">./start_es.sh status
+</code></pre>
+<h3 id="执行结果">✅ 执行结果：</h3>
+<pre><code>🔍 正在检查 Elasticsearch 状态...
+🟡 检测到多个 Elasticsearch 进程（可能存在残留）
+   PID 列表: 152116 152172
+   主 PID: 152116
+
+📡 正在连接 REST API: http://localhost:9200
+✅ REST API 可访问
+
+📊 集群健康状态:
+  | {
+  |   &quot;cluster_name&quot; : &quot;elasticsearch&quot;,
+  |   &quot;status&quot; : &quot;green&quot;,
+  |   &quot;timed_out&quot; : false,
+  |   &quot;number_of_nodes&quot; : 3,
+  |   &quot;number_of_data_nodes&quot; : 3,
+  |   &quot;active_primary_shards&quot; : 0,
+  |   &quot;active_shards&quot; : 0,
+  |   &quot;relocating_shards&quot; : 0,
+  |   &quot;initializing_shards&quot; : 0,
+  |   &quot;unassigned_shards&quot; : 0,
+  |   &quot;delayed_unassigned_shards&quot; : 0,
+  |   &quot;number_of_pending_tasks&quot; : 0,
+  |   &quot;number_of_in_flight_fetch&quot; : 0,
+  |   &quot;task_max_waiting_in_queue_millis&quot; : 0,
+  |   &quot;active_shards_percent_as_number&quot; : 100.0
+  | }
+
+🔍 集群节点信息:
+  | ip           heap.percent ram.percent cpu load_1m load_5m load_15m node.role   master name
+  | 172.31.7.123            8          98   1    0.98    0.28     0.11 cdfhilmrstw -      node-3
+  | 172.31.7.122            8          98   2    0.75    0.31     0.15 cdfhilmrstw -      node-2
+  | 172.31.7.121           17          97   1    0.56    0.22     0.15 cdfhilmrstw *      node-1
+
+📄 最近日志 (/data/elasticsearch/logs/elasticsearch.log):
+  |     at org.elasticsearch.common.util.concurrent.ThreadContext$ContextPreservingAbstractRunnable.doRun(ThreadContext.java:776)
+  |     at org.elasticsearch.common.util.concurrent.AbstractRunnable.run(AbstractRunnable.java:26)
+  |     at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+  |     at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+  |     at java.lang.Thread.run(Thread.java:833)
+</code></pre>
+<hr>
+<h2 id="九-结果分析">九、结果分析</h2>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>结论</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>集群名称</td>
+<td><code>elasticsearch</code></td>
+</tr>
+<tr>
+<td>节点数</td>
+<td>✅ 3 个节点正常加入</td>
+</tr>
+<tr>
+<td>集群状态</td>
+<td>✅ <code>green</code>（健康）</td>
+</tr>
+<tr>
+<td>主节点</td>
+<td>✅ <code>node-1</code>（<code>*</code> 标记）</td>
+</tr>
+<tr>
+<td>分片分配</td>
+<td>✅ <code>unassigned_shards: 0</code></td>
+</tr>
+<tr>
+<td>进程状态</td>
+<td>✅ 多 PID 为 Java 正常线程</td>
+</tr>
+<tr>
+<td>日志</td>
+<td>✅ 无错误，线程运行正常</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="十-结论">十、结论</h2>
+<ul>
+<li>✅ <strong>Elasticsearch 8.0.0 三节点集群已成功部署</strong></li>
+<li>✅ 集群状态为 <code>green</code>，所有节点正常通信</li>
+<li>✅ 启停脚本功能完整，支持日常运维</li>
+<li>✅ 当前为空集群，可开始写入数据</li>
+</ul>
+<hr>
+<h2 id="十一-后续建议">十一、后续建议</h2>
+<ol>
+<li><strong>创建测试索引</strong>，验证写入与分片分配</li>
+<li><strong>模拟节点宕机</strong>，测试高可用性</li>
+<li><strong>生产环境开启安全功能</strong></li>
+<li><strong>配置 Kibana 或监控系统</strong></li>
+</ol>
+<hr>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#elasticsearch-800-%E4%B8%89%E8%8A%82%E7%82%B9%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2%E6%96%87%E6%A1%A3">📚 Elasticsearch 8.0.0 三节点集群部署文档</a>
+<ul>
+<li><a href="#%E4%B8%80-%E6%93%8D%E4%BD%9C%E7%9B%AE%E6%A0%87">一、操作目标</a></li>
+<li><a href="#%E4%BA%8C-%E6%93%8D%E4%BD%9C%E7%8E%AF%E5%A2%83">二、操作环境</a></li>
+<li><a href="#%E4%B8%89-%E6%93%8D%E4%BD%9C%E6%AD%A5%E9%AA%A4-%E4%BD%A0%E6%89%A7%E8%A1%8C%E7%9A%84%E5%8A%A8%E4%BD%9C">三、操作步骤（✅ 你执行的动作）</a>
+<ul>
+<li><a href="#1-%E5%88%86%E5%8F%91%E8%BD%AF%E4%BB%B6%E5%8C%85%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9">1. 分发软件包（所有节点）</a></li>
+<li><a href="#2-%E5%AE%89%E8%A3%85%E4%B8%8E%E7%9B%AE%E5%BD%95%E5%87%86%E5%A4%87%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9">2. 安装与目录准备（所有节点）</a></li>
+<li><a href="#3-%E5%88%9B%E5%BB%BA%E4%B8%93%E7%94%A8%E7%94%A8%E6%88%B7%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9">3. 创建专用用户（所有节点）</a></li>
+<li><a href="#4-%E5%88%9B%E5%BB%BA%E6%95%B0%E6%8D%AE%E4%B8%8E%E6%97%A5%E5%BF%97%E7%9B%AE%E5%BD%95%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9">4. 创建数据与日志目录（所有节点）</a></li>
+<li><a href="#5-%E9%85%8D%E7%BD%AE-elasticsearchyml%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9">5. 配置 <code>elasticsearch.yml</code>（所有节点）</a>
+<ul>
+<li><a href="#%E9%85%8D%E7%BD%AE%E5%86%85%E5%AE%B9%E7%A4%BA%E4%BE%8B121-es1">配置内容（示例：<code>121-es1</code>）</a></li>
+</ul>
+</li>
+<li><a href="#6-%E8%B0%83%E6%95%B4%E7%B3%BB%E7%BB%9F%E5%8F%82%E6%95%B0%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9">6. 调整系统参数（所有节点）</a></li>
+</ul>
+</li>
+<li><a href="#%E5%9B%9B-%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E5%86%99%E5%90%AF%E5%8A%A8%E8%84%9A%E6%9C%AC">四、为什么要写启动脚本？</a>
+<ul>
+<li><a href="#%E9%97%AE%E9%A2%98">❓ 问题</a></li>
+<li><a href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88%E7%BC%96%E5%86%99-start_essh-%E8%84%9A%E6%9C%AC">✅ 解决方案：编写 <code>start_es.sh</code> 脚本</a></li>
+</ul>
+</li>
+<li><a href="#%E4%BA%94-%E8%84%9A%E6%9C%AC%E8%AE%BE%E8%AE%A1%E6%80%9D%E8%B7%AF">五、脚本设计思路</a></li>
+<li><a href="#%E5%85%AD-%E5%90%AF%E5%8A%A8%E8%84%9A%E6%9C%AC%E5%86%85%E5%AE%B9rootstart_essh">六、启动脚本内容（<code>/root/start_es.sh</code>）</a>
+<ul>
+<li><a href="#%E8%B5%8B%E4%BA%88%E6%9D%83%E9%99%90">赋予权限：</a></li>
+</ul>
+</li>
+<li><a href="#%E4%B8%83-%E5%90%AF%E5%8A%A8%E9%9B%86%E7%BE%A4%E6%93%8D%E4%BD%9C%E6%AD%A5%E9%AA%A4">七、启动集群（操作步骤）</a>
+<ul>
+<li><a href="#1-%E6%B8%85%E7%A9%BA%E6%95%B0%E6%8D%AE%E7%9B%AE%E5%BD%95%E9%A6%96%E6%AC%A1%E5%90%AF%E5%8A%A8">1. 清空数据目录（首次启动）</a></li>
+<li><a href="#2-%E5%90%AF%E5%8A%A8%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9%E5%90%8C%E6%97%B6">2. 启动所有节点（同时）</a></li>
+</ul>
+</li>
+<li><a href="#%E5%85%AB-%E9%AA%8C%E8%AF%81%E4%B8%8E%E5%B1%95%E7%A4%BA%E6%AD%A5%E9%AA%A4-%E6%9F%A5%E7%9C%8B%E7%BB%93%E6%9E%9C">八、验证与展示步骤（✅ 查看结果）</a>
+<ul>
+<li><a href="#1-%E6%A3%80%E6%9F%A5%E7%8A%B6%E6%80%81122-es2-%E8%BE%93%E5%87%BA">1. 检查状态（<code>122-es2</code> 输出）</a></li>
+<li><a href="#%E6%89%A7%E8%A1%8C%E7%BB%93%E6%9E%9C">✅ 执行结果：</a></li>
+</ul>
+</li>
+<li><a href="#%E4%B9%9D-%E7%BB%93%E6%9E%9C%E5%88%86%E6%9E%90">九、结果分析</a></li>
+<li><a href="#%E5%8D%81-%E7%BB%93%E8%AE%BA">十、结论</a></li>
+<li><a href="#%E5%8D%81%E4%B8%80-%E5%90%8E%E7%BB%AD%E5%BB%BA%E8%AE%AE">十一、后续建议</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/prometheus-shi-yong-yuan-duan-cun-chu-victoriametrics-ji-qun/">
+              <h3 class="post-title">
+                Prometheus使用远端存储VictoriaMetrics集群
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

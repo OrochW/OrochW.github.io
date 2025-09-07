@@ -1,0 +1,380 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Dockerfile编写 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Dockerfile编写 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="dockerfile常用指令详解
+本文章向大家介绍dockerfile常用指令详解，主要包括dockerfile常用指令详解使用实例、应用技巧、基本知识点总结和需要注意事项，具有一定的参考价值，需要的朋友可以参考一下。
+Dockerfile..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Dockerfile编写
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-06-25
+              </span>
+              <span>
+                10 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <h2 id="dockerfile常用指令详解">dockerfile常用指令详解</h2>
+<p>本文章向大家介绍dockerfile常用指令详解，主要包括dockerfile常用指令详解使用实例、应用技巧、基本知识点总结和需要注意事项，具有一定的参考价值，需要的朋友可以参考一下。<br>
+Dockerfile介绍<br>
+Dockerfile 是一个文本文件，其内包含了一条条的 指令(Instruction)，每一条指令构建一层，因此每一条指令的内容，就是描述该层应当如何构建。</p>
+<p>Docker通过docker build从上到下的顺序运行Dockerfile中的一系列命令自动构建image。</p>
+<p>dockerfile 文件中的常见指令<br>
+FROM: 指定基础镜像<br>
+构建新镜像需要指定是基于哪个镜像，即指定基础镜像。 此指令通常必需放在Dockerfile文件第一个非注释行，后续的指令都是运行<br>
+于此基准镜像所提供的运行环境 。</p>
+<p>基础镜像可以是任何可用镜像文件，默认情况下，docker build会在docker主机本地查找指定的镜像文件，在其不存在时，则会从Docker Hub Registry上拉取所需的镜像文件.如果找不到指定的镜像文件，docker build会返回一个错误信息。</p>
+<p>使用示例：</p>
+<pre><code>FROM centos
+FROM ubuntu:bionic
+FROM mysql:5.7
+</code></pre>
+<h3 id="label-指定镜像元数据">LABEL: 指定镜像元数据</h3>
+<p>可以指定镜像元数据，如: 镜像作者等</p>
+<p>使用示例：</p>
+<p>#您可以在一行中指定多个标签</p>
+<pre><code>LABEL multi.label1=&quot;value1&quot; multi.label2=&quot;value2&quot; other=&quot;value3&quot;
+</code></pre>
+<p>#也可以在一条指令中指定多个标签</p>
+<pre><code>LABEL multi.label1=&quot;value1&quot; \
+      multi.label2=&quot;value2&quot; \
+      other=&quot;value3&quot;
+</code></pre>
+<h3 id="run-执行-shell命令">RUN: 执行 shell命令</h3>
+<p>RUN 指令用来在构建镜像阶段需要执行 FROM 指定镜像所支持的Shell命令。<br>
+通常各种基础镜像一般都支持丰富的shell命令。<br>
+注意: RUN 可以写多个，每一个RUN指令都会建立一个镜像层，所以尽可能合并成一条指令,比如将多个shell命令通过 &amp;&amp; 连接一起成为在一条指令<br>
+每个RUN都是独立运行的,和前一个RUN无关</p>
+<p>使用示例：</p>
+<p>#shell 格式：</p>
+<pre><code>RUN /bin/bash -c 'source $HOME/.bashrc; echo $HOME'
+</code></pre>
+<p>#exec 格式：</p>
+<pre><code>RUN [&quot;/bin/bash&quot;, &quot;-c&quot;, &quot;echo hello&quot;]
+</code></pre>
+<h3 id="env-设置环境变量">ENV: 设置环境变量</h3>
+<p>ENV 可以定义环境变量和值，会被后续指令(如:ENV,ADD,COPY,RUN等)通过<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>K</mi><mi>E</mi><mi>Y</mi><mi mathvariant="normal">或</mi></mrow><annotation encoding="application/x-tex">KEY或</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.07153em;">K</span><span class="mord mathdefault" style="margin-right:0.05764em;">E</span><span class="mord mathdefault" style="margin-right:0.22222em;">Y</span><span class="mord cjk_fallback">或</span></span></span></span>{KEY}进行引用，并在容器运行时保持</p>
+<p>使用示例：</p>
+<pre><code>ENV MY_NAME=&quot;John Doe&quot;
+ENV MY_DOG=Rex\ The\ Dog
+ENV MY_CAT=fluffy
+</code></pre>
+<p>#一次设置多个变量</p>
+<pre><code>ENV MY_NAME=&quot;John Doe&quot; MY_DOG=Rex\ The\ Dog \
+MY_CAT=fluffy
+</code></pre>
+<p>COPY: 复制文件<br>
+COPY 指令将从构建上下文目录中 &lt;源路径&gt; 的文件/目录复制到新的一层的镜像内的 &lt;目标路径&gt; 位置。</p>
+<p>使用示例：</p>
+<pre><code>COPY test.txt /data/test/
+COPY hom* /mydir/
+COPY hom?.txt /mydir/
+</code></pre>
+<h3 id="add-复制并解压文件">ADD: 复制并解压文件</h3>
+<p>该命令可认为是增强版的COPY，不仅支持COPY，还支持自动解压缩。</p>
+<p>可以将本地文件复制到容器中，tar类型文件会自动解压。也可以访问网络资源，类似wget，但来自远程URL 的资源不会被解压缩。</p>
+<p>使用示例：</p>
+<pre><code>ADD nginx-1.14.2.tar.gz /usr/local/src/
+ADD http://example.com/foobar /data
+</code></pre>
+<h3 id="cmd-容器启动命令">CMD: 容器启动命令</h3>
+<p>一个容器中需要持续运行的进程一般只有一个,CMD 用来指定启动容器时默认执行的一个命令，且其运行结束后,容器也会停止,所以一般CMD 指定的命令为持续运行且为前台命令.</p>
+<p>注意：</p>
+<p>CMD不同于RUN，CMD用于指定在容器启动时所要执行的命令，而RUN用于指定镜像构建时所要执行的命令。<br>
+如果docker run没有指定任何的执行命令或者dockerfile里面也没有ENTRYPOINT，那么开启容器时就会使用执行CMD指定的默认的命令<br>
+每个 Dockerfile 只能有一条 CMD 命令。如指定了多条，只有最后一条被执行<br>
+如果用户启动容器时用 docker run xxx 指定运行的命令，则会覆盖 CMD 指定的命令<br>
+使用示例：</p>
+<p>使用 exec 执行，推荐方式，第一个参数必须是命令的全路径,此种形式不支持环境变量</p>
+<pre><code>CMD [&quot;executable&quot;,&quot;param1&quot;,&quot;param2&quot;]
+CMD [&quot;nginx&quot;, &quot;-g&quot;, &quot;daemon off;&quot;]
+</code></pre>
+<p>在 /bin/sh 中执行，提供给需要交互的应用；此种形式支持环境变量</p>
+<pre><code>CMD command param1 param2
+CMD echo &quot;This is a test.&quot; | wc -
+</code></pre>
+<p>提供给 ENTRYPOINT 命令的默认参数</p>
+<pre><code>CMD [&quot;param1&quot;,&quot;param2&quot;]
+CMD [&quot;- -help&quot;]
+</code></pre>
+<h3 id="entrypoint-入口点">ENTRYPOINT: 入口点</h3>
+<p>功能类似于CMD，配置容器启动后执行的命令及参数</p>
+<p>ENTRYPOINT 不能被 docker run 提供的参数覆盖，而是追加,即如果docker run 命令有参数，那么参数全部都会作为ENTRYPOINT的参数<br>
+如果docker run 后面没有额外参数，但是dockerfile中的CMD里有（即上面CMD的第三种用法），即Dockerfile中即有CMD也有ENTRYPOINT,那么CMD的全部内容会作为ENTRYPOINT的参数<br>
+如果docker run 后面有额外参数，同时Dockerfile中即有CMD也有ENTRYPOINT,那么docker run后面的参数覆盖掉CMD参数内容,最终作为ENTRYPOINT的参数<br>
+可以通过docker run --entrypoint string 参数在运行时替换,注意string不要加空格<br>
+使用CMD要在运行时重新写命令本身,然后在后面才能追加运行参数，ENTRYPOINT则可以运行时无需重写命令就可以直接接受新参数<br>
+每个 Dockerfile 中只能有一个 ENTRYPOINT，当指定多个时，只有最后一个生效<br>
+使用示例：</p>
+<pre><code>ENTRYPOINT [ &quot;curl&quot;, &quot;-s&quot;,&quot;https://ip.cn&quot;]
+</code></pre>
+<h3 id="arg-构建参数">ARG: 构建参数</h3>
+<p>ARG指令在build 阶段指定变量,和ENV不同的是，容器运行时不会存在这些环境变量</p>
+<p>如果和ENV同名，ENV覆盖ARG变量</p>
+<p>可以用 docker build --build-arg &lt;参数名&gt;=&lt;值&gt; 来覆盖</p>
+<p>使用示例：</p>
+<pre><code>FROM busybox
+ARG user1
+ARG buildno
+</code></pre>
+<h3 id="volume-匿名卷">VOLUME: 匿名卷</h3>
+<p>在容器中创建一个可以从本地主机或其他容器挂载的挂载点，一般用来存放数据库和需要保持的数据等，一般会将宿主机上的目录挂载至VOLUME 指令指定的容器目录。即使容器后期被删除，此宿主机的目录仍会保留，从而实现容器数据的持久保存。</p>
+<p>使用示例：</p>
+<pre><code>VOLUME [ &quot;/data1&quot;,&quot;/data2&quot; ]
+</code></pre>
+<h3 id="expose-暴露端口">EXPOSE: 暴露端口</h3>
+<p>指定服务端的容器需要对外暴露(监听)的端口号，以实现容器与外部通信。<br>
+EXPOSE 仅仅是声明容器打算使用什么端口而已,并不会真正暴露端口,即不会自动在宿主进行端口映射因此，在启动容器时需要通过 -P 或-p ，Docker 主机才会真正分配一个端口转发到指定暴露的端口才可使用<br>
+即使 Dockerfile没有EXPOSE 端口指令,也可以通过docker run -p 临时暴露容器内程序真正监听的端口,所以EXPOSE 相当于指定默认的暴露端口,可以通过docker run -P 进行真正暴露<br>
+使用示例：</p>
+<pre><code>EXPOSE 80
+</code></pre>
+<h3 id="workdir-指定工作目录">WORKDIR: 指定工作目录</h3>
+<p>为后续的 RUN、CMD、ENTRYPOINT 指令配置工作目录，当容器运行后，进入容器内WORKDIR指定的默认目录。</p>
+<p>WORKDIR 指定工作目录（或称当前目录），以后各层的当前目录就被改为指定的目录，如该目录不存在，WORKDIR 会自行创建。</p>
+<p>使用示例：</p>
+<pre><code>WORKDIR /test
+</code></pre>
+<h3 id="onbuild-子镜像引用父镜像的指令">ONBUILD: 子镜像引用父镜像的指令</h3>
+<p>可以用来配置当构建当前镜像的子镜像时，会自动触发执行的指令,但在当前镜像构建时,并不会执行,即延迟到子镜像构建时才执行</p>
+<p>使用示例：</p>
+<pre><code>ONBUILD RUN yum -y install tree
+</code></pre>
+<h3 id="user-指定当前用户">USER: 指定当前用户</h3>
+<p>指定运行容器时的用户名或 UID，后续的 RUN 也会使用指定用户当服务不需要管理员权限时，可以通过该命令指定运行用户这个用户必须是事先建立好的，否则无法切换,如果没有指定 USER,默认是 root 身份执行</p>
+<p>使用示例：</p>
+<pre><code>RUN groupadd -r mysql &amp;&amp; useradd -r -g mysql mysql
+USER mysql
+</code></pre>
+<h3 id="healthcheck-健康检查">HEALTHCHECK: 健康检查</h3>
+<p>检查容器的健康性</p>
+<p>HEALTHCHECK [选项] CMD &lt;命令&gt; #设置检查容器健康状况的命令<br>
+HEALTHCHECK NONE #如果基础镜像有健康检查指令，使用这行可以屏蔽掉其健康检查指令<br>
+HEALTHCHECK 支持下列选项:<br>
+--interval=&lt;间隔&gt; #两次健康检查的间隔，默认为 30 秒<br>
+--timeout=&lt;时长&gt; #健康检查命令运行超时时间，如果超过这个时间，本次健康检查就被视为失败，默<br>
+认 30 秒<br>
+--retries=&lt;次数&gt; #当连续失败指定次数后，则将容器状态视为 unhealthy，默认3次<br>
+--start-period=<FDURATION> #default: 0s<br>
+#检查结果返回值:<br>
+0 #success the container is healthy and ready for use<br>
+1 #unhealth the container is not working correctly<br>
+2 #reserved do not use this exit code</p>
+<pre><code>FROM nginx
+RUN apt-get update &amp;&amp; apt-get install -y curl &amp;&amp; rm -rf /var/lib/apt/lists/*
+HEALTHCHECK --interval=5s --timeout=3s \
+CMD curl -fs http://localhost/ || exit 1
+</code></pre>
+<p>原文地址：https://www.cnblogs.com/quhz/p/15163025.html</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#dockerfile%E5%B8%B8%E7%94%A8%E6%8C%87%E4%BB%A4%E8%AF%A6%E8%A7%A3">dockerfile常用指令详解</a>
+<ul>
+<li><a href="#label-%E6%8C%87%E5%AE%9A%E9%95%9C%E5%83%8F%E5%85%83%E6%95%B0%E6%8D%AE">LABEL: 指定镜像元数据</a></li>
+<li><a href="#run-%E6%89%A7%E8%A1%8C-shell%E5%91%BD%E4%BB%A4">RUN: 执行 shell命令</a></li>
+<li><a href="#env-%E8%AE%BE%E7%BD%AE%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F">ENV: 设置环境变量</a></li>
+<li><a href="#add-%E5%A4%8D%E5%88%B6%E5%B9%B6%E8%A7%A3%E5%8E%8B%E6%96%87%E4%BB%B6">ADD: 复制并解压文件</a></li>
+<li><a href="#cmd-%E5%AE%B9%E5%99%A8%E5%90%AF%E5%8A%A8%E5%91%BD%E4%BB%A4">CMD: 容器启动命令</a></li>
+<li><a href="#entrypoint-%E5%85%A5%E5%8F%A3%E7%82%B9">ENTRYPOINT: 入口点</a></li>
+<li><a href="#arg-%E6%9E%84%E5%BB%BA%E5%8F%82%E6%95%B0">ARG: 构建参数</a></li>
+<li><a href="#volume-%E5%8C%BF%E5%90%8D%E5%8D%B7">VOLUME: 匿名卷</a></li>
+<li><a href="#expose-%E6%9A%B4%E9%9C%B2%E7%AB%AF%E5%8F%A3">EXPOSE: 暴露端口</a></li>
+<li><a href="#workdir-%E6%8C%87%E5%AE%9A%E5%B7%A5%E4%BD%9C%E7%9B%AE%E5%BD%95">WORKDIR: 指定工作目录</a></li>
+<li><a href="#onbuild-%E5%AD%90%E9%95%9C%E5%83%8F%E5%BC%95%E7%94%A8%E7%88%B6%E9%95%9C%E5%83%8F%E7%9A%84%E6%8C%87%E4%BB%A4">ONBUILD: 子镜像引用父镜像的指令</a></li>
+<li><a href="#user-%E6%8C%87%E5%AE%9A%E5%BD%93%E5%89%8D%E7%94%A8%E6%88%B7">USER: 指定当前用户</a></li>
+<li><a href="#healthcheck-%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5">HEALTHCHECK: 健康检查</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/openwrtddnsa-li-yun-dnsfreenom-mian-fei-yu-ming-shi-xian-de-wu-gong-wang-ip-dong-tai-yu-ming/">
+              <h3 class="post-title">
+                openwrt+ddns+阿里云dns+freenom免费域名实现的无公网ip动态域名
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

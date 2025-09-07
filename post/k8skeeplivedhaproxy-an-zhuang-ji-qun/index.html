@@ -1,0 +1,550 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>K8s+keeplived+haproxy+harbor安装集群 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="K8s+keeplived+haproxy+harbor安装集群 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="
+
+
+
+ip
+主机名
+用途
+
+
+
+
+192.168.234.31
+master1
+master1+etcd1+keeplived1+haproxy1
+
+
+192.168.234.32
+master2
+master2+etcd2+keepli..." />
+    <meta name="keywords" content="云原生" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              K8s+keeplived+haproxy+harbor安装集群
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-07-18
+              </span>
+              <span>
+                10 min read
+              </span>
+              
+                <a href="https://orochw.github.io/tag/cZHz0EPaPM/" class="post-tag">
+                  # 云原生
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220718105726.png" alt="" loading="lazy"></figure>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">ip</th>
+<th style="text-align:center">主机名</th>
+<th style="text-align:center">用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">192.168.234.31</td>
+<td style="text-align:center">master1</td>
+<td style="text-align:center">master1+etcd1+keeplived1+haproxy1</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.234.32</td>
+<td style="text-align:center">master2</td>
+<td style="text-align:center">master2+etcd2+keeplived2+haproxy2</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.234.33</td>
+<td style="text-align:center">master3</td>
+<td style="text-align:center">master3+etcd3+keeplived3+haproxy3</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.234.41</td>
+<td style="text-align:center">node1</td>
+<td style="text-align:center">node1</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.234.42</td>
+<td style="text-align:center">node2</td>
+<td style="text-align:center">node2</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.234.43</td>
+<td style="text-align:center">node3</td>
+<td style="text-align:center">node3</td>
+</tr>
+<tr>
+<td style="text-align:center">192.168.234.51</td>
+<td style="text-align:center">harbor</td>
+<td style="text-align:center">harbor</td>
+</tr>
+</tbody>
+</table>
+<h2 id="一-安装keeplived">一、安装keeplived</h2>
+<pre><code class="language-bash">[root@master-etcd1-234-31 ~]# yum install -y keepalived
+[root@master-etcd1-234-31 ~]# find /* -name keepalived*
+/etc/sysconfig/keepalived
+/etc/selinux/targeted/active/modules/100/keepalived
+/etc/keepalived
+/etc/keepalived/keepalived.conf
+/usr/sbin/keepalived
+/usr/lib/systemd/system/keepalived.service
+/usr/share/doc/keepalived-1.3.5
+/usr/share/doc/keepalived-1.3.5/keepalived.conf.SYNOPSIS
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.HTTP_GET.port
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.IPv6
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.SMTP_CHECK
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.SSL_GET
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.fwmark
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.inhibit
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.misc_check
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.misc_check_arg
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.quorum
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.sample
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.status_code
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.track_interface
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.virtual_server_group
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.virtualhost
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.vrrp
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.vrrp.localcheck
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.vrrp.lvs_syncd
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.vrrp.routes
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.vrrp.rules
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.vrrp.scripts
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.vrrp.static_ipaddress
+/usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.vrrp.sync
+/usr/share/man/man5/keepalived.conf.5.gz
+/usr/share/man/man8/keepalived.8.gz
+/usr/libexec/keepalived
+</code></pre>
+<pre><code class="language-bash">[root@master-etcd1-234-31 ~]# cp /usr/share/doc/keepalived-1.3.5/samples/keepalived.conf.vrrp /etc/keepalived/
+
+vim /etc/keepalived/keepalived.conf
+! Configuration File for keepalived
+
+global_defs {
+   notification_email {
+     acassen
+   }
+   notification_email_from Alexandre.Cassen@firewall.loc
+  #smtp_server 192.168.200.1
+   smtp_connect_timeout 30
+   router_id LVS_DEVEL
+}
+
+
+vrrp_instance VI_1 {
+    state MASTER #234.32 234.33改为BACKUP
+    interface ens34 #修改网络接口
+    garp_master_delay 10
+    smtp_alert
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+    }
+    virtual_ipaddress {
+        192.168.234.61/24 dev ens34 label ens34:0 #需要配置的vip 192.168.234.61
+    }
+}
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220718115751.png" alt="" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220718115810.png" alt="" loading="lazy">VIP234.61到机器234.33上面了</p>
+<h2 id="二-安装haroxy">二、安装haroxy</h2>
+<pre><code class="language-bash">[root@master-etcd1-234-31 ~]# yum install -y haproxy
+#---------------------------------------------------------------------
+# Example configuration for a possible web application.  See the
+# full configuration options online.
+#
+#   http://haproxy.1wt.eu/download/1.4/doc/configuration.txt
+#
+#---------------------------------------------------------------------
+
+#---------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------
+global
+    # to have these messages end up in /var/log/haproxy.log you will
+    # need to:
+    #
+    # 1) configure syslog to accept network log events.  This is done
+    #    by adding the '-r' option to the SYSLOGD_OPTIONS in
+    #    /etc/sysconfig/syslog
+    #
+    # 2) configure local2 events to go to the /var/log/haproxy.log
+    #   file. A line like the following can be added to
+    #   /etc/sysconfig/syslog
+    #
+    #    local2.*                       /var/log/haproxy.log
+    #
+    log         127.0.0.1 local2
+
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+
+    # turn on stats unix socket
+    stats socket /var/lib/haproxy/stats
+
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+    mode                    tcp#tcp
+    log                     global
+    option                  tcplog#tcplog
+    option                  dontlognull
+    option http-server-close
+    option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 3000
+
+#---------------------------------------------------------------------
+# main frontend which proxys to the backends
+#---------------------------------------------------------------------
+listen k8s-6443
+        bind 192.168.234.61:6443
+        mode  tcp
+        server 192.168.234.31 192.168.234.31:6443 check inter 2s fall 3 rise 3
+        server 192.168.234.32 192.168.234.32:6443 check inter 2s fall 3 rise 3
+        server 192.168.234.33 192.168.234.33:6443 check inter 2s fall 3 rise 3
+
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20220718172005.png" alt="" loading="lazy"><br>
+已经监听了vip 192.168.234.61:6443端口</p>
+<blockquote>
+<p>监听不存在的地址和端口需要修改内核参数<br>
+echo &quot;net.ipv4.ip_nonlocal_bind=1&quot; &gt;&gt; /etc/sysctl.conf<br>
+sysctl -p</p>
+</blockquote>
+<h2 id="三-使用kubeasz安装k8s集群">三、使用kubeasz安装K8s集群</h2>
+<p><a href="https://github.com/easzlab/kubeasz">kubeasz</a>项目官方文档</p>
+<h3 id="部署步骤">部署步骤</h3>
+<p>以下示例创建一个4节点的多主高可用集群，文档中命令默认都需要root权限运行。</p>
+<h3 id="1基础系统配置">1.基础系统配置</h3>
+<ul>
+<li>2c/4g内存/40g硬盘（该配置仅测试用）</li>
+<li>最小化安装<code>Ubuntu 16.04 server</code>或者<code>CentOS 7 Minimal</code></li>
+<li>配置基础网络、更新源、SSH登录等</li>
+</ul>
+<h3 id="2在每个节点安装依赖工具">2.在每个节点安装依赖工具</h3>
+<p>推荐使用ansible in docker 容器化方式运行，无需安装额外依赖。</p>
+<h3 id="3准备ssh免密登陆">3.准备ssh免密登陆</h3>
+<p>配置从部署节点能够ssh免密登陆所有节点，并且设置python软连接</p>
+<pre><code class="language-bash">#$IP为所有节点地址包括自身，按照提示输入yes 和root密码
+ssh-copy-id $IP 
+
+# 为每个节点设置python软链接
+ssh $IP ln -s /usr/bin/python3 /usr/bin/python
+</code></pre>
+<h3 id="4在部署节点编排k8s安装">4.在部署节点编排k8s安装</h3>
+<ul>
+<li>4.1 下载项目源码、二进制及离线镜像</li>
+</ul>
+<p>下载工具脚本ezdown，举例使用kubeasz版本3.3.1</p>
+<pre><code class="language-bash">export release=3.3.1
+wget https://github.com/easzlab/kubeasz/releases/download/${release}/ezdown
+chmod +x ./ezdown
+</code></pre>
+<p>下载kubeasz代码、二进制、默认容器镜像（更多关于ezdown的参数，运行./ezdown 查看）</p>
+<pre><code class="language-bash"># 国内环境
+./ezdown -D
+# 海外环境
+#./ezdown -D -m standard
+</code></pre>
+<p>【可选】下载额外容器镜像（cilium,flannel,prometheus等）</p>
+<pre><code class="language-bash">./ezdown -X
+</code></pre>
+<p>【可选】下载离线系统包 (适用于无法使用yum/apt仓库情形)</p>
+<pre><code class="language-bash">./ezdown -P
+</code></pre>
+<p>上述脚本运行成功后，所有文件（kubeasz代码、二进制、离线镜像）均已整理好放入目录<code>/etc/kubeasz</code></p>
+<ul>
+<li>4.2 创建集群配置实例</li>
+</ul>
+<pre><code class="language-bash"># 容器化运行kubeasz
+./ezdown -S
+
+# 创建新集群 k8s-01
+docker exec -it kubeasz ezctl new k8s-01
+2021-01-19 10:48:23 DEBUG generate custom cluster files in /etc/kubeasz/clusters/k8s-01
+2021-01-19 10:48:23 DEBUG set version of common plugins
+2021-01-19 10:48:23 DEBUG cluster k8s-01: files successfully created.
+2021-01-19 10:48:23 INFO next steps 1: to config '/etc/kubeasz/clusters/k8s-01/hosts'
+2021-01-19 10:48:23 INFO next steps 2: to config '/etc/kubeasz/clusters/k8s-01/config.yml'
+</code></pre>
+<p>然后根据提示配置'/etc/kubeasz/clusters/k8s-01/hosts' 和 '/etc/kubeasz/clusters/k8s-01/config.yml'：根据前面节点规划修改hosts 文件和其他集群层面的主要配置选项；其他集群组件等配置项可以在config.yml 文件中修改。</p>
+<ul>
+<li>4.3 开始安装<br>
+如果你对集群安装流程不熟悉，请阅读项目首页 <strong>安装步骤</strong> 讲解后分步安装，并对 <strong>每步都进行验证</strong></li>
+</ul>
+<pre><code class="language-bash">#建议配置命令alias，方便执行
+echo &quot;alias dk='docker exec -it kubeasz'&quot; &gt;&gt; /root/.bashrc
+source /root/.bashrc
+
+# 一键安装，等价于执行docker exec -it kubeasz ezctl setup k8s-01 all
+dk ezctl setup k8s-01 all
+
+# 或者分步安装，具体使用 dk ezctl help setup 查看分步安装帮助信息
+# dk ezctl setup k8s-01 01
+# dk ezctl setup k8s-01 02
+# dk ezctl setup k8s-01 03
+# dk ezctl setup k8s-01 04
+...
+</code></pre>
+<h1 id="个性化集群参数配置">个性化集群参数配置</h1>
+<p><code>kubeasz</code>创建集群主要在以下两个地方进行配置：(假设集群名xxxx)</p>
+<ul>
+<li>clusters/xxxx/hosts 文件（模板在example/hosts.multi-node）：集群主要节点定义和主要参数配置、全局变量</li>
+<li>clusters/xxxx/config.yml（模板在examples/config.yml）：其他参数配置或者部分组件附加参数</li>
+</ul>
+<h2 id="clustersxxxxhosts-ansible-hosts">clusters/xxxx/hosts (ansible hosts)</h2>
+<p>主要包括集群节点定义和集群范围的主要参数配置</p>
+<ul>
+<li>尽量保持配置简单灵活</li>
+<li>尽量保持配置项稳定</li>
+</ul>
+<p>常用设置项：</p>
+<ul>
+<li>修改容器运行时: CONTAINER_RUNTIME=&quot;containerd&quot;</li>
+<li>修改集群网络插件：CLUSTER_NETWORK=&quot;calico&quot;</li>
+<li>修改容器网络地址：CLUSTER_CIDR=&quot;192.168.0.0/16&quot;</li>
+<li>修改NodePort范围：NODE_PORT_RANGE=&quot;30000-32767&quot;</li>
+</ul>
+<h2 id="clustersxxxxconfigyml">clusters/xxxx/config.yml</h2>
+<p>主要包括集群某个具体组件的个性化配置，具体组件的配置项可能会不断增加；可以在不做任何配置更改情况下使用默认值创建集群</p>
+<p>根据实际需要配置 k8s 集群，常用举例</p>
+<ul>
+<li>配置使用离线安装系统包：INSTALL_SOURCE: &quot;offline&quot; （需要ezdown -P 下载离线系统软件）</li>
+<li>配置CA证书以及其签发证书的有效期</li>
+<li>配置 apiserver 支持公网域名：MASTER_CERT_HOSTS</li>
+<li>配置 cluster-addon 组件安装</li>
+<li>...</li>
+</ul>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li><a href="#%E4%B8%80-%E5%AE%89%E8%A3%85keeplived">一、安装keeplived</a></li>
+<li><a href="#%E4%BA%8C-%E5%AE%89%E8%A3%85haroxy">二、安装haroxy</a></li>
+<li><a href="#%E4%B8%89-%E4%BD%BF%E7%94%A8kubeasz%E5%AE%89%E8%A3%85k8s%E9%9B%86%E7%BE%A4">三、使用kubeasz安装K8s集群</a>
+<ul>
+<li><a href="#%E9%83%A8%E7%BD%B2%E6%AD%A5%E9%AA%A4">部署步骤</a></li>
+<li><a href="#1%E5%9F%BA%E7%A1%80%E7%B3%BB%E7%BB%9F%E9%85%8D%E7%BD%AE">1.基础系统配置</a></li>
+<li><a href="#2%E5%9C%A8%E6%AF%8F%E4%B8%AA%E8%8A%82%E7%82%B9%E5%AE%89%E8%A3%85%E4%BE%9D%E8%B5%96%E5%B7%A5%E5%85%B7">2.在每个节点安装依赖工具</a></li>
+<li><a href="#3%E5%87%86%E5%A4%87ssh%E5%85%8D%E5%AF%86%E7%99%BB%E9%99%86">3.准备ssh免密登陆</a></li>
+<li><a href="#4%E5%9C%A8%E9%83%A8%E7%BD%B2%E8%8A%82%E7%82%B9%E7%BC%96%E6%8E%92k8s%E5%AE%89%E8%A3%85">4.在部署节点编排k8s安装</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#%E4%B8%AA%E6%80%A7%E5%8C%96%E9%9B%86%E7%BE%A4%E5%8F%82%E6%95%B0%E9%85%8D%E7%BD%AE">个性化集群参数配置</a>
+<ul>
+<li><a href="#clustersxxxxhosts-ansible-hosts">clusters/xxxx/hosts (ansible hosts)</a></li>
+<li><a href="#clustersxxxxconfigyml">clusters/xxxx/config.yml</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/bian-ji-vim-tou-xin-xi-shi-dockerfile-gou-jian-shang-chuan-geng-rong-yi/">
+              <h3 class="post-title">
+                编辑vim头信息使dockerfile构建上传更容易
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

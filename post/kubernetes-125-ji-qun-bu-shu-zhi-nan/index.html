@@ -1,0 +1,482 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kubernetes 1.25 集群部署指南   | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Kubernetes 1.25 集群部署指南   | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="本指南将指导您如何从头开始设置一个使用 Docker 作为容器运行时的 Kubernetes 1.25 集群。我们将涵盖从系统准备到集群初始化的所有步骤，并提供一些常见问题的解决方法。
+架构概述
+
+
+
+节点类型
+主机名
+IP 地址
+角色描述..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Kubernetes 1.25 集群部署指南  
+            </h2>
+            <div class="post-info">
+              <span>
+                2025-03-25
+              </span>
+              <span>
+                7 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>本指南将指导您如何从头开始设置一个使用 Docker 作为容器运行时的 Kubernetes 1.25 集群。我们将涵盖从系统准备到集群初始化的所有步骤，并提供一些常见问题的解决方法。</p>
+<h3 id="架构概述">架构概述</h3>
+<table>
+<thead>
+<tr>
+<th>节点类型</th>
+<th>主机名</th>
+<th>IP 地址</th>
+<th>角色描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Master 节点</td>
+<td>k8s-master</td>
+<td>172.31.7.100</td>
+<td>集群管理节点，负责集群的初始化、调度等工作</td>
+</tr>
+<tr>
+<td>Worker 节点 1</td>
+<td>k8s-node1</td>
+<td>172.31.7.101</td>
+<td>执行容器工作负载</td>
+</tr>
+<tr>
+<td>Worker 节点 2</td>
+<td>k8s-node2</td>
+<td>172.31.7.102</td>
+<td>执行容器工作负载</td>
+</tr>
+<tr>
+<td>Worker 节点 3</td>
+<td>k8s-node3</td>
+<td>172.31.7.103</td>
+<td>执行容器工作负载</td>
+</tr>
+</tbody>
+</table>
+<h3 id="安装与配置概览">安装与配置概览</h3>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>步骤</th>
+<th>主要操作</th>
+<th>目标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>前置配置</td>
+<td>关闭 swap、设置主机名解析、加载内核模块等</td>
+<td>准备系统环境，确保 Kubernetes 能够正常运行</td>
+</tr>
+<tr>
+<td>2</td>
+<td>安装 Docker</td>
+<td>添加 Docker APT 源并安装指定版本的 Docker</td>
+<td>提供容器运行时支持</td>
+</tr>
+<tr>
+<td>3</td>
+<td>安装 cri-dockerd</td>
+<td>下载并安装 <code>cri-dockerd</code>，使其兼容 Kubernetes CRI 接口</td>
+<td>允许 Docker 作为 Kubernetes 的容器运行时</td>
+</tr>
+<tr>
+<td>4</td>
+<td>安装 Kubernetes 组件</td>
+<td>安装 <code>kubeadm</code>, <code>kubelet</code>, 和 <code>kubectl</code></td>
+<td>初始化和管理 Kubernetes 集群</td>
+</tr>
+<tr>
+<td>5</td>
+<td>初始化 Master 节点</td>
+<td>使用 <code>kubeadm init</code> 命令初始化集群</td>
+<td>创建集群，并生成加入命令供其他节点使用</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Worker 节点加入集群</td>
+<td>在每个 Worker 节点上执行生成的 join 命令</td>
+<td>将 Worker 节点加入到集群中</td>
+</tr>
+<tr>
+<td>7</td>
+<td>安装网络插件</td>
+<td>使用 Calico 网络插件</td>
+<td>提供 Pod 网络支持</td>
+</tr>
+<tr>
+<td>8</td>
+<td>验证集群状态</td>
+<td>使用 <code>kubectl get nodes</code> 和 <code>kubectl get pods -n kube-system</code> 查看状态</td>
+<td>确认所有节点和系统组件正常运行</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="一-所有节点前置配置所有节点执行">一、所有节点前置配置（所有节点执行）</h3>
+<pre><code class="language-bash"># 关闭 swap
+sudo swapoff -a
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+# 设置主机名解析（所有节点）
+# 在 100 节点执行：
+sudo hostnamectl set-hostname k8s-master
+# 在 101-103 节点分别执行：
+sudo hostnamectl set-hostname k8s-node1
+sudo hostnamectl set-hostname k8s-node2
+sudo hostnamectl set-hostname k8s-node3
+
+# 所有节点添加 hosts 解析（可选）
+cat &lt;&lt;EOF | sudo tee -a /etc/hosts
+172.31.7.100 k8s-master
+172.31.7.101 k8s-node1
+172.31.7.102 k8s-node2
+172.31.7.103 k8s-node3
+EOF
+
+# 加载内核模块
+cat &lt;&lt;EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+sudo modprobe overlay
+sudo modprobe br_netfilter
+
+# 设置内核参数
+cat &lt;&lt;EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+sudo sysctl --system
+
+# 禁用防火墙（如果使用）
+sudo ufw disable
+</code></pre>
+<hr>
+<h3 id="二-安装-docker所有节点">二、安装 Docker（所有节点）</h3>
+<pre><code class="language-bash"># 安装 Docker
+sudo apt-get update
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo &quot;deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable&quot; | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce=5:20.10.23~3-0~ubuntu-focal docker-ce-cli=5:20.10.23~3-0~ubuntu-focal containerd.io
+
+# 配置 Docker 使用 systemd
+cat &lt;&lt;EOF | sudo tee /etc/docker/daemon.json
+{
+  &quot;exec-opts&quot;: [&quot;native.cgroupdriver=systemd&quot;],
+  &quot;log-driver&quot;: &quot;json-file&quot;,
+  &quot;log-opts&quot;: {
+    &quot;max-size&quot;: &quot;100m&quot;
+  },
+  &quot;storage-driver&quot;: &quot;overlay2&quot;
+}
+EOF
+
+sudo systemctl restart docker
+sudo systemctl enable docker
+</code></pre>
+<hr>
+<h3 id="三-安装-cri-dockerd所有节点">三、安装 cri-dockerd（所有节点）</h3>
+<pre><code class="language-bash"># 下载预编译二进制包
+wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.4/cri-dockerd_0.3.4.3-0.ubuntu-focal_amd64.deb
+sudo dpkg -i cri-dockerd_0.3.4.3-0.ubuntu-focal_amd64.deb
+
+# 修改服务配置（适配 Kubernetes 1.25）
+sudo sed -i 's|--network-plugin=cni --cni-bin-dir=/opt/cni/bin|--network-plugin=cni --cni-conf-dir=/etc/cni/net.d|g' /lib/systemd/system/cri-docker.service
+sudo systemctl daemon-reload
+sudo systemctl enable cri-docker &amp;&amp; sudo systemctl start cri-docker
+</code></pre>
+<hr>
+<h3 id="四-安装-kubeadmkubeletkubectl所有节点">四、安装 kubeadm/kubelet/kubectl（所有节点）</h3>
+<pre><code class="language-bash"># 添加阿里云镜像源
+curl https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | sudo apt-key add -
+cat &lt;&lt;EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
+deb https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main
+EOF
+
+# 安装指定版本
+sudo apt-get update
+sudo apt-get install -y kubelet=1.25.7-00 kubeadm=1.25.7-00 kubectl=1.25.7-00
+sudo apt-mark hold kubelet kubeadm kubectl
+</code></pre>
+<hr>
+<h3 id="五-初始化-master-节点仅在-master-执行">五、初始化 Master 节点（仅在 master 执行）</h3>
+<pre><code class="language-bash"># 生成初始化命令（替换实际IP）
+sudo kubeadm init \
+  --apiserver-advertise-address=172.31.7.100 \
+  --image-repository registry.aliyuncs.com/google_containers \
+  --kubernetes-version v1.25.7 \
+  --service-cidr=10.96.0.0/12 \
+  --pod-network-cidr=192.168.0.0/16 \
+  --cri-socket unix:///var/run/cri-dockerd.sock
+
+# 完成后按提示操作
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+# 保存 join 命令（稍后用于节点加入）
+kubeadm token create --print-join-command &gt; join-command.txt
+</code></pre>
+<hr>
+<h3 id="六-worker-节点加入集群在-101-103-执行">六、Worker 节点加入集群（在 101-103 执行）</h3>
+<pre><code class="language-bash"># 使用上一步生成的 join 命令（需添加 --cri-socket）
+sudo $(cat join-command.txt) --cri-socket unix:///var/run/cri-dockerd.sock
+</code></pre>
+<hr>
+<h3 id="七-安装网络插件在-master-执行">七、安装网络插件（在 master 执行）</h3>
+<pre><code class="language-bash"># 安装 Calico（匹配 --pod-network-cidr=192.168.0.0/16）
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+</code></pre>
+<hr>
+<h3 id="八-验证集群状态">八、验证集群状态</h3>
+<pre><code class="language-bash">kubectl get nodes -o wide
+# 等待所有节点状态变为 Ready
+kubectl get pods -n kube-system
+</code></pre>
+<h2 id=""><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250325192110.png" alt="" loading="lazy"></h2>
+<h3 id="常见问题处理">常见问题处理</h3>
+<ol>
+<li>
+<p><strong>镜像拉取失败</strong>：</p>
+<pre><code class="language-bash"># 手动拉取镜像（例如）
+docker pull registry.aliyuncs.com/google_containers/pause:3.8
+</code></pre>
+</li>
+<li>
+<p><strong>cri-dockerd 未启动</strong>：</p>
+<pre><code class="language-bash">journalctl -u cri-docker -l
+</code></pre>
+</li>
+<li>
+<p><strong>节点 NotReady</strong>：</p>
+<pre><code class="language-bash">journalctl -u kubelet -f
+</code></pre>
+</li>
+</ol>
+<hr>
+<p>完成以上步骤后，您将获得一个使用 Docker 作为容器运行时的 Kubernetes 1.25 集群。所有节点均可通过 <code>kubectl</code> 命令在 Master 节点管理。</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li>
+<ul>
+<li><a href="#%E6%9E%B6%E6%9E%84%E6%A6%82%E8%BF%B0">架构概述</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85%E4%B8%8E%E9%85%8D%E7%BD%AE%E6%A6%82%E8%A7%88">安装与配置概览</a></li>
+<li><a href="#%E4%B8%80-%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9%E5%89%8D%E7%BD%AE%E9%85%8D%E7%BD%AE%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9%E6%89%A7%E8%A1%8C">一、所有节点前置配置（所有节点执行）</a></li>
+<li><a href="#%E4%BA%8C-%E5%AE%89%E8%A3%85-docker%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9">二、安装 Docker（所有节点）</a></li>
+<li><a href="#%E4%B8%89-%E5%AE%89%E8%A3%85-cri-dockerd%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9">三、安装 cri-dockerd（所有节点）</a></li>
+<li><a href="#%E5%9B%9B-%E5%AE%89%E8%A3%85-kubeadmkubeletkubectl%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9">四、安装 kubeadm/kubelet/kubectl（所有节点）</a></li>
+<li><a href="#%E4%BA%94-%E5%88%9D%E5%A7%8B%E5%8C%96-master-%E8%8A%82%E7%82%B9%E4%BB%85%E5%9C%A8-master-%E6%89%A7%E8%A1%8C">五、初始化 Master 节点（仅在 master 执行）</a></li>
+<li><a href="#%E5%85%AD-worker-%E8%8A%82%E7%82%B9%E5%8A%A0%E5%85%A5%E9%9B%86%E7%BE%A4%E5%9C%A8-101-103-%E6%89%A7%E8%A1%8C">六、Worker 节点加入集群（在 101-103 执行）</a></li>
+<li><a href="#%E4%B8%83-%E5%AE%89%E8%A3%85%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6%E5%9C%A8-master-%E6%89%A7%E8%A1%8C">七、安装网络插件（在 master 执行）</a></li>
+<li><a href="#%E5%85%AB-%E9%AA%8C%E8%AF%81%E9%9B%86%E7%BE%A4%E7%8A%B6%E6%80%81">八、验证集群状态</a></li>
+</ul>
+</li>
+<li><a href="#">!</a>
+<ul>
+<li><a href="#%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E5%A4%84%E7%90%86">常见问题处理</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/kubernetes-network-policy-xiang-jie-yu-shi-jian/">
+              <h3 class="post-title">
+                Kubernetes Network Policy 详解与实践
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

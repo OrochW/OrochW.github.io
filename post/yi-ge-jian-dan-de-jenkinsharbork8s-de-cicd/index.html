@@ -1,0 +1,798 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>一个简单的jenkins+harbor+k8s的cicd | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="一个简单的jenkins+harbor+k8s的cicd | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="# Kubernetes CI/CD 环境搭建指南
+
+由于学习K8S有一段时间了，之前使用Jenkins Pipeline实现的CI/CD也已经很久没有更新。现在想尝试一些新的东西。
+
+## 网络配置概览
+
+| IP地址      | 主机..." />
+    <meta name="keywords" content="自动化运维" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              一个简单的jenkins+harbor+k8s的cicd
+            </h2>
+            <div class="post-info">
+              <span>
+                2025-01-17
+              </span>
+              <span>
+                14 min read
+              </span>
+              
+                <a href="https://orochw.github.io/tag/2BkjYG2V6/" class="post-tag">
+                  # 自动化运维
+                </a>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <pre><code class="language-markdown"># Kubernetes CI/CD 环境搭建指南
+
+由于学习K8S有一段时间了，之前使用Jenkins Pipeline实现的CI/CD也已经很久没有更新。现在想尝试一些新的东西。
+
+## 网络配置概览
+
+| IP地址      | 主机名         | 备注       |
+|-------------|----------------|------------|
+| 172.31.7.11 | master1-7-11   | 主Master   |
+| 172.31.7.21 | jenkins-7-21   | Jenkins    |
+| 172.31.7.22 | gitlab-7-22    | GitLab     |
+| 172.31.7.10 | harbor-7-10    | Harbor     |
+
+备注：系统均为Ubuntu
+
+---
+
+# 一、准备Jenkins环境（特别是JDK）
+
+### 安装JDK
+
+```bash
+apt install openjdk-17-jdk 
+</code></pre>
+<h3 id="下载最新稳定版jenkins安装包">下载最新稳定版Jenkins安装包</h3>
+<p><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250117021236.png" alt="下载页面" loading="lazy"><br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250117021419.png" alt="选择版本" loading="lazy"></p>
+<h3 id="安装长期支持版本jenkins">安装长期支持版本Jenkins</h3>
+<pre><code class="language-bash">sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+echo &quot;deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]&quot; \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list &gt; /dev/null
+sudo apt-get update
+sudo apt-get install jenkins
+</code></pre>
+<h4 id="修改jenkins配置文件-etcdefaultjenkins">修改Jenkins配置文件 <code>/etc/default/jenkins</code></h4>
+<pre><code class="language-bash">vim /etc/default/jenkins
+NAME=root
+JAVA_ARGS=&quot;-Djava.awt.headless=true&quot;
+JENKINS_USER=root
+JENKINS_GROUP=root
+JENKINS_HOME=/var/lib/$NAME
+</code></pre>
+<h4 id="修改jenkins-systemd服务文件-usrlibsystemdsystemjenkinsservice">修改Jenkins systemd服务文件 <code>/usr/lib/systemd/system/jenkins.service</code></h4>
+<pre><code class="language-bash">vim /usr/lib/systemd/system/jenkins.service
+User=root # 将服务启动的用户改为root
+Group=root # 服务启动的组改为root
+</code></pre>
+<p>重启Jenkins服务：</p>
+<pre><code class="language-bash">systemctl restart jenkins
+systemctl daemon-reload
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250117022346.png" alt="Jenkins Web界面" loading="lazy"></figure>
+<hr>
+<h1 id="二-安装gitlab">二、安装GitLab</h1>
+<h3 id="下载gitlab安装包">下载GitLab安装包</h3>
+<p>去<a href="https://mirrors.tuna.tsinghua.edu.cn/gitlab-ce/apt/packages.gitlab.com/gitlab/gitlab-ce/ubuntu/pool/focal/main/g/gitlab-ce/">清华大学镜像站</a>下载喜欢的版本。</p>
+<h3 id="配置并启动gitlab">配置并启动GitLab</h3>
+<p>参考<a href="https://blog.csdn.net/Hemameba/article/details/133854744">这篇博客</a>进行安装与配置。</p>
+<h3 id="创建用户并修改密码创建测试项目">创建用户并修改密码，创建测试项目</h3>
+<figure data-type="image" tabindex="2"><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250117023112.png" alt="GitLab用户管理" loading="lazy"></figure>
+<pre><code>
+### 1. **Kubernetes Deployment YAML 文件**
+
+这个YAML文件定义了一个Kubernetes部署（Deployment）和服务（Service），用于在Kubernetes集群中运行一个Tomcat应用。
+
+```yaml
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    app: item1-tomcat-app1-deployment-label
+  name: item1-tomcat-app1-deployment
+  namespace: item1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: item1-tomcat-app1-selector
+  template:
+    metadata:
+      labels:
+        app: item1-tomcat-app1-selector
+    spec:
+      imagePullSecrets:
+      - name: harbor-secret
+      containers:
+      - name: item1-tomcat-app1-container
+        image: harbor.xtec.com/item1/tomcat:8.5.43_20250117_013112
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+          name: http
+        env:
+        - name: &quot;password&quot;
+          value: &quot;123456&quot;
+        - name: &quot;age&quot;
+          value: &quot;18&quot;
+        resources:
+          limits:
+            cpu: 1
+            memory: &quot;512Mi&quot;
+          requests:
+            cpu: 500m
+            memory: &quot;512Mi&quot;
+        volumeMounts:
+        - name: item1-images
+          mountPath: /usr/local/nginx/html/webapp/images
+          readOnly: false
+        - name: item1-static
+          mountPath: /usr/local/nginx/html/webapp/static
+          readOnly: false
+      volumes:
+      - name: item1-images
+        nfs:
+          server: 172.31.7.20
+          path: /data/k8sdata/item1/images
+      - name: item1-static
+        nfs:
+          server: 172.31.7.20
+          path: /data/k8sdata/item1/static
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: item1-tomcat-app1-service-label
+  name: item1-tomcat-app1-service
+  namespace: item1
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+    nodePort: 30092
+  selector:
+    app: item1-tomcat-app1-selector
+</code></pre>
+<p><strong>功能说明</strong>：</p>
+<ul>
+<li>定义了一个名为 <code>item1-tomcat-app1-deployment</code> 的部署，使用两个副本（replicas: 2）。</li>
+<li>每个容器使用 <code>harbor.xtec.com/item1/tomcat:8.5.43_20250117_013112</code> 镜像，并暴露8080端口。</li>
+<li>使用NFS挂载卷来存储静态资源。</li>
+<li>定义了一个名为 <code>item1-tomcat-app1-service</code> 的服务，类型为 <code>NodePort</code>，将集群内部的8080端口映射到节点上的30092端口。</li>
+</ul>
+<h3 id="2-dockerfile">2. <strong>Dockerfile</strong></h3>
+<p>这个Dockerfile基于Harbor镜像仓库中的基础Tomcat镜像构建一个新的Tomcat应用镜像。</p>
+<pre><code class="language-dockerfile">FROM harbor.xtec.com/pub-images/tomcat:8.5.43_20250107_235050
+
+# 创建并设置 Tomcat 应用目录
+RUN mkdir -p /data/tomcat/webapps/myapp &amp;&amp; \
+    chown -R tomcat:tomcat /data/tomcat/webapps/myapp
+
+# 清空默认应用目录并复制文件
+COPY catalina.sh /apps/tomcat/bin/catalina.sh
+COPY server.xml /apps/tomcat/conf/server.xml
+COPY app1.tar.gz /data/tomcat/webapps/myapp/app1.tar.gz
+COPY run_tomcat.sh /apps/tomcat/bin/run_tomcat.sh
+
+# 解压应用包并设置权限
+RUN tar -xzf /data/tomcat/webapps/myapp/app1.tar.gz -C /data/tomcat/webapps/myapp/ &amp;&amp; \
+    rm /data/tomcat/webapps/myapp/app1.tar.gz &amp;&amp; \
+    chown -R tomcat:tomcat /data/ /apps/ &amp;&amp; \
+    chmod +x /apps/tomcat/bin/catalina.sh /apps/tomcat/bin/run_tomcat.sh
+
+# 清理 Tomcat 工作目录
+RUN rm -rf /apps/tomcat/work/Catalina/localhost/*
+
+# 健康检查
+HEALTHCHECK CMD curl -f http://localhost:8080 || exit 1
+
+# 暴露端口
+EXPOSE 8080 8443
+
+# 启动命令
+CMD [&quot;/apps/tomcat/bin/run_tomcat.sh&quot;]
+</code></pre>
+<p><strong>功能说明</strong>：</p>
+<ul>
+<li>基于基础Tomcat镜像创建新的镜像。</li>
+<li>设置应用目录并复制必要的配置文件和应用程序包。</li>
+<li>解压缩应用程序包并设置正确的权限。</li>
+<li>清理Tomcat的工作目录以确保干净启动。</li>
+<li>添加健康检查以确保Tomcat正常运行。</li>
+<li>暴露8080和8443端口，并使用自定义脚本启动Tomcat。</li>
+</ul>
+<h3 id="3-镜像构建脚本-build-commandsh">3. <strong>镜像构建脚本 (<code>build-command.sh</code>)</strong></h3>
+<p>这个脚本用于构建和推送Docker镜像到Harbor镜像仓库。</p>
+<pre><code class="language-bash">#!/bin/bash
+# build-command.sh - 构建和推送 Docker 镜像脚本
+# Author: orochw
+# Updated: 2025-01-16
+
+HARBOR=&quot;harbor.xtec.com&quot;
+REPO=&quot;item1&quot;
+IMAGE=&quot;tomcat&quot;
+FIXED_TAG=&quot;8.5.43&quot;
+DOCKERFILE_DIR=&quot;/opt/k8s-data/dockerfile/web/item1/tomcat-app1&quot;
+
+# 确保接收时间戳参数
+if [ -z &quot;$1&quot; ]; then
+  echo &quot;ERROR: Date timestamp is missing!&quot;
+  exit 1
+fi
+DATE=$1
+FULL_IMAGE=&quot;$HARBOR/$REPO/$IMAGE:${FIXED_TAG}_$DATE&quot;
+
+log() {
+  echo &quot;[$(date +'%Y-%m-%d %H:%M:%S')] $1&quot;
+}
+
+ERROR_exit() {
+  echo &quot;[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1&quot;
+  exit 1
+}
+
+# 检查 Docker 是否可用
+docker -v &gt;/dev/null 2&gt;&amp;1 || ERROR_exit &quot;Docker 未安装或不可用，请检查环境！&quot;
+
+# 构建 Docker 镜像
+log &quot;开始构建 Docker 镜像: $FULL_IMAGE&quot;
+docker build -t $FULL_IMAGE $DOCKERFILE_DIR || ERROR_exit &quot;Docker 构建失败！&quot;
+
+# 推送 Docker 镜像
+log &quot;开始推送 Docker 镜像: $FULL_IMAGE&quot;
+docker push $FULL_IMAGE || ERROR_exit &quot;Docker 推送失败！&quot;
+
+log &quot;Docker 镜像构建和推送完成: $FULL_IMAGE&quot;
+</code></pre>
+<p><strong>功能说明</strong>：</p>
+<ul>
+<li>确保传递了时间戳参数，并生成完整的镜像名称。</li>
+<li>检查Docker是否可用。</li>
+<li>构建并推送镜像到指定的Harbor仓库。</li>
+</ul>
+<h3 id="4-cicd-脚本">4. <strong>CI/CD 脚本</strong></h3>
+<p>这个脚本实现了从代码克隆、打包、传输、镜像构建、更新Kubernetes配置到应用更改的整个CI/CD流程。</p>
+<pre><code class="language-bash">#!/bin/bash
+
+# 配置部分
+HARBOR=&quot;harbor.xtec.com&quot;
+REPO=&quot;item1&quot;
+IMAGE=&quot;tomcat&quot;
+FIXED_TAG=&quot;8.5.43&quot;
+K8S_CONTROLLER=&quot;172.31.7.11&quot;
+GIT_URL=&quot;git@172.31.7.22:item1/app1.git&quot;
+SRC_DIR=&quot;/data/gitdata/item1/app1&quot;
+DEST_DIR=&quot;/opt/k8s-data/dockerfile/web/item1/tomcat-app1&quot;
+K8S_YAML=&quot;/opt/k8s-data/yaml/item1/tomcat-app1/tomcat-app1.yaml&quot;
+
+# 记录开始时间
+starttime=$(date +'%Y-%m-%d %H:%M:%S')
+
+# 函数定义
+log() {
+  echo &quot;[$(date +'%Y-%m-%d %H:%M:%S')] $1&quot;
+}
+
+ERROR_exit() {
+  echo &quot;[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1&quot;
+  exit 1
+}
+
+code_clone() {
+  log &quot;开始拉取代码分支: $BRANCH&quot;
+  mkdir -p $(dirname $SRC_DIR)
+  rm -rf $SRC_DIR
+  git clone -b $BRANCH $GIT_URL $SRC_DIR || ERROR_exit &quot;Git 克隆失败！&quot;
+  log &quot;代码拉取完成&quot;
+}
+
+package_file() {
+  log &quot;开始打包代码文件&quot;
+  mkdir -p $DEST_DIR
+  tar -czf $DEST_DIR/app1.tar.gz -C $SRC_DIR . || ERROR_exit &quot;文件打包失败！&quot;
+  log &quot;文件打包完成: $DEST_DIR/app1.tar.gz&quot;
+}
+
+copy_file() {
+  log &quot;开始复制文件到 K8S 控制器: $K8S_CONTROLLER&quot;
+  ssh root@$K8S_CONTROLLER &quot;mkdir -p $DEST_DIR&quot;
+  scp -r $DEST_DIR/* root@$K8S_CONTROLLER:$DEST_DIR || ERROR_exit &quot;文件复制失败！&quot;
+  log &quot;文件成功复制到 $K8S_CONTROLLER:$DEST_DIR&quot;
+}
+
+build_image() {
+  log &quot;开始构建和推送 Docker 镜像: $FULL_IMAGE&quot;
+  ssh root@$K8S_CONTROLLER &lt;&lt;EOF
+    cd $DEST_DIR
+    chmod +x build-command.sh
+    ./build-command.sh $DATE || exit 1
+EOF
+  [ $? -ne 0 ] &amp;&amp; ERROR_exit &quot;Docker 镜像构建或推送失败！&quot;
+  log &quot;Docker 镜像构建并推送完成: $FULL_IMAGE&quot;
+}
+
+update_k8s_yaml() {
+  log &quot;开始更新 Kubernetes YAML 文件&quot;
+  ssh root@$K8S_CONTROLLER &lt;&lt;EOF
+    if [ -f $K8S_YAML ]; then
+      sed -i &quot;s|image: $HARBOR/$REPO/$IMAGE:.*|image: $FULL_IMAGE|g&quot; $K8S_YAML
+      if ! grep -q 'imagePullSecrets' $K8S_YAML; then
+        sed -i '/containers:/i \      imagePullSecrets:\n      - name: harbor-secret' $K8S_YAML
+      fi
+    else
+      echo &quot;ERROR: Kubernetes YAML 文件不存在: $K8S_YAML&quot;
+      exit 1
+    fi
+EOF
+  [ $? -ne 0 ] &amp;&amp; ERROR_exit &quot;Kubernetes YAML 文件更新失败！&quot;
+  log &quot;Kubernetes YAML 文件更新完成&quot;
+}
+
+apply_k8s_changes() {
+  log &quot;应用 Kubernetes 部署更新&quot;
+  ssh root@$K8S_CONTROLLER &quot;kubectl apply -f $K8S_YAML&quot; || ERROR_exit &quot;Kubernetes 部署更新失败！&quot;
+  log &quot;Kubernetes 部署更新完成&quot;
+}
+
+rollback_last_version() {
+  log &quot;开始回滚到上一个版本&quot;
+  ssh root@$K8S_CONTROLLER &quot;kubectl rollout undo deployment/item1-tomcat-app1-deployment -n item1&quot; || ERROR_exit &quot;回滚失败！&quot;
+  log &quot;回滚成功&quot;
+}
+
+# 显示用法
+usage() {
+  echo &quot;Usage: $0 {deploy|rollback_last_version} [branch]&quot;
+}
+
+# 参数处理
+OPERATION=${1:-deploy}
+BRANCH=${2:-main} # 默认分支为 main
+DATE=$(date +%Y%m%d_%H%M%S)
+FULL_IMAGE=&quot;$HARBOR/$REPO/$IMAGE:${FIXED_TAG}_$DATE&quot;
+
+# 主逻辑
+case $OPERATION in
+  deploy)
+    code_clone
+    package_file
+    copy_file
+    build_image
+    update_k8s_yaml
+    apply_k8s_changes
+    ;;
+  rollback_last_version)
+    rollback_last_version
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
+esac
+
+# 显示总耗时
+endtime=$(date +'%Y-%m-%d %H:%M:%S')
+start_seconds=$(date --date=&quot;$starttime&quot; +%s)
+end_seconds=$(date --date=&quot;$endtime&quot; +%s)
+log &quot;总执行时间: $((end_seconds - start_seconds)) 秒&quot;
+</code></pre>
+<p><strong>功能说明</strong>：</p>
+<ul>
+<li><strong>code_clone</strong>: 从指定Git仓库拉取特定分支的代码。</li>
+<li><strong>package_file</strong>: 将代码打包成<code>.tar.gz</code>格式。</li>
+<li><strong>copy_file</strong>: 将打包好的文件复制到Kubernetes控制器节点。</li>
+<li><strong>build_image</strong>: 在Kubernetes控制器上构建并推送Docker镜像。</li>
+<li><strong>update_k8s_yaml</strong>: 更新Kubernetes YAML文件中的镜像地址，并添加<code>imagePullSecrets</code>部分。</li>
+<li><strong>apply_k8s_changes</strong>: 应用更新后的YAML文件到Kubernetes集群。</li>
+<li><strong>rollback_last_version</strong>: 回滚到上一个版本。</li>
+<li><strong>主逻辑</strong>: 根据传入的操作类型（<code>deploy</code>或<code>rollback_last_version</code>）执行相应的操作。</li>
+</ul>
+<h3 id="脚本中的函数及其作用">脚本中的函数及其作用</h3>
+<p>以下是脚本中定义的主要函数及其作用：</p>
+<ol>
+<li>
+<p><strong><code>log()</code></strong>:</p>
+<ul>
+<li><strong>作用</strong>: 打印带时间戳的日志信息，便于调试和追踪脚本执行过程。</li>
+<li><strong>示例调用</strong>:<pre><code class="language-bash">log &quot;开始构建 Docker 镜像: $FULL_IMAGE&quot;
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong><code>ERROR_exit()</code></strong>:</p>
+<ul>
+<li><strong>作用</strong>: 当发生错误时打印错误信息并退出脚本执行，确保问题不会被忽略。</li>
+<li><strong>示例调用</strong>:<pre><code class="language-bash">ERROR_exit &quot;Docker 构建失败！&quot;
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong><code>code_clone()</code></strong>:</p>
+<ul>
+<li><strong>作用</strong>: 从指定Git仓库克隆代码到本地目录，以便后续步骤可以访问这些代码进行打包和构建。</li>
+<li><strong>示例调用</strong>:<pre><code class="language-bash">code_clone
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong><code>package_file()</code></strong>:</p>
+<ul>
+<li><strong>作用</strong>: 将克隆下来的代码打包成压缩文件（如<code>.tar.gz</code>），以便传输到Kubernetes控制器节点。</li>
+<li><strong>示例调用</strong>:<pre><code class="language-bash">package_file
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong><code>copy_file()</code></strong>:</p>
+<ul>
+<li><strong>作用</strong>: 使用<code>scp</code>命令将打包好的文件复制到Kubernetes控制器节点上的指定目录。</li>
+<li><strong>示例调用</strong>:<pre><code class="language-bash">copy_file
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong><code>build_image()</code></strong>:</p>
+<ul>
+<li><strong>作用</strong>: 在Kubernetes控制器节点上运行<code>build-command.sh</code>脚本，实际执行镜像的构建和推送操作。</li>
+<li><strong>示例调用</strong>:<pre><code class="language-bash">build_image
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong><code>update_k8s_yaml()</code></strong>:</p>
+<ul>
+<li><strong>作用</strong>: 更新Kubernetes YAML配置文件，确保其引用的是最新构建的镜像。</li>
+<li><strong>示例调用</strong>:<pre><code class="language-bash">update_k8s_yaml
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong><code>apply_k8s_changes()</code></strong>:</p>
+<ul>
+<li><strong>作用</strong>: 应用更新后的Kubernetes YAML配置文件，触发集群内的部署更新。</li>
+<li><strong>示例调用</strong>:<pre><code class="language-bash">apply_k8s_changes
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p><strong><code>rollback_last_version()</code></strong>:</p>
+<ul>
+<li><strong>作用</strong>: 回滚到前一个稳定版本，使用Kubernetes的<code>rollout undo</code>命令实现。</li>
+<li><strong>示例调用</strong>:<pre><code class="language-bash">rollback_last_version
+</code></pre>
+</li>
+</ul>
+</li>
+</ol>
+<h2 id="这些函数共同构成了一个完整的自动化流程使得从代码提交到生产环境部署变得更加高效且可管理">这些函数共同构成了一个完整的自动化流程，使得从代码提交到生产环境部署变得更加高效且可管理。</h2>
+<h1 id="四-创建jenkins任务">四、创建Jenkins任务</h1>
+<h2 id="1-安装ssh插件及配置凭据">1. 安装SSH插件及配置凭据</h2>
+<h3 id="插件安装">插件安装</h3>
+<ul>
+<li><strong>步骤</strong>：在Jenkins中安装SSH插件。</li>
+<li><strong>截图</strong>：<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250117024646.png" alt="插件安装" loading="lazy"></li>
+</ul>
+<h3 id="远程主机设置">远程主机设置</h3>
+<ul>
+<li><strong>创建新的凭据</strong>：
+<ul>
+<li>登录Jenkins -&gt; 系统管理 -&gt; 凭据 -&gt; 全局 -&gt; 新增凭据</li>
+<li>结果如图：<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250117024756.png" alt="远程主机设置" loading="lazy"></li>
+</ul>
+</li>
+<li><strong>系统管理</strong> -&gt; <strong>系统</strong> -&gt; <strong>SSH Remote Hosts</strong>
+<ul>
+<li>设置如图：<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250117024934.png" alt="SSH远程主机" loading="lazy"></li>
+</ul>
+</li>
+</ul>
+<h2 id="2-创建任务">2. 创建任务</h2>
+<ul>
+<li><strong>新建任务</strong>：选择“自由风格项目”类型。
+<ul>
+<li>截图：<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250117024436.png" alt="创建任务" loading="lazy"></li>
+<li>配置Git仓库地址和分支。</li>
+<li>构建触发器：可以设置定时构建、轮询SCM等触发条件。</li>
+<li>构建环境：如果需要，可以设置环境变量等。</li>
+<li>构建：添加执行Shell脚本的步骤，调用前面准备好的CI/CD脚本进行构建、打包、推送镜像以及更新Kubernetes YAML文件等操作。</li>
+</ul>
+</li>
+</ul>
+<h1 id="五-测试cicd流程">五、测试CI/CD流程</h1>
+<h2 id="更新测试">更新测试</h2>
+<h3 id="修改indexhtml">修改index.html</h3>
+<ul>
+<li>对应用的<code>index.html</code>文件进行了修改，作为版本更新的一部分。</li>
+<li>触发Jenkins任务执行更新流程。</li>
+<li>控制台输出显示了从克隆代码、打包、传输文件、构建和推送Docker镜像、更新Kubernetes YAML文件到最后应用更改的全过程，并且最终结果显示为SUCCESS。</li>
+</ul>
+<pre><code class="language-bash">Started by user root
+Running as SYSTEM
+Building in workspace /var/lib/jenkins/workspace/bash-update-item1-tomcat-app1-deploy
+...
+Successfully built a524b7dbb530
+Successfully tagged harbor.xtec.com/item1/tomcat:8.5.43_20250117_025158
+...
+deployment.apps/item1-tomcat-app1-deployment configured
+service/item1-tomcat-app1-service unchanged
+[2025-01-17 02:52:09] Kubernetes ������������������
+[2025-01-17 02:52:09] ���������������: 11 ���
+Finished: SUCCESS
+</code></pre>
+<h3 id="查看更新前后的结果">查看更新前后的结果</h3>
+<ul>
+<li>截图：<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250117025413.png" alt="更新前后对比" loading="lazy"></li>
+<li><img src="https://raw.githubusercontent.com/OrochW/picGo/master/20250117025433.png" alt="更新前后对比" loading="lazy"></li>
+</ul>
+<h2 id="测试回滚">测试回滚</h2>
+<pre><code class="language-bash">Started by user root
+Running as SYSTEM
+Building in workspace /var/lib/jenkins/workspace/bash-update-item1-tomcat-app1-deploy
+...
+deployment.apps/item1-tomcat-app1-deployment rolled back
+[2025-01-17 01:32:03] ������������
+[2025-01-17 01:32:03] ���������������: 0 ���
+Finished: SUCCESS
+</code></pre>
+<hr>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li>
+<ul>
+<li>
+<ul>
+<li><a href="#%E4%B8%8B%E8%BD%BD%E6%9C%80%E6%96%B0%E7%A8%B3%E5%AE%9A%E7%89%88jenkins%E5%AE%89%E8%A3%85%E5%8C%85">下载最新稳定版Jenkins安装包</a></li>
+<li><a href="#%E5%AE%89%E8%A3%85%E9%95%BF%E6%9C%9F%E6%94%AF%E6%8C%81%E7%89%88%E6%9C%ACjenkins">安装长期支持版本Jenkins</a>
+<ul>
+<li><a href="#%E4%BF%AE%E6%94%B9jenkins%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6-etcdefaultjenkins">修改Jenkins配置文件 <code>/etc/default/jenkins</code></a></li>
+<li><a href="#%E4%BF%AE%E6%94%B9jenkins-systemd%E6%9C%8D%E5%8A%A1%E6%96%87%E4%BB%B6-usrlibsystemdsystemjenkinsservice">修改Jenkins systemd服务文件 <code>/usr/lib/systemd/system/jenkins.service</code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#%E4%BA%8C-%E5%AE%89%E8%A3%85gitlab">二、安装GitLab</a><br>
+*
+<ul>
+<li><a href="#%E4%B8%8B%E8%BD%BDgitlab%E5%AE%89%E8%A3%85%E5%8C%85">下载GitLab安装包</a></li>
+<li><a href="#%E9%85%8D%E7%BD%AE%E5%B9%B6%E5%90%AF%E5%8A%A8gitlab">配置并启动GitLab</a></li>
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E5%B9%B6%E4%BF%AE%E6%94%B9%E5%AF%86%E7%A0%81%E5%88%9B%E5%BB%BA%E6%B5%8B%E8%AF%95%E9%A1%B9%E7%9B%AE">创建用户并修改密码，创建测试项目</a></li>
+<li><a href="#2-dockerfile">2. <strong>Dockerfile</strong></a></li>
+<li><a href="#3-%E9%95%9C%E5%83%8F%E6%9E%84%E5%BB%BA%E8%84%9A%E6%9C%AC-build-commandsh">3. <strong>镜像构建脚本 (<code>build-command.sh</code>)</strong></a></li>
+<li><a href="#4-cicd-%E8%84%9A%E6%9C%AC">4. <strong>CI/CD 脚本</strong></a></li>
+<li><a href="#%E8%84%9A%E6%9C%AC%E4%B8%AD%E7%9A%84%E5%87%BD%E6%95%B0%E5%8F%8A%E5%85%B6%E4%BD%9C%E7%94%A8">脚本中的函数及其作用</a></li>
+<li><a href="#%E8%BF%99%E4%BA%9B%E5%87%BD%E6%95%B0%E5%85%B1%E5%90%8C%E6%9E%84%E6%88%90%E4%BA%86%E4%B8%80%E4%B8%AA%E5%AE%8C%E6%95%B4%E7%9A%84%E8%87%AA%E5%8A%A8%E5%8C%96%E6%B5%81%E7%A8%8B%E4%BD%BF%E5%BE%97%E4%BB%8E%E4%BB%A3%E7%A0%81%E6%8F%90%E4%BA%A4%E5%88%B0%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E9%83%A8%E7%BD%B2%E5%8F%98%E5%BE%97%E6%9B%B4%E5%8A%A0%E9%AB%98%E6%95%88%E4%B8%94%E5%8F%AF%E7%AE%A1%E7%90%86">这些函数共同构成了一个完整的自动化流程，使得从代码提交到生产环境部署变得更加高效且可管理。</a></li>
+</ul>
+</li>
+<li><a href="#%E5%9B%9B-%E5%88%9B%E5%BB%BAjenkins%E4%BB%BB%E5%8A%A1">四、创建Jenkins任务</a>
+<ul>
+<li><a href="#1-%E5%AE%89%E8%A3%85ssh%E6%8F%92%E4%BB%B6%E5%8F%8A%E9%85%8D%E7%BD%AE%E5%87%AD%E6%8D%AE">1. 安装SSH插件及配置凭据</a>
+<ul>
+<li><a href="#%E6%8F%92%E4%BB%B6%E5%AE%89%E8%A3%85">插件安装</a></li>
+<li><a href="#%E8%BF%9C%E7%A8%8B%E4%B8%BB%E6%9C%BA%E8%AE%BE%E7%BD%AE">远程主机设置</a></li>
+</ul>
+</li>
+<li><a href="#2-%E5%88%9B%E5%BB%BA%E4%BB%BB%E5%8A%A1">2. 创建任务</a></li>
+</ul>
+</li>
+<li><a href="#%E4%BA%94-%E6%B5%8B%E8%AF%95cicd%E6%B5%81%E7%A8%8B">五、测试CI/CD流程</a>
+<ul>
+<li><a href="#%E6%9B%B4%E6%96%B0%E6%B5%8B%E8%AF%95">更新测试</a>
+<ul>
+<li><a href="#%E4%BF%AE%E6%94%B9indexhtml">修改index.html</a></li>
+<li><a href="#%E6%9F%A5%E7%9C%8B%E6%9B%B4%E6%96%B0%E5%89%8D%E5%90%8E%E7%9A%84%E7%BB%93%E6%9E%9C">查看更新前后的结果</a></li>
+</ul>
+</li>
+<li><a href="#%E6%B5%8B%E8%AF%95%E5%9B%9E%E6%BB%9A">测试回滚</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/ssh-zhong-duan-tabby-yu-fa-gao-liang/">
+              <h3 class="post-title">
+                ssh终端tabby语法高亮
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

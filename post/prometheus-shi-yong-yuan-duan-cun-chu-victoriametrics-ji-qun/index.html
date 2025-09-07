@@ -1,0 +1,314 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prometheus使用远端存储VictoriaMetrics集群 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1757257179686">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Prometheus使用远端存储VictoriaMetrics集群 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="https://github.com/VictoriaMetrics/VictoriaMetrics/releases/tag/
+
+cd /apps
+wget https://github.com/VictoriaMetrics/Victo..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1757257179686" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Prometheus使用远端存储VictoriaMetrics集群
+            </h2>
+            <div class="post-info">
+              <span>
+                2023-01-04
+              </span>
+              <span>
+                3 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>https://github.com/VictoriaMetrics/VictoriaMetrics/releases/tag/<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20230104162937.png" alt="" loading="lazy"></p>
+<pre><code class="language-bash">cd /apps
+wget https://github.com/VictoriaMetrics/VictoriaMetrics/releases/download/v1.80.0/victoria-metrics-linux-amd64-v1.80.0-cluster.tar.gz
+tar xvf victoria-metrics-linux-amd64-v1.80.0-cluster.tar.gz
+mv vminsert-prod vmselect-prod vmstorage-prod /usr/local/bin/
+</code></pre>
+<p>github项目地址</p>
+<table>
+<thead>
+<tr>
+<th>集群机器</th>
+<th>vmstorage启动配置</th>
+<th>vminsert启动配置</th>
+<th>vmselect启动配置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>192.168.234.201</td>
+<td>/etc/systemd/system/vmstorage.service</td>
+<td>/etc/systemd/system/vminsert.service</td>
+<td>/etc/systemd/system/vmselect.service</td>
+</tr>
+<tr>
+<td>192.168.234.202</td>
+<td>/etc/systemd/system/vmstorage.service</td>
+<td>/etc/systemd/system/vminsert.service</td>
+<td>/etc/systemd/system/vmselect.service</td>
+</tr>
+<tr>
+<td>192.168.234.203</td>
+<td>/etc/systemd/system/vmstorage.service</td>
+<td>/etc/systemd/system/vminsert.service</td>
+<td>/etc/systemd/system/vmselect.service</td>
+</tr>
+</tbody>
+</table>
+<h1 id="一-配置vmstorageservice">一、配置vmstorage.service</h1>
+<pre><code class="language-bash">vim /etc/systemd/system/vmstorage.service 
+[Unit]
+Description=Vmstorage Server
+After=network.target
+
+[Service]
+Restart=on-failure
+WorkingDirectory=/tmp
+ExecStart=/usr/local/bin/vmstorage-prod -loggerTimezone Asia/Shanghai -storageDataPath /data/vmstorage-data -httpListenAddr :8482 -vminsertAddr :8400 -vmselectAddr :8401
+
+[Install]
+WantedBy=multi-user.target
+</code></pre>
+<h1 id="二-配置vminsertservice">二、配置vminsert.service</h1>
+<pre><code class="language-bash">vim /etc/systemd/system/vminsert.service 
+[Unit]
+Description=Vminsert Server
+After=network.target
+
+[Service]
+Restart=on-failure
+WorkingDirectory=/tmp
+ExecStart=/usr/local/bin/vminsert-prod  -httpListenAddr :8480 -storageNode=192.168.234.201:8400,192.168.234.202:8400,192.168.234.203:8400
+
+[Install]
+WantedBy=multi-user.target
+
+</code></pre>
+<h1 id="三-配置vmselectservice">三、配置vmselect.service</h1>
+<pre><code class="language-bash">
+vim /etc/systemd/system/vmselect.service 
+[Unit]
+Description=Vmselect Server
+After=network.target
+
+[Service]
+Restart=on-failure
+WorkingDirectory=/tmp
+ExecStart=/usr/local/bin/vmselect-prod -httpListenAddr :8481 -storageNode=192.168.234.201:8401,192.168.234.202:8401,192.168.234.203:8401
+
+[Install]
+WantedBy=multi-user.target
+
+</code></pre>
+<p>启动集群</p>
+<pre><code class="language-bash">systemctl restart vmstorage.service 
+systemctl enable vmstorage.service
+systemctl restart vminsert.service
+systemctl enable vminsert.service
+systemctl restart vmselect.service
+systemctl enable vmselect.service
+</code></pre>
+<h1 id="四-修改prometheus配置">四、修改prometheus配置</h1>
+<pre><code>#global下面
+remote_write:
+  - url: http://192.168.234.201:8480/insert/0/prometheus
+  - url: http://192.168.234.202:8480/insert/0/prometheus
+  - url: http://192.168.234.203:8480/insert/0/prometheus
+</code></pre>
+<h1 id="五-grafana添加数据源">五、grafana添加数据源</h1>
+<p>http://192.168.234.201:8481/select/0/prometheus<br>
+<img src="https://raw.githubusercontent.com/OrochW/picGo/master/20230104163512.png" alt="" loading="lazy"></p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#%E4%B8%80-%E9%85%8D%E7%BD%AEvmstorageservice">一、配置vmstorage.service</a></li>
+<li><a href="#%E4%BA%8C-%E9%85%8D%E7%BD%AEvminsertservice">二、配置vminsert.service</a></li>
+<li><a href="#%E4%B8%89-%E9%85%8D%E7%BD%AEvmselectservice">三、配置vmselect.service</a></li>
+<li><a href="#%E5%9B%9B-%E4%BF%AE%E6%94%B9prometheus%E9%85%8D%E7%BD%AE">四、修改prometheus配置</a></li>
+<li><a href="#%E4%BA%94-grafana%E6%B7%BB%E5%8A%A0%E6%95%B0%E6%8D%AE%E6%BA%90">五、grafana添加数据源</a></li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/prometheus-de-lian-bang-jie-dian/">
+              <h3 class="post-title">
+                prometheus的联邦节点
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>
