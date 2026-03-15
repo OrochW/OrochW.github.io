@@ -1,0 +1,4021 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kubernetes &amp; Docker 核心面试题整理 | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1773592477967">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Kubernetes &amp; Docker 核心面试题整理 | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="
+Kubernetes &amp; Docker 核心面试题整理
+1. 基础概念 (Basic Concepts)
+1. K8s 中常见类型的资源介绍和区别？
+Kubernetes 中的资源对象（API Objects）主要分为以下几类，核..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1773592477967" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Kubernetes &amp; Docker 核心面试题整理
+            </h2>
+            <div class="post-info">
+              <span>
+                2026-03-13
+              </span>
+              <span>
+                134 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <hr>
+<h1 id="kubernetes-docker-核心面试题整理">Kubernetes &amp; Docker 核心面试题整理</h1>
+<h2 id="1-基础概念-basic-concepts">1. 基础概念 (Basic Concepts)</h2>
+<h3 id="1-k8s-中常见类型的资源介绍和区别">1. K8s 中常见类型的资源介绍和区别？</h3>
+<p>Kubernetes 中的资源对象（API Objects）主要分为以下几类，核心区别在于<strong>用途</strong>和<strong>管理方式</strong>：</p>
+<ul>
+<li><strong>工作负载型 (Workloads)</strong>：用于运行应用。
+<ul>
+<li><strong>Pod</strong>：最小调度单元，包含一个或多个紧密耦合的容器，共享网络和存储。</li>
+<li><strong>Deployment</strong>：管理<strong>无状态</strong>应用。负责维护 Pod 副本数，支持滚动更新和回滚。底层通过 ReplicaSet 实现。</li>
+<li><strong>StatefulSet</strong>：管理<strong>有状态</strong>应用（如数据库）。Pod 有固定的网络标识（hostname）和稳定的存储绑定，启动/删除有序。</li>
+<li><strong>DaemonSet</strong>：确保集群中<strong>每个节点</strong>（或指定节点）都运行一个 Pod 副本（如日志收集 fluentd、监控 node-exporter）。</li>
+<li><strong>Job / CronJob</strong>：运行一次性任务或定时任务，任务完成后 Pod 终止。</li>
+</ul>
+</li>
+<li><strong>服务发现与负载均衡 (Services &amp; Networking)</strong>：
+<ul>
+<li><strong>Service</strong>：定义一组 Pod 的访问策略（ClusterIP, NodePort, LoadBalancer），提供稳定的 IP 和 DNS 名称，实现负载均衡。</li>
+<li><strong>Ingress</strong>：管理外部访问集群服务的规则（主要是 HTTP/HTTPS），通常配合 Ingress Controller 使用，提供七层路由。</li>
+</ul>
+</li>
+<li><strong>配置与存储 (Config &amp; Storage)</strong>：
+<ul>
+<li><strong>ConfigMap</strong>：存储非敏感的配置数据（环境变量、配置文件）。</li>
+<li><strong>Secret</strong>：存储敏感数据（密码、Token、密钥），经过 Base64 编码（需注意并非加密）。</li>
+<li><strong>PV (PersistentVolume) / PVC (PersistentVolumeClaim)</strong>：持久化存储的抽象层，解耦存储供给与使用。</li>
+</ul>
+</li>
+<li><strong>集群资源 (Cluster)</strong>：
+<ul>
+<li><strong>Namespace</strong>：逻辑隔离集群资源，用于多租户或环境隔离。</li>
+<li><strong>Node</strong>：集群中的工作节点。</li>
+<li><strong>ServiceAccount</strong>：为 Pod 内的进程提供访问 API Server 的身份标识。</li>
+</ul>
+</li>
+</ul>
+<h3 id="2-k8s-中-pod-服务健康检查方式有哪两种">2. K8s 中 Pod 服务健康检查方式有哪两种？</h3>
+<p>严格来说有三种探针（Probe），但最核心的两种是：</p>
+<ol>
+<li><strong>Liveness Probe（存活探针）</strong>：
+<ul>
+<li><strong>作用</strong>：判断容器是否“活着”。如果检测失败，Kubelet 会<strong>杀死容器</strong>并根据重启策略（RestartPolicy）进行重启。</li>
+<li><strong>场景</strong>：解决死锁、进程挂起但未退出等“假死”情况。</li>
+</ul>
+</li>
+<li><strong>Readiness Probe（就绪探针）</strong>：
+<ul>
+<li><strong>作用</strong>：判断容器是否“准备好接收流量”。如果检测失败，Endpoints 控制器会将该 Pod 从 Service 的负载均衡列表中<strong>剔除</strong>，不再转发流量，但<strong>不会重启容器</strong>。</li>
+<li><strong>场景</strong>：应用启动加载数据、依赖服务未就绪时，避免用户请求失败。<br>
+<em>(注：还有一种 Startup Probe，用于处理启动缓慢的应用，启动成功后不再执行)</em></li>
+</ul>
+</li>
+</ol>
+<h3 id="3-k8s-认证方式有几种">3. K8s 认证方式有几种？</h3>
+<p>Kubernetes API Server 支持多种认证插件，常见的有：</p>
+<ol>
+<li><strong>客户端证书 (Client Certificates)</strong>：基于 TLS 双向认证，最常用且安全，用于组件间通信和管理员访问。</li>
+<li><strong>Bearer Token</strong>：
+<ul>
+<li><strong>Service Account Tokens</strong>：Pod 内部访问 API Server 的标准方式。</li>
+<li><strong>Static Token File</strong>：静态文件定义的 Token（不推荐生产使用）。</li>
+</ul>
+</li>
+<li><strong>Bootstrap Token</strong>：用于节点加入集群时的临时认证。</li>
+<li><strong>OIDC (OpenID Connect)</strong>：集成第三方身份提供商（如 Google, GitHub, Keycloak）。</li>
+<li><strong>Webhook Token</strong>：调用外部服务进行认证。</li>
+<li><strong>Anonymous</strong>：匿名访问（通常默认禁用或权限极低）。</li>
+<li><strong>Basic Auth</strong>：用户名密码（已废弃，新版不再支持）。<br>
+<em>机制：API Server 可以启用多种，只要有一种通过即认证成功。</em></li>
+</ol>
+<h3 id="4-k8s-中的证书和私钥种类有哪些">4. K8s 中的证书和私钥种类有哪些？</h3>
+<p>在基于 PKI 的集群中（如 kubeadm 部署），主要证书包括：</p>
+<ul>
+<li><strong>CA 根证书</strong> (<code>ca.crt</code>, <code>ca.key</code>)：集群的信任锚点，用于签发其他所有证书。</li>
+<li><strong>API Server 服务端证书</strong> (<code>apiserver.crt</code>, <code>apiserver.key</code>)：用于 API Server 对外提供 HTTPS 服务。</li>
+<li><strong>API Server 连接 Kubelet 的客户端证书</strong> (<code>apiserver-kubelet-client.crt</code>, <code>.key</code>)：API Server 访问 kubelet 接口时使用。</li>
+<li><strong>Kubelet 服务端证书</strong> (<code>kubelet.crt</code>, <code>.key</code>)：每个节点上的 Kubelet 对外提供服务使用。</li>
+<li><strong>Controller Manager / Scheduler 客户端证书</strong>：这些组件作为客户端访问 API Server 时使用。</li>
+<li><strong>Etcd 证书</strong>：包括 Etcd 服务端证书和 Etcd 客户端证书（用于 API Server 访问 Etcd）。</li>
+<li><strong>Front Proxy 证书</strong>：用于聚合层（Aggregation Layer）的认证。</li>
+<li><strong>Service Account 密钥</strong> (<code>sa.key</code>, <code>sa.pub</code>)：用于签名和验证 Service Account 的 JWT Token，不属于 X.509 证书体系但属于密钥对。</li>
+</ul>
+<h3 id="5-k8s-中各个主要组件有哪些各自作用是什么">5. K8s 中各个主要组件有哪些？各自作用是什么？</h3>
+<p>分为<strong>控制平面 (Control Plane)</strong> 和 <strong>节点 (Node)</strong> 组件：</p>
+<ul>
+<li><strong>kube-apiserver</strong>：集群的<strong>唯一入口</strong>和大脑。处理 REST 操作，验证请求，更新 Etcd，调度决策的协调者。</li>
+<li><strong>etcd</strong>：高可用的键值存储数据库，保存集群的<strong>所有状态数据</strong>（配置、状态、元数据）。</li>
+<li><strong>kube-scheduler</strong>：负责<strong>调度</strong>。监听新创建的 Pod，根据资源空闲情况、策略约束将其分配到合适的 Node 上。</li>
+<li><strong>kube-controller-manager</strong>：运行各种<strong>控制器</strong>（如 ReplicaSet 控制器、Node 控制器、Endpoint 控制器），确保集群实际状态向期望状态收敛（自愈）。</li>
+<li><strong>cloud-controller-manager</strong>：对接云厂商 API，管理云特有的控制器（如路由、负载均衡器、节点生命周期）。</li>
+<li><strong>kubelet</strong>：运行在每个节点上。管理 Pod 生命周期（启停容器）、上报节点状态、执行健康检查。</li>
+<li><strong>kube-proxy</strong>：网络代理。维护节点上的网络规则（iptables/IPVS），实现 Service 的负载均衡和网络转发。</li>
+<li><strong>Container Runtime</strong> (如 containerd, Docker)：真正负责运行容器的软件。</li>
+</ul>
+<pre class="mermaid">sequenceDiagram
+    autonumber
+    participant User as 用户 (kubectl)
+    participant API as kube-apiserver
+    participant DB as etcd
+    participant Sch as kube-scheduler
+    participant CCM as kube-controller-manager
+    participant Klet as kubelet (Node)
+    participant Runtime as Container Runtime
+    participant Proxy as kube-proxy
+
+    Note over User, DB: 阶段一：提交请求与持久化
+    User->>API: 1. 发送 POST 请求 (创建 Pod YAML)
+    API->>API: 2. 验证请求 (鉴权/准入控制)
+    API->>DB: 3. 将 Pod 信息写入 etcd (状态: Pending)
+    DB-->>API: 4. 确认写入成功
+    API-->>User: 5. 返回 "Pod created"
+
+    Note over Sch, API: 阶段二：调度决策
+    Sch->>API: 6. 监听 (Watch) 到新的 Pending Pod
+    Sch->>Sch: 7. 执行调度算法 (过滤 + 评分)
+    Sch->>API: 8. 提交绑定结果 (Binding: Pod -> Node-A)
+    API->>DB: 9. 更新 Pod 信息 (nodeName: Node-A)
+
+    Note over Klet, Runtime: 阶段三：节点执行
+    Klet->>API: 10. 监听 (Watch) 到分配给自己的 Pod
+    Klet->>Runtime: 11. 调用 CRI 接口 (创建 Pause 容器 + 业务容器)
+    Runtime->>Runtime: 12. 拉取镜像，启动容器
+    Runtime-->>Klet: 13. 返回容器启动成功
+    Klet->>API: 14. 上报状态 (Status: Running)
+    API->>DB: 15. 更新 etcd 中的 Pod 状态
+
+    Note over CCM, API: 阶段四：状态自愈 (持续运行)
+    CCM->>API: 16. 监听 Pod 状态变化
+    CCM->>CCM: 17. 对比期望状态 (Replicas) 与实际状态
+    opt 如果 Pod 意外崩溃
+        CCM->>API: 18. 发现实际数量 < 期望数量
+        CCM->>API: 19. 触发重建逻辑 (创建新 Pod)
+    end
+
+    Note over Proxy, API: 阶段五：网络连通
+    Proxy->>API: 20. 监听 Service/Endpoint 变化
+    Proxy->>Proxy: 21. 更新 iptables/IPVS 规则
+    Note right of Proxy: 外部流量现在可以访问该 Pod
+</pre><h3 id="6-k8s-集群中有没有高可用你们公司的高可用架构是什么">6. K8s 集群中有没有高可用？你们公司的高可用架构是什么？</h3>
+<ul>
+<li><strong>有没有高可用</strong>：原生支持，但需要手动配置多主节点。</li>
+<li><strong>通用高可用架构方案</strong>：
+<ol>
+<li><strong>多 Master 节点</strong>：部署 3 个或以上的 Master 节点（奇数），防止单点故障。</li>
+<li><strong>负载均衡 (LB)</strong>：在 Master 节点前架设负载均衡器（如 <strong>Keepalived + HAProxy</strong>，或云厂商的 SLB/ELB），提供一个统一的 <strong>VIP (虚拟 IP)</strong> 供 Worker 节点和 kubectl 访问 API Server。</li>
+<li><strong>Etcd 高可用</strong>：Etcd 集群通常部署为 3 或 5 节点，采用 Raft 协议保证数据一致性。可以是堆叠在 Master 上，也可以是独立的外部集群。</li>
+<li><strong>Worker 节点多副本</strong>：应用通过 Deployment 设置多副本并配合反亲和性策略，分散在不同节点。<br>
+<em>(注：作为 AI，我没有具体的“公司”，以上是业界标准的 HA 架构实践。)</em></li>
+</ol>
+</li>
+</ul>
+<h3 id="7-k8s-中镜像下载策略imagepullpolicy有哪几种">7. K8s 中镜像下载策略（ImagePullPolicy）有哪几种？</h3>
+<ol>
+<li><strong>Always</strong>：每次启动 Pod 时都尝试从仓库拉取最新镜像。如果标签是 <code>latest</code>，默认也是此行为。</li>
+<li><strong>IfNotPresent</strong>（默认）：只有当本地节点没有该镜像时才拉取。如果本地已有，直接使用本地缓存。</li>
+<li><strong>Never</strong>：只使用本地镜像，如果本地没有则报错，绝不尝试联网拉取。</li>
+</ol>
+<h3 id="8-k8s-中-pod-故障重启策略restartpolicy有哪几种">8. K8s 中 Pod 故障重启策略（RestartPolicy）有哪几种？</h3>
+<p>该策略定义在 Pod Spec 中，作用于 Pod 内所有容器：</p>
+<ol>
+<li><strong>Always</strong>（默认）：无论容器是正常退出（exit code 0）还是异常退出，都会重启。<strong>Deployment</strong> 等控制器管理的 Pod 必须使用此策略。</li>
+<li><strong>OnFailure</strong>：仅当容器异常退出（exit code 非 0）时重启。常用于 <strong>Job</strong>。</li>
+<li><strong>Never</strong>：无论何种情况都不重启。常用于调试或一次性任务。</li>
+</ol>
+<h3 id="9-k8s-中-pv-有几种访问模式access-modes">9. K8s 中 PV 有几种访问模式（Access Modes）？</h3>
+<ol>
+<li><strong>ReadWriteOnce (RWO)</strong>：读写权限，只能被<strong>单个节点</strong>挂载（最常见，如云盘）。</li>
+<li><strong>ReadOnlyMany (ROX)</strong>：只读权限，可以被<strong>多个节点</strong>同时挂载。</li>
+<li><strong>ReadWriteMany (RWX)</strong>：读写权限，可以被<strong>多个节点</strong>同时挂载（通常需要 NFS、CephFS 等共享存储）。</li>
+<li><strong>ReadWriteOncePod (RWOP)</strong> (K8s 1.23+ Alpha/Beta)：读写权限，只能被<strong>单个 Pod</strong> 挂载（比 RWO 更严格，即使在同一节点的不同 Pod 也不行）。</li>
+</ol>
+<h3 id="10-k8s-中-pv-和-pvc-的作用是什么pv-pvc-和底层存储的关系">10. K8s 中 PV 和 PVC 的作用是什么？PV、PVC 和底层存储的关系？</h3>
+<p>你总结的关于 <strong>PV (PersistentVolume)</strong>、<strong>PVC (PersistentVolumeClaim)</strong> 以及它们与底层存储的关系非常准确，核心逻辑（解耦、绑定、使用、回收）完全正确。</p>
+<p>为了让你对 <strong>StorageClass</strong> 的理解更加透彻，并补全“动态供给”这一现代 K8s 存储的核心场景，我将基于你的总结进行深化和补充，重点理清 <strong>StorageClass</strong> 在其中的桥梁作用。</p>
+<h4 id="1-核心角色深化">1. 核心角色深化</h4>
+<h5 id="pv-persistentvolume-仓库"><strong>PV (PersistentVolume) - “仓库”</strong></h5>
+<ul>
+<li><strong>定义</strong>：集群中的一块具体存储资源。它是集群级别的资源（不属于任何 Namespace）。</li>
+<li><strong>状态</strong>：
+<ul>
+<li><code>Available</code>：空闲，未被绑定。</li>
+<li><code>Bound</code>：已绑定到某个 PVC。</li>
+<li><code>Released</code>：PVC 已删除，但 PV 中的资产还未被清理（取决于回收策略）。</li>
+<li><code>Failed</code>：自动回收失败。</li>
+</ul>
+</li>
+<li><strong>关键点</strong>：它屏蔽了底层细节（是 NFS、Ceph RBD、还是 AWS EBS），对 Pod 来说，它就是一个挂载点。</li>
+</ul>
+<h5 id="pvc-persistentvolumeclaim-订单"><strong>PVC (PersistentVolumeClaim) - “订单”</strong></h5>
+<ul>
+<li><strong>定义</strong>：用户对存储资源的请求。它是 Namespace 级别的资源。</li>
+<li><strong>内容</strong>：声明需要的容量（Size）、访问模式（ReadWriteOnce, ReadOnlyMany, ReadWriteMany）以及存储类（StorageClassName）。</li>
+<li><strong>行为</strong>：K8s 控制平面会尝试寻找一个满足要求的 PV 进行绑定。如果找不到且配置了动态供给，则会触发创建新的 PV。</li>
+</ul>
+<h5 id="storageclass-sc-自动化采购经理模板"><strong>StorageClass (SC) - “自动化采购经理/模板”</strong></h5>
+<ul>
+<li><strong>作用</strong>：<strong>这是连接 PVC 和底层存储动态创建的关键。</strong></li>
+<li><strong>解决的问题</strong>：在没有 SC 之前，管理员必须手动预先创建好所有 PV（静态供给）。有了 SC，用户只需在 PVC 中指定 <code>storageClassName</code>，K8s 就会自动调用云厂商 API 或存储插件去<strong>动态创建</strong>对应的 PV 和底层存储卷。</li>
+<li><strong>组成</strong>：
+<ul>
+<li><strong>Provisioner</strong>：驱动程序（如 <code>kubernetes.io/aws-ebs</code>, <code>rook-ceph.rbd.csi.ceph.com</code>），决定由哪个插件来创建存储。</li>
+<li><strong>Parameters</strong>：创建存储时的参数（如磁盘类型 SSD/HDD、IOPS、副本数等）。</li>
+<li><strong>ReclaimPolicy</strong>：回收策略（Delete 或 Retain）。</li>
+<li><strong>VolumeBindingMode</strong>：
+<ul>
+<li><code>Immediate</code>：PVC 创建时立即创建 PV 和底层存储。</li>
+<li><code>WaitForFirstConsumer</code>：直到有 Pod 使用该 PVC 时，才在 Pod 所在的节点对应位置创建存储（常用于本地存储或特定拓扑约束场景）。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h4 id="2-三者与底层存储的完整关系图谱">2. 三者与底层存储的完整关系图谱</h4>
+<p>我们可以将整个过程看作一个<strong>供应链流程</strong>：</p>
+<h5 id="场景-a静态供给-static-provisioning-传统模式"><strong>场景 A：静态供给 (Static Provisioning) - 传统模式</strong></h5>
+<ol>
+<li><strong>管理员</strong>手动在云控制台或存储设备上创建一块磁盘/文件系统。</li>
+<li><strong>管理员</strong>在 K8s 中编写 YAML 创建 <strong>PV</strong>，指向这块具体的存储。</li>
+<li><strong>开发者</strong>编写 <strong>PVC</strong>，请求特定大小的存储。</li>
+<li><strong>K8s</strong> 发现有一个未绑定的 PV 满足 PVC 要求，执行 <strong>绑定 (Binding)</strong>。</li>
+<li><strong>Pod</strong> 引用 PVC，挂载成功。
+<ul>
+<li><em>缺点</em>：PV 用完了需要管理员手动介入扩容或新建，效率低。</li>
+</ul>
+</li>
+</ol>
+<h5 id="场景-b动态供给-dynamic-provisioning-现代主流模式-引入-storageclass"><strong>场景 B：动态供给 (Dynamic Provisioning) - 现代主流模式 (引入 StorageClass)</strong></h5>
+<ol>
+<li><strong>管理员</strong>创建一个 <strong>StorageClass</strong> (例如名为 <code>fast-ssd</code>)，配置好 Provisioner 和参数。</li>
+<li><strong>开发者</strong>编写 <strong>PVC</strong>，指定 <code>storageClassName: fast-ssd</code> 和所需大小（<strong>此时集群中可能并没有对应的 PV</strong>）。</li>
+<li><strong>K8s 控制平面</strong> 监听到这个 PVC：
+<ul>
+<li>发现没有现成的 PV 匹配。</li>
+<li>检查 PVC 指定的 <strong>StorageClass</strong>。</li>
+<li>调用 StorageClass 中定义的 <strong>Provisioner</strong>。</li>
+</ul>
+</li>
+<li><strong>Provisioner</strong> 调用底层存储 API（如 AWS API, Ceph Monitor），<strong>动态创建</strong> 一块新的物理/网络存储卷。</li>
+<li><strong>Provisioner</strong> 随即在 K8s 中自动创建一个 <strong>PV</strong> 对象，指向这块新创建的底层存储，并立即将该 PV 与 PVC <strong>绑定</strong>。</li>
+<li><strong>Pod</strong> 引用 PVC，挂载成功。
+<ul>
+<li><em>优点</em>：按需分配，无需管理员预先准备 PV，实现了真正的自助服务。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h4 id="3-生命周期与回收策略-reclaim-policy">3. 生命周期与回收策略 (Reclaim Policy)</h4>
+<p>当 PVC 被删除时，PV 和底层存储的命运由 <strong>PV (或 StorageClass 默认)</strong> 的回收策略决定：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">策略</th>
+<th style="text-align:left">行为描述</th>
+<th style="text-align:left">适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Retain (保留)</strong></td>
+<td style="text-align:left">PVC 删除后，PV 变为 <code>Released</code> 状态，<strong>底层存储数据保留</strong>，PV 不会自动删除。需要管理员手动清理数据和 PV 对象。</td>
+<td style="text-align:left">生产环境重要数据，防止误删导致数据丢失。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Delete (删除)</strong></td>
+<td style="text-align:left">PVC 删除后，PV 对象和<strong>底层存储资产（如云盘、Ceph 卷）都会被自动删除</strong>。</td>
+<td style="text-align:left">开发/测试环境，临时数据，追求资源自动回收。</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Recycle (回收)</strong></td>
+<td style="text-align:left"><em>已过时</em>。执行 <code>rm -rf /volume/*</code> 清除数据，PV 变回 <code>Available</code> 供再次使用。</td>
+<td style="text-align:left">现代 K8s 版本已不再推荐使用，通常由 CSI 驱动自行实现类似逻辑或直接使用 Delete/Retain。</td>
+</tr>
+</tbody>
+</table>
+<h4 id="4-总结图示化理解">4. 总结图示化理解</h4>
+<pre><code class="language-text">[开发者] 
+   |
+   | 1. 提交 PVC (需求: 10Gi, Class: fast-ssd)
+   v
+[K8s Control Plane]
+   |
+   |-- 查找现有 PV? -&gt; 无匹配
+   |
+   |-- 2. 读取 StorageClass &quot;fast-ssd&quot; (模板/规则)
+   |      - Provisioner: ebs.csi.aws.com
+   |      - Type: gp3
+   |
+   |-- 3. 调用 Provisioner -&gt; [底层存储系统 (AWS EBS/Ceph/NFS)]
+   |      (动作: 创建真实的 10Gi 磁盘)
+   |
+   |-- 4. 创建 PV 对象 (指向新磁盘)
+   |
+   |-- 5. 绑定 PV &lt;-&gt; PVC
+   |
+   v
+[Pod] --(引用 PVC)--&gt; [挂载点] --&gt; [底层真实数据]
+</code></pre>
+<h4 id="关键结论">关键结论</h4>
+<ul>
+<li><strong>PV</strong> 是资源的<strong>抽象表示</strong>。</li>
+<li><strong>PVC</strong> 是用户的<strong>使用接口</strong>。</li>
+<li><strong>StorageClass</strong> 是<strong>自动化引擎</strong>，它定义了“如何创建 PV”以及“创建什么样的底层存储”。</li>
+<li><strong>底层存储</strong> 是最终的<strong>物理载体</strong>。</li>
+</ul>
+<p>加上 StorageClass 后，K8s 的存储体系从“手动预分配”进化到了“按需自动供给”，极大地提升了云原生应用的弹性和运维效率。</p>
+<pre class="mermaid">flowchart TD
+    A[开发者创建 PVC<br/>请求: 10Gi, StorageClass: fast-ssd] --> B{K8s 控制平面<br/>查找匹配 PV?}
+    B -- 有匹配 PV --> C[直接绑定 PV <-> PVC]
+    B -- 无匹配 PV --> D[读取 StorageClass<br/>fast-ssd 配置]
+    D --> E[调用 Provisioner<br/>e.g., ebs.csi.aws.com]
+    E --> F[底层存储系统<br/>AWS EBS/Ceph/NFS<br/>动态创建实际存储卷]
+    F --> G[自动创建 PV 对象<br/>指向新存储卷]
+    G --> H[绑定 PV <-> PVC]
+    C --> I[Pod 挂载 PVC<br/>访问存储]
+    H --> I
+    I --> J{PVC 被删除?}
+    J -- 是 --> K{PV 回收策略?}
+    K -- Delete --> L[自动删除 PV +<br/>底层存储卷]
+    K -- Retain --> M[PV 变为 Released<br/>保留底层数据<br/>需手动清理]
+    style A fill:#e6f3ff,stroke:#333
+    style D fill:#fff2cc,stroke:#333
+    style F fill:#d5e8d4,stroke:#333
+    style J fill:#f8cecc,stroke:#333
+</pre><h3 id="11-客户端访问-k8s-资源需要经过几关分别是什么">11. 客户端访问 K8s 资源需要经过几关？分别是什么？</h3>
+<p>客户端请求到达 <code>kube-apiserver</code> 后，依次经过三道关卡（任意一关失败即拒绝）：</p>
+<ol>
+<li><strong>认证 (Authentication)</strong>：确认“你是谁”？（校验证书、Token 等）。</li>
+<li><strong>授权 (Authorization)</strong>：确认“你有权限做这件事吗”？（校验 RBAC 角色绑定、ABAC 策略等）。</li>
+<li><strong>准入控制 (Admission Control)</strong>：确认“你的请求符合集群规范吗”？（执行 Mutating 修改请求或 Validating 校验请求，如检查镜像策略、资源配额 LimitRange 等）。<br>
+<em>通过后才会执行请求并将数据存入 Etcd。</em></li>
+</ol>
+<h3 id="12-k8s-集群中的数据是存储在哪个位置">12. K8s 集群中的数据是存储在哪个位置？</h3>
+<ul>
+<li><strong>集群状态元数据</strong>：所有的资源对象定义（Pod, Service, Deployment 等）和集群状态都存储在 <strong>Etcd</strong> 数据库中。这是 K8s 的唯一真实数据源（Source of Truth）。</li>
+<li><strong>容器数据</strong>：
+<ul>
+<li>临时数据：存储在节点的容器运行时目录中（随 Pod 删除而丢失）。</li>
+<li>持久数据：通过 PV 挂载，存储在<strong>后端存储系统</strong>中（如 NFS 服务器、云厂商的云盘、Ceph 集群等），独立于 K8s 集群节点存在。</li>
+</ul>
+</li>
+<li><strong>日志</strong>：默认在节点的文件系统中（<code>/var/log/pods</code>），通常建议通过日志采集系统（EFK/ELK）输出到外部存储。</li>
+</ul>
+<h3 id="13-什么是-headless无头service">13. 什么是 Headless（无头）Service？</h3>
+<ul>
+<li><strong>定义</strong>：一种特殊的 Service，其 YAML 中 <code>spec.clusterIP</code> 字段被显式设置为 <code>None</code>。</li>
+<li><strong>特点</strong>：
+<ul>
+<li><strong>不分配 Cluster IP</strong>：K8s 不会为该 Service 分配虚拟 IP，也不会通过 kube-proxy 做负载均衡。</li>
+<li><strong>DNS 解析</strong>：当客户端查询该 Service 的域名时，DNS 服务器（CoreDNS）会直接返回后端<strong>所有 Pod 的 IP 地址列表</strong>（A 记录），而不是一个 VIP。</li>
+</ul>
+</li>
+<li><strong>用途</strong>：
+<ul>
+<li>主要用于<strong>有状态应用</strong>（配合 StatefulSet），让客户端能直接发现并连接特定的 Pod（如 <code>pod-0.service</code>, <code>pod-1.service</code>）。</li>
+<li>用于需要客户端自己实现负载均衡或直接感知后端拓扑的场景（如 Zookeeper, Kafka 集群内部通信）。</li>
+</ul>
+</li>
+</ul>
+<h2 id="2-docker-相关-docker-related">2. Docker 相关 (Docker Related)</h2>
+<h3 id="14-docker-怎么用-dockerfile-文件构建镜像具体命令是什么">14. Docker 怎么用 Dockerfile 文件构建镜像？具体命令是什么？</h3>
+<p><strong>步骤：</strong></p>
+<ol>
+<li>编写 <code>Dockerfile</code> 文件，定义构建指令。</li>
+<li>在包含 <code>Dockerfile</code> 的目录下执行构建命令。</li>
+</ol>
+<p><strong>具体命令：</strong></p>
+<pre><code class="language-bash">docker build -t &lt;镜像名称&gt;:&lt;标签&gt; &lt;上下文路径&gt;
+</code></pre>
+<ul>
+<li><code>-t</code> (tag)：指定生成的镜像名称和标签（例如 <code>myapp:v1</code>）。</li>
+<li><code>&lt;上下文路径&gt;</code>：通常是当前目录 <code>.</code>，Docker 会将该目录下的所有文件发送给 Docker 守护进程作为构建上下文。</li>
+</ul>
+<p><strong>示例：</strong></p>
+<pre><code class="language-bash">docker build -t my-python-app:1.0 .
+</code></pre>
+<h3 id="15-docker-怎么用镜像运行一个容器如何设置在后台运行">15. Docker 怎么用镜像运行一个容器？如何设置在后台运行？</h3>
+<p><strong>基本命令：</strong></p>
+<pre><code class="language-bash">docker run [选项] &lt;镜像名称&gt; [命令]
+</code></pre>
+<p><strong>后台运行设置：</strong><br>
+使用 <code>-d</code> (detach) 参数让容器在后台运行，不占用当前终端。通常还会配合 <code>--name</code> 指定容器名，以及 <code>-p</code> 映射端口。</p>
+<p><strong>示例：</strong></p>
+<pre><code class="language-bash"># 以后台模式运行 nginx，命名为 my-nginx，将宿主机的 8080 端口映射到容器的 80 端口
+docker run -d --name my-nginx -p 8080:80 nginx:latest
+</code></pre>
+<ul>
+<li><code>-d</code>: Detached mode (后台运行)。</li>
+<li><code>--name</code>: 指定容器名称。</li>
+<li><code>-p host_port:container_port</code>: 端口映射。</li>
+</ul>
+<h3 id="16-docker-harbor-是怎么安装的有哪几种安装方式">16. Docker Harbor 是怎么安装的？有哪几种安装方式？</h3>
+<p>Harbor 是一个开源的企业级 Docker 镜像仓库。<br>
+<strong>主要安装方式：</strong></p>
+<ol>
+<li><strong>离线安装包安装 (最常用)</strong>：
+<ul>
+<li>从 GitHub 下载 <code>.tgz</code> 离线包。</li>
+<li>解压后修改 <code>harbor.yml</code> 配置文件（设置 hostname, https 证书路径，密码等）。</li>
+<li>运行 <code>./install.sh</code> 脚本。该脚本会调用 Docker Compose 启动所有组件（Core, Registry, Database, Redis, Nginx 等）。</li>
+</ul>
+</li>
+<li><strong>Helm Chart 安装 (K8s 环境推荐)</strong>：
+<ul>
+<li>在 Kubernetes 集群中，使用 Helm 添加 Harbor 仓库。</li>
+<li>自定义 <code>values.yaml</code> 配置。</li>
+<li>执行 <code>helm install</code> 部署到 K8s 集群中，利用 K8s 的存储和高可用特性。</li>
+</ul>
+</li>
+<li><strong>Docker Compose 手动编排</strong>：
+<ul>
+<li>不通过 install.sh，直接编写或修改 <code>docker-compose.yml</code> 文件来启动服务（适合深度定制或调试）。</li>
+</ul>
+</li>
+</ol>
+<h3 id="17-dockerfile-中都有哪些关键字各自的作用是什么">17. Dockerfile 中都有哪些关键字？各自的作用是什么？</h3>
+<ul>
+<li><strong>FROM</strong>: 指定基础镜像（必须是第一行，除了 ARG）。</li>
+<li><strong>LABEL</strong>: 为镜像添加元数据（作者、版本等）。</li>
+<li><strong>ENV</strong>: 设置环境变量，后续指令和运行时可用。</li>
+<li><strong>ARG</strong>: 定义构建时的变量（仅在 <code>docker build</code> 过程中有效，运行时不可见，除非转为 ENV）。</li>
+<li><strong>RUN</strong>: 执行命令并创建新的镜像层（用于安装软件、编译代码）。</li>
+<li><strong>COPY</strong>: 将宿主机文件复制到镜像中。</li>
+<li><strong>ADD</strong>: 类似 COPY，但支持自动解压压缩包和下载 URL（一般推荐用 COPY）。</li>
+<li><strong>WORKDIR</strong>: 设置工作目录，后续指令在此目录下执行。</li>
+<li><strong>EXPOSE</strong>: 声明容器运行时监听的端口（文档作用，不自动映射）。</li>
+<li><strong>VOLUME</strong>: 创建挂载点，用于持久化数据或共享数据。</li>
+<li><strong>ENTRYPOINT</strong>: 配置容器启动时执行的可执行程序（难以被覆盖）。</li>
+<li><strong>CMD</strong>: 提供容器启动时的默认参数（可被 <code>docker run</code> 后面的参数覆盖）。</li>
+<li><strong>USER</strong>: 指定运行后续指令和容器进程的用户。</li>
+<li><strong>HEALTHCHECK</strong>: 定义健康检查指令。</li>
+<li><strong>STOPSIGNAL</strong>: 设置停止容器时发送的系统信号。</li>
+<li><strong>ONBUILD</strong>: 当此镜像作为其他镜像的基础镜像时，触发执行的指令。</li>
+</ul>
+<h3 id="深度解析entrypoint-vs-cmd">🔍 深度解析：ENTRYPOINT vs CMD</h3>
+<h4 id="1-核心区别">1. 核心区别</h4>
+<ul>
+<li><strong><code>ENTRYPOINT</code></strong>: 定义容器启动时<strong>必须执行的主程序</strong>。它让容器表现得像一个可执行文件。</li>
+<li><strong><code>CMD</code></strong>: 提供主程序的<strong>默认参数</strong>。如果用户在 <code>docker run</code> 时提供了参数，这些参数会<strong>覆盖</strong> <code>CMD</code> 的内容，并作为参数传递给 <code>ENTRYPOINT</code>。</li>
+</ul>
+<hr>
+<h4 id="2-场景演示">2. 场景演示</h4>
+<h5 id="场景-a只使用-cmd-传统方式">场景 A：只使用 <code>CMD</code> (传统方式)</h5>
+<p>这种方式下，整个命令都可以被替换。</p>
+<pre><code class="language-dockerfile">FROM ubuntu:latest
+CMD [&quot;echo&quot;, &quot;Hello World&quot;]
+</code></pre>
+<ul>
+<li><code>docker run my-image</code> -&gt; 输出: <code>Hello World</code></li>
+<li><code>docker run my-image ls -l</code> -&gt; 输出: 执行 <code>ls -l</code> (完全覆盖了 <code>echo &quot;Hello World&quot;</code>)
+<ul>
+<li><em>缺点</em>：如果你想保留 <code>echo</code> 但修改内容，必须重写整个命令。</li>
+</ul>
+</li>
+</ul>
+<h5 id="场景-b只使用-entrypoint-强制模式">场景 B：只使用 <code>ENTRYPOINT</code> (强制模式)</h5>
+<p>这种方式下，主程序固定，用户只能传递参数，或者必须用 <code>--entrypoint</code> 强制覆盖。</p>
+<pre><code class="language-dockerfile">FROM ubuntu:latest
+ENTRYPOINT [&quot;echo&quot;, &quot;Hello&quot;]
+</code></pre>
+<ul>
+<li><code>docker run my-image</code> -&gt; 输出: <code>Hello</code> (无额外参数)</li>
+<li><code>docker run my-image World</code> -&gt; 输出: <code>Hello World</code> (<code>World</code> 被追加为参数)</li>
+<li><code>docker run my-image ls -l</code> -&gt; 输出: <code>Hello ls -l</code> (注意：它不会执行 ls，而是把 ls 当作 echo 的参数打印出来)
+<ul>
+<li><em>缺点</em>：灵活性稍差，如果想运行其他命令比较麻烦。</li>
+</ul>
+</li>
+</ul>
+<h5 id="场景-centrypoint-cmd-组合-最佳实践">场景 C：<code>ENTRYPOINT</code> + <code>CMD</code> 组合 (最佳实践 ⭐)</h5>
+<p>这是最常用的模式。<strong><code>ENTRYPOINT</code> 固定主程序，<code>CMD</code> 提供默认参数。</strong></p>
+<pre><code class="language-dockerfile">FROM ubuntu:latest
+# 主程序是 echo，默认参数是 &quot;Hello World&quot;
+ENTRYPOINT [&quot;echo&quot;]
+CMD [&quot;Hello World&quot;]
+</code></pre>
+<ul>
+<li><code>docker run my-image</code>
+<ul>
+<li>执行逻辑：<code>echo</code> + <code>Hello World</code></li>
+<li>输出: <code>Hello World</code></li>
+</ul>
+</li>
+<li><code>docker run my-image &quot;Goodbye&quot;</code>
+<ul>
+<li>执行逻辑：<code>echo</code> + <code>Goodbye</code> (CMD 被覆盖)</li>
+<li>输出: <code>Goodbye</code></li>
+</ul>
+</li>
+<li><code>docker run my-image &quot;A&quot; &quot;B&quot; &quot;C&quot;</code>
+<ul>
+<li>执行逻辑：<code>echo</code> + <code>A</code> + <code>B</code> + <code>C</code></li>
+<li>输出: <code>A B C</code></li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p><strong>💡 关键点</strong>：在这种组合下，<code>docker run</code> 后面跟的所有内容都会替换掉 <code>CMD</code> 的内容，并拼接到 <code>ENTRYPOINT</code> 后面。</p>
+</blockquote>
+<hr>
+<h4 id="3-实战案例nginx-镜像">3. 实战案例：Nginx 镜像</h4>
+<p>Nginx 官方镜像就是典型的使用了这种组合，允许用户轻松覆盖启动参数（如开启 debug 模式或加载不同配置），而不用重新指定 nginx 二进制文件的路径。</p>
+<pre><code class="language-dockerfile">FROM nginx:alpine
+
+# 固定主程序路径
+ENTRYPOINT [&quot;nginx&quot;, &quot;-g&quot;, &quot;daemon off;&quot;]
+
+# 默认不带额外参数，如果需要可以传入 -c 指定配置文件
+CMD [] 
+</code></pre>
+<ul>
+<li>正常启动：<code>docker run nginx</code> -&gt; 执行 <code>nginx -g daemon off;</code></li>
+<li>自定义配置：<code>docker run nginx -c /etc/nginx/my.conf</code> -&gt; 执行 <code>nginx -g daemon off; -c /etc/nginx/my.conf</code></li>
+</ul>
+<h4 id="格式重要提示">📝 格式重要提示</h4>
+<p>在使用 <code>ENTRYPOINT</code> 和 <code>CMD</code> 时，<strong>强烈推荐使用 Exec 格式（JSON 数组格式）</strong>，而不是 Shell 格式。</p>
+<ul>
+<li>✅ <strong>推荐 (Exec 格式)</strong>: <code>ENTRYPOINT [&quot;executable&quot;, &quot;param1&quot;]</code>
+<ul>
+<li>信号量（如 Ctrl+C）能正确传递给进程。</li>
+<li>参数拼接逻辑清晰。</li>
+</ul>
+</li>
+<li>❌ <strong>不推荐 (Shell 格式)</strong>: <code>ENTRYPOINT executable param1</code>
+<ul>
+<li>实际会以 <code>/bin/sh -c</code> 包裹执行，导致 PID 1 是 shell 而不是你的应用，可能引起信号处理问题（容器停不下来）。</li>
+</ul>
+</li>
+</ul>
+<h4 id="总结对照表">总结对照表</h4>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">特性</th>
+<th style="text-align:left">ENTRYPOINT</th>
+<th style="text-align:left">CMD</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>主要用途</strong></td>
+<td style="text-align:left">定义容器的主程序/入口点</td>
+<td style="text-align:left">提供默认参数或默认命令</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>被 <code>docker run</code> 覆盖</strong></td>
+<td style="text-align:left">不容易 (需用 <code>--entrypoint</code> 标志)</td>
+<td style="text-align:left">容易 (直接跟在镜像名后的参数即覆盖)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>组合使用效果</strong></td>
+<td style="text-align:left">接收 CMD 的内容作为参数</td>
+<td style="text-align:left">内容被替换并传给 ENTRYPOINT</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>典型场景</strong></td>
+<td style="text-align:left">Web 服务器 (nginx, apache), 数据库 (mysql)</td>
+<td style="text-align:left">设置默认启动参数，或作为纯命令行工具</td>
+</tr>
+</tbody>
+</table>
+<h3 id="18-如何使用-docker-快速运行相关服务例如-docker-安装-mysqlredis-等">18. 如何使用 Docker 快速运行相关服务？（例如 Docker 安装 MySQL/Redis 等）</h3>
+<p>利用官方镜像和预设的环境变量快速启动。</p>
+<p><strong>MySQL 示例：</strong></p>
+<pre><code class="language-bash">docker run -d \
+  --name mysql-db \
+  -e MYSQL_ROOT_PASSWORD=my-secret-pw \
+  -e MYSQL_DATABASE=testdb \
+  -p 3306:3306 \
+  -v mysql-data:/var/lib/mysql \
+  mysql:8.0
+</code></pre>
+<ul>
+<li><code>-e</code>: 传递环境变量配置 root 密码和初始数据库。</li>
+<li><code>-v</code>: 挂载卷持久化数据。</li>
+</ul>
+<p><strong>Redis 示例：</strong></p>
+<pre><code class="language-bash">docker run -d \
+  --name redis-cache \
+  -p 6379:6379 \
+  -v redis-data:/data \
+  redis:latest --appendonly yes
+</code></pre>
+<ul>
+<li><code>--appendonly yes</code>: 开启 AOF 持久化（作为 CMD 参数传入）。</li>
+</ul>
+<h3 id="19-使用过-docker-compose-吗比-docker-来讲有什么优势">19. 使用过 Docker Compose 吗？比 Docker 来讲，有什么优势？</h3>
+<p><strong>是的，广泛使用。</strong><br>
+<strong>优势：</strong></p>
+<ol>
+<li><strong>多容器编排</strong>：Docker 命令一次只能运行一个容器。Compose 可以通过一个 YAML 文件定义和管理<strong>多个</strong>相互关联的服务（如 Web + DB + Cache），一键启动/停止整个应用栈。</li>
+<li><strong>配置即代码</strong>：所有启动参数、网络、卷映射都写在 <code>docker-compose.yml</code> 中，便于版本控制和团队协作，避免冗长的命令行。</li>
+<li><strong>依赖管理</strong>：可以定义服务启动顺序（<code>depends_on</code>），确保数据库先于应用启动。</li>
+<li><strong>环境隔离</strong>：可以为开发、测试、生产定义不同的 Compose 文件（或 override 文件）。</li>
+<li><strong>简化网络</strong>：自动创建一个专属网络，服务间可以通过服务名直接互通，无需手动配置 link 或 IP。</li>
+</ol>
+<h3 id="20-会编写-docker-compose-的-yaml-文件吗如何编写">20. 会编写 Docker Compose 的 YAML 文件吗？如何编写？</h3>
+<p><strong>会。</strong> 文件名为 <code>docker-compose.yml</code> (或 <code>.yaml</code>)。<br>
+<strong>基本结构：</strong></p>
+<pre><code class="language-yaml">version: '3.8' # 版本号
+
+services: # 定义服务列表
+  web:
+    image: nginx:latest
+    ports:
+      - &quot;80:80&quot;
+    volumes:
+      - ./html:/usr/share/nginx/html
+    depends_on:
+      - db
+    networks:
+      - app-net
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - app-net
+
+volumes: # 定义外部卷
+  db-data:
+
+networks: # 定义网络
+  app-net:
+    driver: bridge
+</code></pre>
+<p><strong>关键点：</strong> 缩进必须严格（通常 2 空格），层级关系为 <code>services</code> -&gt; <code>service_name</code> -&gt; <code>配置项</code>。</p>
+<h3 id="21-docker-有几种网络模式分别是哪些各自作用是什么">21. Docker 有几种网络模式？分别是哪些？各自作用是什么？</h3>
+<p>Docker 主要有 4 种网络驱动模式：</p>
+<ol>
+<li><strong>Bridge (桥接模式)</strong>：<strong>默认模式</strong>。
+<ul>
+<li><strong>作用</strong>：创建一个虚拟网桥（docker0），容器连接到网桥上。容器拥有独立的 IP，通过 NAT 与宿主机通信。容器间可通过 IP 通信，默认无法通过容器名解析（除非在自定义 bridge 网络或使用了 link）。</li>
+<li><strong>场景</strong>：单机多容器通信，需要端口映射到宿主机。</li>
+</ul>
+</li>
+<li><strong>Host (主机模式)</strong>：
+<ul>
+<li><strong>作用</strong>：容器<strong>不使用</strong>独立的 Network Namespace，直接使用宿主机的网络栈。容器没有独立 IP，端口直接占用宿主机端口。</li>
+<li><strong>场景</strong>：对网络性能要求极高，或需要绑定特定宿主机端口的场景（如监控 agent）。</li>
+</ul>
+</li>
+<li><strong>None (无网络模式)</strong>：
+<ul>
+<li><strong>作用</strong>：容器有自己的 Network Namespace，但不进行任何网络配置（只有 lo 回环接口）。</li>
+<li><strong>场景</strong>：高度安全的封闭环境，或完全自定义网络配置。</li>
+</ul>
+</li>
+<li><strong>Container (共享网络模式)</strong>：
+<ul>
+<li><strong>作用</strong>：新创建的容器不创建自己的 Network Namespace，而是使用一个<strong>已存在容器</strong>的网络（IP、端口等完全共享）。</li>
+<li><strong>场景</strong>：Kubernetes 中的 Pod 就是基于此概念（Sidecar 模式），或者某些特殊的调试场景。</li>
+</ul>
+</li>
+</ol>
+<p><em>(注：还有 Overlay 网络用于 Swarm 集群跨主机通信，Macvlan 用于让容器拥有物理网络 IP)</em></p>
+<h3 id="22-你们用的-k8s-的版本是什么">22. 你们用的 K8s 的版本是什么？</h3>
+<p><em>(作为 AI，我没有实体的“公司”或正在运行的集群。但在实际面试或生产环境中，这是一个考察你对版本迭代关注度的问题。)</em></p>
+<p><strong>参考回答策略：</strong><br>
+“在生产环境中，我们通常遵循‘落后最新稳定版 1-2 个小版本’的策略，以确保稳定性并获得安全补丁。目前主流生产环境多使用 <strong>v1.26 到 v1.29</strong> 之间的版本。<br>
+具体选择取决于：</p>
+<ol>
+<li><strong>云厂商支持</strong>：如果使用托管 K8s (EKS, ACK, GKE)，通常跟随云厂商的支持周期。</li>
+<li><strong>特性需求</strong>：是否需要特定的新特性（如 Sidecar 容器原生支持在 1.29+ 成熟）。</li>
+<li><strong>生态兼容性</strong>：确保使用的 Helm Charts、CSI 插件、CNI 插件与该版本兼容。<br>
+如果是模拟回答，可以说：‘我们目前集群主要运行在 <strong>v1.28</strong> 版本，计划在下个季度升级到 v1.29。’”</li>
+</ol>
+<h3 id="23-dockerfile-中-run-cmd-entrypoint-的区别">23. Dockerfile 中 RUN、CMD、ENTRYPOINT 的区别？</h3>
+<ul>
+<li><strong>RUN</strong>:
+<ul>
+<li><strong>时机</strong>：<strong>镜像构建时</strong>执行。</li>
+<li><strong>作用</strong>：执行命令并提交结果到新的镜像层（如安装软件 <code>apt-get install</code>）。</li>
+<li><strong>结果</strong>：不产生容器进程，只改变文件系统。</li>
+</ul>
+</li>
+<li><strong>CMD</strong>:
+<ul>
+<li><strong>时机</strong>：<strong>容器启动时</strong>执行。</li>
+<li><strong>作用</strong>：提供默认的启动命令或参数。</li>
+<li><strong>覆盖性</strong>：<strong>可以被覆盖</strong>。如果用户在 <code>docker run</code> 后面加了命令，CMD 的内容会被完全替换。</li>
+<li><strong>格式</strong>：推荐使用 Exec 格式 <code>[&quot;cmd&quot;, &quot;param&quot;]</code>，若用 Shell 格式 <code>/bin/sh -c</code> 会导致信号传递问题。</li>
+</ul>
+</li>
+<li><strong>ENTRYPOINT</strong>:
+<ul>
+<li><strong>时机</strong>：<strong>容器启动时</strong>执行。</li>
+<li><strong>作用</strong>：配置容器的主执行程序（Executable）。</li>
+<li><strong>覆盖性</strong>：<strong>很难被覆盖</strong>。<code>docker run</code> 后面的参数会作为<strong>参数</strong>追加给 ENTRYPOINT，而不是替换它（除非使用 <code>--entrypoint</code> 强制覆盖）。</li>
+<li><strong>最佳实践</strong>：通常组合使用，<code>ENTRYPOINT</code> 指定主程序（如 <code>python</code> 或 <code>java</code>），<code>CMD</code> 指定默认参数（如 <code>app.py</code> 或 <code>-jar app.jar</code>）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="24-dockerfile-中-add-和-copy-的区别">24. Dockerfile 中 ADD 和 COPY 的区别？</h3>
+<ul>
+<li><strong>COPY</strong>:
+<ul>
+<li><strong>功能</strong>：单纯地将本地文件/目录复制到镜像中。</li>
+<li><strong>来源</strong>：仅限构建上下文（本地）的文件。</li>
+<li><strong>推荐度</strong>：<strong>官方推荐</strong>。行为透明，易于维护。</li>
+</ul>
+</li>
+<li><strong>ADD</strong>:
+<ul>
+<li><strong>功能</strong>：除了复制文件外，还有两个额外特性：
+<ol>
+<li>如果源文件是压缩包（tar, gzip 等），会自动<strong>解压</strong>到目标路径。</li>
+<li>支持通过 <strong>URL</strong> 下载远程文件到镜像中。</li>
+</ol>
+</li>
+<li><strong>缺点</strong>：隐式行为（自动解压）可能导致意外；下载大文件会增大镜像层且无法利用构建缓存的高效机制。</li>
+<li><strong>建议</strong>：除非明确需要自动解压或下载 URL，否则<strong>始终使用 COPY</strong>。如果需要解压，建议在 RUN 指令中显式执行 <code>tar -xf</code>。</li>
+</ul>
+</li>
+</ul>
+<h3 id="25-docker-中的镜像分层layering是怎么样的">25. Docker 中的镜像分层（Layering）是怎么样的？</h3>
+<ul>
+<li><strong>原理</strong>：Docker 镜像是由一系列<strong>只读层 (Read-only Layers)</strong> 叠加而成的。</li>
+<li><strong>构建过程</strong>：Dockerfile 中的每一条指令（<code>FROM</code>, <code>RUN</code>, <code>COPY</code>, <code>ENV</code> 等，除 <code>MAINTAINER</code> 外）都会创建一个新的层。
+<ul>
+<li>每一层只包含该指令相对于上一层的<strong>变更内容</strong>（新增、修改、删除的文件）。</li>
+<li>层是<strong>缓存</strong>的单位。如果某一层及其之前的层没有变化，构建时会直接使用缓存，加速构建。</li>
+</ul>
+</li>
+<li><strong>联合文件系统 (UnionFS)</strong>：启动容器时，Docker 会在所有只读镜像层之上，挂载一个<strong>可写层 (Container Layer / Read-Write Layer)</strong>。
+<ul>
+<li>容器的所有写入操作（新建文件、修改文件）都发生在这个顶层。</li>
+<li>读取文件时，采用“向上查找”策略，如果在可写层没找到，就去下面的镜像层找。</li>
+<li>删除文件时，实际上是在可写层创建一个“白out”文件（标记删除），底层文件依然存在。</li>
+</ul>
+</li>
+<li><strong>优势</strong>：
+<ul>
+<li><strong>共享存储</strong>：多个容器可以共享相同的底层镜像层，节省磁盘空间。</li>
+<li><strong>快速分发</strong>：推送/拉取镜像时，只需传输变化的层。</li>
+<li><strong>版本控制</strong>：每一层都有唯一的 ID，便于追踪变更。</li>
+</ul>
+</li>
+</ul>
+<h2 id="3-pod-和服务-pod-service">3. Pod 和服务 (Pod &amp; Service)</h2>
+<h3 id="26-k8s-中-pod-是如何实现代理和负载均衡的">26. K8s 中 Pod 是如何实现代理和负载均衡的？</h3>
+<p>K8s 本身不直接在 Pod 内部做负载均衡，而是通过 <strong>Service</strong> 资源配合节点上的 <strong>kube-proxy</strong> 组件来实现。</p>
+<ul>
+<li><strong>机制</strong>：
+<ol>
+<li><strong>Service 定义</strong>：用户创建一个 Service，定义一组 Pod 的选择器（Selector）和虚拟 IP（ClusterIP）。</li>
+<li><strong>Endpoints</strong>：K8s 控制平面监控到符合 Selector 的 Pod，将其 IP 列表更新到 Endpoints 对象中。</li>
+<li><strong>kube-proxy 监听</strong>：每个节点上的 <code>kube-proxy</code> 监听到 Service 和 Endpoints 的变化。</li>
+<li><strong>规则下发</strong>：<code>kube-proxy</code> 根据配置的模式（iptables 或 IPVS），在节点内核中生成相应的网络规则。
+<ul>
+<li><strong>iptables 模式</strong>：生成一系列 NAT 规则。当流量访问 ClusterIP 时，内核 netfilter 模块根据概率随机将流量转发到后端某个 Pod IP。</li>
+<li><strong>IPVS 模式</strong>：调用内核 IPVS 模块，创建虚拟服务器（VIP）和真实服务器（Pod IP），利用内核的高效负载均衡算法（轮询、最少连接等）转发流量。</li>
+</ul>
+</li>
+</ol>
+</li>
+<li><strong>结果</strong>：客户端访问 Service 的 VIP 时，流量被自动负载均衡到后端的任意一个健康 Pod 上。</li>
+</ul>
+<h3 id="27-k8s-中创建-pod-的过程或流程是怎么样的">27. K8s 中创建 Pod 的过程或流程是怎么样的？</h3>
+<p>这是一个典型的异步控制循环过程：</p>
+<ol>
+<li><strong>提交请求</strong>：用户通过 <code>kubectl</code> 或 API 调用向 <strong>API Server</strong> 发送创建 Pod 的请求。</li>
+<li><strong>验证与存储</strong>：API Server 进行认证、授权和准入控制，验证通过后，将 Pod 信息写入 <strong>Etcd</strong>。</li>
+<li><strong>调度决策</strong>：<strong>kube-scheduler</strong> 监听到有新的 Pod 处于 <code>Pending</code> 状态且未绑定节点，根据资源需求、亲和性、污点等策略，选择一个最合适的 <strong>Node</strong>，并将绑定结果（Binding）通过 API Server 更新回 Etcd。</li>
+<li><strong>节点执行</strong>：目标节点上的 <strong>kubelet</strong> 监听到分配给自己的 Pod 任务：
+<ul>
+<li>调用容器运行时（如 containerd）拉取镜像。</li>
+<li>创建容器沙箱（Pause 容器）和业务容器。</li>
+<li>挂载卷、配置网络（调用 CNI 插件）。</li>
+<li>启动容器进程。</li>
+</ul>
+</li>
+<li><strong>状态上报</strong>：kubelet 将 Pod 的运行状态（Running, Failed 等）定期上报给 API Server，并更新到 Etcd。</li>
+<li><strong>完成</strong>：用户查询时看到 Pod 状态变为 <code>Running</code>。</li>
+</ol>
+<pre class="mermaid">flowchart TD
+    %% --- 节点定义 ---
+    Start([用户发起创建])
+    APIServer[API Server]
+    Validation{验证通过?}
+    Error[返回错误]
+    EtCD[(Etcd)]
+    Scheduler[kube-scheduler]
+    NodeSelect[选定 Node]
+    
+    Kubelet[kubelet]
+    CRI["容器运行时 (containerd/CRI-O)"]
+    ImagePull[下载镜像]
+    PauseContainer["Pause 容器 (持有 Network/PID Namespace)"]
+    CNI["CNI 插件 (分配 IP/路由)"]
+    VolumeMount[挂载 Volumes]
+    
+    CheckHook{有 PostStart?}
+    RunPostStart["执行 PostStart (异步/不阻塞)"]
+    StartApp[13. 启动业务容器]
+    StatusCheck{运行正常?}
+    Running[状态: Running]
+    Restart[重启容器]
+    
+    StopTrigger[触发停止]
+    CheckPreStop{有 PreStop?}
+    RunPreStop["执行 PreStop (同步/阻塞)"]
+    StopContainer[停止容器]
+    
+    End([Pod 就绪])
+
+    %% --- 样式定义 ---
+    style Start fill:#e6f3ff,stroke:#333,stroke-width:2px
+    style APIServer fill:#fff2cc,stroke:#d6b656,stroke-width:2px
+    style Scheduler fill:#d5e8d4,stroke:#82b366,stroke-width:2px
+    style Kubelet fill:#f8cecc,stroke:#b85450,stroke-width:2px
+    style CRI fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px
+    style PauseContainer fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px
+    style RunPostStart fill:#ffe6cc,stroke:#d79b00,stroke-width:2px,stroke-dasharray: 5 5
+    style CheckPreStop fill:#ffe6cc,stroke:#d79b00,stroke-width:2px,stroke-dasharray: 5 5
+    style RunPreStop fill:#ffe6cc,stroke:#d79b00,stroke-width:2px,stroke-dasharray: 5 5
+    style End fill:#e6f3ff,stroke:#333,stroke-width:2px
+    
+    style Validation fill:#ffffff,stroke:#333
+    style CheckHook fill:#ffffff,stroke:#333
+    style StatusCheck fill:#ffffff,stroke:#333
+
+    %% --- 流程连线 ---
+    Start -->|1. kubectl create pod| APIServer
+    APIServer -->|2. 认证/授权| Validation
+    Validation -- 否 --> Error
+    Validation -- 是 --> EtCD
+    EtCD -->|3. 写入 Pod Pending| APIServer
+    
+    APIServer -.->|监听 Pending| Scheduler
+    Scheduler -->|4. 调度算法| NodeSelect
+    NodeSelect -->|5. 提交 Binding| APIServer
+    APIServer -->|更新 Etcd| EtCD
+    
+    APIServer -.->|6. 监听已分配| Kubelet
+    
+    Kubelet -->|7. 调用 CRI| CRI
+    CRI -->|8. 拉取镜像| ImagePull
+    ImagePull -->|9. 创建 Pause 容器| PauseContainer
+    PauseContainer -->|10. 配置网络| CNI
+    CNI -->|11. 挂载卷| VolumeMount
+    VolumeMount -->|12. 检查| CheckHook
+    
+    CheckHook -- 是 --> RunPostStart
+    CheckHook -- 否 --> StartApp
+    RunPostStart -.-> StartApp
+    
+    StartApp -->|14. 监控| StatusCheck
+    StatusCheck -- 是 --> Running
+    StatusCheck -- 否 --> Restart
+    Restart --> StartApp
+    
+    StartApp -.->|收到终止信号| StopTrigger
+    StopTrigger --> CheckPreStop
+    CheckPreStop -- 是 --> RunPreStop
+    CheckPreStop -- 否 --> StopContainer
+    RunPreStop --> StopContainer
+    
+    Running -->|16. 上报状态| APIServer
+    Running -->|17. 用户查询| End
+</pre><h3 id="28-k8s-中如何批量删除-pod">28. K8s 中如何批量删除 Pod？</h3>
+<p>有多种方式，取决于筛选条件：</p>
+<ol>
+<li><strong>按标签删除</strong>（最常用）：<pre><code class="language-bash">kubectl delete pod -l app=my-app -n default
+</code></pre>
+</li>
+<li><strong>按名称匹配删除</strong>：<pre><code class="language-bash">kubectl delete pod $(kubectl get pod -n default | grep &quot;my-prefix&quot; | awk '{print $1}')
+</code></pre>
+</li>
+<li><strong>删除命名空间下所有 Pod</strong>（慎用）：<pre><code class="language-bash">kubectl delete pod --all -n default
+</code></pre>
+</li>
+<li><strong>强制删除（处理 Terminating 状态卡住的 Pod）</strong>：<pre><code class="language-bash">kubectl delete pod &lt;pod-name&gt; --grace-period=0 --force
+</code></pre>
+</li>
+</ol>
+<h3 id="29-kubeadm-初始化的-k8s-集群token-过期后集群中节点无法加入怎么办">29. Kubeadm 初始化的 K8s 集群，Token 过期后，集群中节点无法加入怎么办？</h3>
+<p>Kubeadm 生成的 bootstrap token 默认有效期为 24 小时。过期后需重新生成。<br>
+<strong>解决步骤（在 Master 节点执行）：</strong></p>
+<ol>
+<li><strong>生成新的 Token</strong>：<pre><code class="language-bash">kubeadm token create
+</code></pre>
+</li>
+<li><strong>获取 CA 证书的 Hash 值</strong>（用于安全校验）：<pre><code class="language-bash">openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2&gt;/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+</code></pre>
+<em>(注：较新版本的 kubeadm 可以直接在 token create 命令中输出完整命令)</em></li>
+<li><strong>使用完整命令拼接</strong>：<br>
+或者直接运行以下命令让 kubeadm 自动打印完整的 join 命令：<pre><code class="language-bash">kubeadm token create --print-join-command
+</code></pre>
+</li>
+<li><strong>在 Worker 节点执行</strong>：复制输出的完整 <code>kubeadm join ...</code> 命令并在 Worker 节点运行即可。</li>
+</ol>
+<h3 id="30-k8s-运维过程中遇到过哪些问题如何解决的开放性问题">30. K8s 运维过程中遇到过哪些问题，如何解决的？（开放性问题）</h3>
+<p><em>(面试参考回答，列举常见痛点，涵盖 Pod 全生命周期状态)</em></p>
+<ul>
+<li>
+<p><strong>问题 1：Pod 一直处于 <code>CrashLoopBackOff</code></strong></p>
+<ul>
+<li><strong>排查</strong>：<code>kubectl logs</code> 查看应用日志，发现配置文件缺失、代码 Panic 或数据库连接失败；<code>kubectl describe pod</code> 查看事件，发现 Liveness 探针配置过严（启动慢于探测时间）。</li>
+<li><strong>解决</strong>：修正 ConfigMap/Secret 配置，修复代码逻辑，或调整探针的 <code>initialDelaySeconds</code>（初始延迟）和 <code>failureThreshold</code>（失败阈值）。</li>
+</ul>
+</li>
+<li>
+<p><strong>问题 2：节点 <code>NotReady</code></strong></p>
+<ul>
+<li><strong>排查</strong>：登录节点，发现 <code>kubelet</code> 服务停止或 CNI 插件（如 Calico/Flannel）Pod 崩溃。查看 <code>/var/log/messages</code> 或 <code>journalctl -u kubelet</code>，常见原因为磁盘空间满（触发 <code>DiskPressure</code>）、证书过期或网络插件异常。</li>
+<li><strong>解决</strong>：清理无用镜像/日志释放空间并重启 kubelet；若是证书过期，使用 <code>kubeadm renew certs</code> 更新并重启相关组件；若是 CNI 问题，重启 CNI DaemonSet。</li>
+</ul>
+</li>
+<li>
+<p><strong>问题 3：Service 访问不通</strong></p>
+<ul>
+<li><strong>排查</strong>：检查 <code>Endpoints</code> 是否为空（通常因 Deployment 的 Label 与 Service 的 Selector 不匹配）；检查 <code>kube-proxy</code> 日志；测试节点内部 <code>iptables</code>/<code>IPVS</code> 规则是否丢失。</li>
+<li><strong>解决</strong>：修正 Deployment 的 Label 确保匹配，重启 <code>kube-proxy</code> DaemonSet 刷新规则，确认 Pod 已通过 Readiness 探针（未通过不会加入 Endpoint）。</li>
+</ul>
+</li>
+<li>
+<p><strong>问题 4：Pod 被 <code>OOMKilled</code></strong></p>
+<ul>
+<li><strong>排查</strong>：<code>kubectl get pod</code> 看到状态为 <code>OOMKilled</code> 或重启原因包含 OOM，说明容器内存使用超过 <code>limits.memory</code> 限制被内核杀死。</li>
+<li><strong>解决</strong>：短期调大 YAML 中 <code>resources.limits.memory</code>；长期需优化代码减少内存泄漏，或调整 JVM/Go 的 GC 参数以适配容器限制。</li>
+</ul>
+</li>
+<li>
+<p><strong>问题 5：Pod 一直处于 <code>Pending</code></strong></p>
+<ul>
+<li><strong>排查</strong>：<code>kubectl describe pod</code> 查看 Events。常见原因：集群资源不足（<code>Insufficient cpu/memory</code>）、节点污点（<code>Taints</code>）且 Pod 无容忍度、亲和性（<code>Affinity</code>）配置无匹配节点、或 PVC 存储卷未绑定。</li>
+<li><strong>解决</strong>：扩容节点或调小 Pod <code>requests</code>；添加 <code>tolerations</code> 容忍污点；修正亲和性配置；检查 StorageClass 及底层存储状态。</li>
+</ul>
+</li>
+<li>
+<p><strong>问题 6：Pod 处于 <code>ImagePullBackOff</code> / <code>ErrImagePull</code></strong></p>
+<ul>
+<li><strong>排查</strong>：<code>kubectl describe pod</code> 查看具体错误。<code>404</code> 表示镜像名/Tag 错误；<code>401/403</code> 表示私有仓库认证失败（缺 <code>imagePullSecrets</code>）；<code>Timeout</code> 表示网络不通或 DNS 解析失败。</li>
+<li><strong>解决</strong>：修正镜像地址；创建并绑定 <code>imagePullSecrets</code>；配置节点网络代理或镜像加速器；检查节点 DNS 配置。</li>
+</ul>
+</li>
+<li>
+<p><strong>问题 7：Pod 处于 <code>Evicted</code></strong></p>
+<ul>
+<li><strong>排查</strong>：<code>kubectl describe pod</code> 显示节点资源不足（<code>The node was low on resource...</code>）。通常是节点磁盘 ephemeral-storage 满（日志未轮转）或内存压力过大。</li>
+<li><strong>解决</strong>：清理节点无用镜像和容器日志；配置日志轮转（Log Rotation）；设置合理的 <code>ephemeral-storage</code> 请求/限制；非核心业务可部署 PDB (Pod Disruption Budget) 防止被误驱逐。</li>
+</ul>
+</li>
+<li>
+<p><strong>问题 8：Pod 卡在 <code>ContainerCreating</code></strong></p>
+<ul>
+<li><strong>排查</strong>：<code>kubectl describe pod</code> 查看 Events。常见报错：<code>MountVolume.SetUp failed</code>（ConfigMap/Secret 不存在或 PVC 挂载超时）、<code>Network plugin not ready</code>（CNI 分配 IP 失败）。</li>
+<li><strong>解决</strong>：补全缺失的配置对象；修复存储后端（如 NFS 宕机）；重启 CNI 插件或检查节点网络配置。</li>
+</ul>
+</li>
+<li>
+<p><strong>问题 9：Pod 显示 <code>Running</code> 但频繁重启（隐蔽故障）</strong></p>
+<ul>
+<li><strong>排查</strong>：观察 <code>RESTARTS</code> 计数持续增加。使用 <code>kubectl logs &lt;pod&gt; --previous</code> 查看上一次崩溃前的日志（关键步骤），常发现应用死锁或被 Liveness 探针误杀。</li>
+<li><strong>解决</strong>：根据历史日志修复应用 Bug；优化探针逻辑（区分“启动中”和“假死”），避免过于激进的 restart 策略。</li>
+</ul>
+</li>
+</ul>
+<h3 id="31-执行-kubectl-get-node-命令后看不到某些节点的原因">31. 执行 <code>kubectl get node</code> 命令后看不到某些节点的原因？</h3>
+<ol>
+<li><strong>命名空间误解</strong>：Node 是集群级资源，不属于任何 Namespace，不需要加 <code>-n</code>，但如果用了错误的 context 可能连错集群。</li>
+<li><strong>节点未加入集群</strong>：Worker 节点从未成功执行 <code>kubeadm join</code>，或者 join 后网络不通导致心跳丢失。</li>
+<li><strong>标签过滤</strong>：如果不小心使用了 <code>kubectl get node -l ...</code> 且标签不匹配。</li>
+<li><strong>权限不足</strong>：当前使用的 ServiceAccount 或 User 没有 <code>list nodes</code> 的 RBAC 权限。</li>
+<li><strong>节点被删除</strong>：节点已被管理员手动删除或自动伸缩组缩容。</li>
+<li><strong>显示问题</strong>：节点存在但状态极差，尝试加 <code>-o wide</code> 查看详细信息。</li>
+</ol>
+<h3 id="32-执行-kubectl-get-cs-查看集群状态不正常显示-unhealthy-的原因">32. 执行 <code>kubectl get cs</code> 查看集群状态不正常，显示 Unhealthy 的原因？</h3>
+<ul>
+<li><strong>背景</strong>：<code>cs</code> (ComponentStatus) 是旧版 API，依赖 kube-controller-manager 和 kube-scheduler 向 API Server 汇报自身状态。</li>
+<li><strong>常见原因</strong>：
+<ol>
+<li><strong>版本废弃</strong>：在 K8s <strong>v1.22+</strong> 版本中，ComponentStatus API 已被<strong>弃用 (Deprecated)</strong> 并移除，不再可靠。现代集群不应依赖此命令判断健康度。</li>
+<li><strong>组件配置错误</strong>：在旧版本中，如果 scheduler 或 controller-manager 启动参数中 <code>--port=0</code>（禁用了不安全端口）或未正确配置向 API Server 汇报的地址，会导致显示 Unhealthy。</li>
+<li><strong>网络隔离</strong>：API Server 无法连接到 scheduler/cm 的状态端口。</li>
+</ol>
+</li>
+<li><strong>正确做法</strong>：直接检查组件 Pod 的状态 (<code>kubectl get pods -n kube-system</code>) 或查看系统日志，而不是依赖 <code>get cs</code>。</li>
+</ul>
+<h3 id="33-kubectl-命令中-create-和-apply-创建资源的区别">33. Kubectl 命令中 <code>create</code> 和 <code>apply</code> 创建资源的区别？</h3>
+<ul>
+<li><strong><code>kubectl create</code></strong>:
+<ul>
+<li><strong>命令式</strong>：意图是“创建这个资源”。</li>
+<li><strong>行为</strong>：如果资源已存在，会报错 <code>AlreadyExists</code>。不支持更新现有资源。</li>
+<li><strong>场景</strong>：脚本初始化、一次性创建、确保资源不存在时创建。</li>
+</ul>
+</li>
+<li><strong><code>kubectl apply</code></strong>:
+<ul>
+<li><strong>声明式</strong>：意图是“确保集群状态与 YAML 文件一致”。</li>
+<li><strong>行为</strong>：如果资源不存在则创建；如果已存在，则计算差异并进行<strong>补丁更新 (Patch)</strong>。支持记录最后应用的配置注解 (<code>last-applied-configuration</code>)。</li>
+<li><strong>场景</strong>：CI/CD 流水线、日常运维、GitOps，推荐作为标准操作方式。</li>
+</ul>
+</li>
+</ul>
+<h3 id="34-pod-资源共享机制如何实现即如何实现-pod-中两个容器共享数据">34. Pod 资源共享机制如何实现？即：如何实现 Pod 中两个容器共享数据？</h3>
+<p>Pod 的核心设计就是共享上下文。</p>
+<ol>
+<li><strong>共享网络</strong>：
+<ul>
+<li>Pod 内所有容器共享同一个 <strong>Network Namespace</strong>。</li>
+<li>它们拥有相同的 IP 地址、端口空间。</li>
+<li>容器间可以通过 <code>localhost</code> + 端口号直接通信。</li>
+<li>通过 Pause 容器（Infra Container）持有网络栈，业务容器加入该 Namespace。</li>
+</ul>
+</li>
+<li><strong>共享存储</strong>：
+<ul>
+<li>通过定义 <strong>Volume</strong>（如 <code>emptyDir</code>, <code>hostPath</code>, <code>persistentVolumeClaim</code>）。</li>
+<li>在 Pod  spec 的 <code>volumes</code> 字段定义卷。</li>
+<li>在不同容器的 <code>volumeMounts</code> 字段中挂载同一个卷名到各自的路径。</li>
+<li>这样多个容器可以读写同一份文件系统数据。</li>
+</ul>
+</li>
+<li><strong>共享 IPC/PID</strong> (可选)：
+<ul>
+<li>通过设置 <code>shareProcessNamespace: true</code>，容器间可以看到彼此的进程 ID，甚至进行信号通信。</li>
+</ul>
+</li>
+</ol>
+<h3 id="35-容器之间是通过什么进行隔离的">35. 容器之间是通过什么进行隔离的？</h3>
+<p>主要依赖 Linux 内核的两大特性：</p>
+<ol>
+<li><strong>Namespaces (命名空间)</strong>：实现<strong>资源视图隔离</strong>。
+<ul>
+<li>让进程以为自己是系统中唯一的进程，拥有独立的网络、主机名、用户 ID、文件系统挂载点等。</li>
+<li>类型：PID, Net, IPC, Mnt, UTS, User。</li>
+</ul>
+</li>
+<li><strong>Cgroups (Control Groups)</strong>：实现<strong>资源用量限制</strong>。
+<ul>
+<li>限制、记录和隔离进程组所使用的物理资源（CPU 时间片、内存上限、IO 带宽等）。</li>
+<li>防止单个容器耗尽宿主机资源。<br>
+<em>(辅助技术：Capabilities 能力集限制，Seccomp 系统调用过滤，SELinux/AppArmor 安全模块)</em></li>
+</ul>
+</li>
+</ol>
+<h3 id="36-pod-常用的状态有哪些">36. Pod 常用的状态有哪些？</h3>
+<ul>
+<li><strong>Pending</strong>：API Server 已接受请求，但 Pod 尚未调度成功，或镜像正在下载中。</li>
+<li><strong>Running</strong>：Pod 已绑定到节点，所有容器已创建，至少有一个容器正在运行或即将启动。</li>
+<li><strong>Succeeded</strong>：所有容器都成功终止（退出码 0），且不会重启（常用于 Job）。</li>
+<li><strong>Failed</strong>：所有容器都已终止，且至少有一个容器是非正常退出（退出码非 0）。</li>
+<li><strong>Unknown</strong>：由于通信问题（如节点失联），无法获取 Pod 状态。</li>
+<li><em>(常见中间状态)</em> <strong>ContainerCreating</strong>, <strong>Terminating</strong>, <strong>CrashLoopBackOff</strong> (重启等待中), <strong>ErrImagePull</strong>。</li>
+</ul>
+<h3 id="37-节点选择器node-selector都有什么各自的区别是什么">37. 节点选择器（Node Selector）都有什么？各自的区别是什么？</h3>
+<p>主要有三种机制，灵活度递增：</p>
+<ol>
+<li><strong>nodeSelector</strong>：
+<ul>
+<li><strong>形式</strong>：简单的键值对 (<code>key: value</code>)。</li>
+<li><strong>逻辑</strong>：必须匹配所有标签（AND 关系）。</li>
+<li><strong>缺点</strong>：功能单一，无法表达复杂逻辑（如 OR, NOT）。</li>
+</ul>
+</li>
+<li><strong>Node Affinity (节点亲和性)</strong>：
+<ul>
+<li><strong>形式</strong>：在 <code>affinity</code> 字段中定义，支持表达式。</li>
+<li><strong>类型</strong>：
+<ul>
+<li><code>requiredDuringSchedulingIgnoredDuringExecution</code>：硬约束，必须满足，否则不调度。</li>
+<li><code>preferredDuringSchedulingIgnoredDuringExecution</code>：软约束，尽量满足，打分制。</li>
+</ul>
+</li>
+<li><strong>优势</strong>：支持 <code>In</code>, <code>NotIn</code>, <code>Exists</code>, <code>Gt</code>, <code>Lt</code> 等操作符，可组合逻辑。</li>
+</ul>
+</li>
+<li><strong>Taints and Tolerations (污点和容忍)</strong>：
+<ul>
+<li><strong>区别</strong>：前两者是 Pod“主动选择”节点；这是节点“拒绝”Pod，除非 Pod 有“容忍度”。用于将特定 Pod 独占到特定节点，或阻止普通 Pod 调度到特殊节点（如 Master）。</li>
+</ul>
+</li>
+</ol>
+<h3 id="38-污点taint和容忍度toleration是什么两者是如何配合使用的">38. 污点（Taint）和容忍度（Toleration）是什么？两者是如何配合使用的？</h3>
+<ul>
+<li><strong>Taint (污点)</strong>：打在 <strong>Node</strong> 上。表示“别惹我”，默认排斥所有不带相应容忍度的 Pod。
+<ul>
+<li>格式：<code>Key=Value:Effect</code></li>
+<li>Effect 类型：
+<ul>
+<li><code>NoSchedule</code>：新 Pod 不能调度上来（已有的不管）。</li>
+<li><code>PreferNoSchedule</code>：尽量不调度（软限制）。</li>
+<li><code>NoExecute</code>：新 Pod 不能调度，且<strong>已运行的不匹配 Pod 会被驱逐</strong>。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>Toleration (容忍度)</strong>：写在 <strong>Pod</strong> Spec 中。表示“我能忍受这个污点”。</li>
+<li><strong>配合流程</strong>：
+<ol>
+<li>管理员给 Master 节点打上污点：<code>kubectl taint nodes master node-role.kubernetes.io/master:NoSchedule</code>。</li>
+<li>普通 Pod 没有容忍度 -&gt; <strong>调度失败</strong>。</li>
+<li>系统组件 Pod（如 CNI, kube-proxy）在 Spec 中配置了 toleration 匹配该 key/effect -&gt; <strong>允许调度到 Master</strong>。</li>
+</ol>
+</li>
+</ul>
+<h3 id="39-service-的-4-种类型">39. Service 的 4 种类型？</h3>
+<ol>
+<li><strong>ClusterIP</strong>（默认）：仅在集群内部暴露一个虚拟 IP。用于内部微服务互访。</li>
+<li><strong>NodePort</strong>：在 ClusterIP 基础上，在每个节点的指定端口（30000-32767）暴露服务。外部可通过 <code>NodeIP:NodePort</code> 访问。</li>
+<li><strong>LoadBalancer</strong>：在 NodePort 基础上，请求云厂商创建一个外部负载均衡器（ELB/SLB），将流量转发到 NodePort。用于公有云环境对外暴露。</li>
+<li><strong>ExternalName</strong>：不涉及代理。将服务映射到 DNS 名称（如 <code>my.db.example.com</code>）。Pod 访问该 Service 时，DNS 解析直接返回外部域名。用于访问集群外部的数据库或服务。</li>
+</ol>
+<h3 id="40-service-的两种代理模式iptablesipvs">40. Service 的两种代理模式（iptables/IPVS）？</h3>
+<p>由 <code>kube-proxy</code> 实现：</p>
+<ol>
+<li><strong>iptables</strong>：
+<ul>
+<li><strong>原理</strong>：利用 Linux Netfilter 框架，为每个 Service 生成大量的 NAT 规则链。</li>
+<li><strong>优点</strong>：稳定，几乎所有 Linux 内核默认支持。</li>
+<li><strong>缺点</strong>：规则是线性的。当 Service 和 Endpoint 数量巨大时（成千上万），规则链变长，流量匹配延迟增加，性能下降明显。更新规则需全量刷新，可能有短暂中断。</li>
+</ul>
+</li>
+<li><strong>IPVS</strong>：
+<ul>
+<li><strong>原理</strong>：利用 Linux 内核的 IP Virtual Server 模块，在内核态维护哈希表。</li>
+<li><strong>优点</strong>：高性能。查找复杂度为 O(1)，适合大规模集群。支持更多负载均衡算法（轮询、最小连接、源地址哈希等）。</li>
+<li><strong>要求</strong>：节点内核需加载 <code>ip_vs</code> 模块。K8s v1.11+ 成熟支持。</li>
+<li><strong>现状</strong>：大规模生产环境推荐使用 IPVS 模式。</li>
+</ul>
+</li>
+</ol>
+<h3 id="41-k8s-提供了哪几种对外暴露访问方式">41. K8s 提供了哪几种对外暴露访问方式？</h3>
+<p>从简单到复杂，主要有以下几种：</p>
+<ol>
+<li><strong>NodePort</strong>：最简单，直接利用节点 IP+ 高位端口。适合测试或无 LB 环境。</li>
+<li><strong>LoadBalancer Service</strong>：利用云厂商 LB。适合公有云，成本较高，每个 Service 对应一个 LB IP。</li>
+<li><strong>Ingress</strong>（最常用）：
+<ul>
+<li>七层负载均衡（HTTP/HTTPS）。</li>
+<li>只需一个 LB IP（入口），通过域名和路径路由到集群内不同的 Service。</li>
+<li>支持 SSL 终止、重写规则等。需部署 Ingress Controller (Nginx, Traefik, ALB Ingress)。</li>
+</ul>
+</li>
+<li><strong>Gateway API</strong>：Ingress 的继任者，更通用、更强大的标准，支持 TCP/UDP/gRPC 等多种协议和更细粒度的路由控制（逐渐普及中）。</li>
+<li><strong>HostNetwork + HostPort</strong>：直接使用宿主机网络（不推荐，耦合度高，端口易冲突）。</li>
+</ol>
+<h2 id="4-监控和日志-monitoring-logging">4. 监控和日志 (Monitoring &amp; Logging)</h2>
+<h3 id="42-k8s-的监控prometheus常用监控组件有哪些各自作用">42. K8s 的监控（Prometheus）常用监控组件有哪些？各自作用？</h3>
+<hr>
+<h4 id="️-prometheus-k8s-监控架构流程图">🏗️ Prometheus K8s 监控架构流程图</h4>
+<pre class="mermaid">graph TD
+    %% 定义样式
+    classDef source fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef core fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef alert fill:#ffebee,stroke:#b71c1c,stroke-width:2px;
+    classDef viz fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
+    classDef k8s fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,stroke-dasharray: 5 5;
+
+    subgraph K8s_Cluster [Kubernetes 集群内部]
+        direction TB
+        
+        subgraph Data_Sources [数据源层]
+            Node[🖥️ 节点 Node]:::source
+            Kubelet["⚙️ Kubelet (内置 cAdvisor)"]:::source
+            API_Server["📡 API Server"]:::k8s
+            App[📦 业务应用/Pod]:::source
+        end
+
+        subgraph Exporters [采集器层]
+            NodeExp["📊 Node Exporter (宿主机指标)"]:::core
+            KSM["🔍 Kube-State-Metrics (对象状态)"]:::core
+            AppExp["🔌 Blackbox/自定义 Exporter"]:::core
+        end
+
+        subgraph Core_Prom [核心服务层]
+            PromServer[("🔴 Prometheus Server (存储/计算)")]:::core
+        end
+    end
+
+    subgraph External_Systems [外部/辅助系统]
+        AlertMgr["🔔 Alertmanager (告警处理)"]:::alert
+        Grafana["📈 Grafana (仪表盘)"]:::viz
+        HPA["🔄 HPA (自动伸缩)"]:::k8s
+        Adapter["🔌 Prometheus Adapter"]:::core
+        Notify["📧 通知渠道 (钉钉/邮件)"]:::alert
+    end
+
+    %% 数据流向
+    Node -->|暴露端口 9100| NodeExp
+    Kubelet -->|容器资源指标| PromServer
+    NodeExp -->|硬件指标| PromServer
+    KSM --- API_Server
+    KSM -->|K8s 对象状态| PromServer
+    App -->|暴露 /metrics| PromServer
+    App -.->|可选扩展| AppExp
+    AppExp -->|业务指标| PromServer
+
+    PromServer -->|1. 触发告警规则| AlertMgr
+    AlertMgr -->|2. 路由通知| Notify
+    
+    PromServer -->|3. 查询展示| Grafana
+    PromServer -->|4. 提供自定义指标| Adapter
+    Adapter -->|5. 转换 Metrics API| HPA
+    HPA -->|6. 扩缩容调度| API_Server
+
+    %% 布局优化
+    linkStyle default stroke:#333,stroke-width:1.5px;
+
+</pre><hr>
+<h4 id="架构组件详细解读">📝 架构组件详细解读</h4>
+<h4 id="1-数据源层-data-sources">1. 数据源层 (Data Sources)</h4>
+<ul>
+<li><strong>Kubelet (cAdvisor)</strong>: 每个节点上的 Kubelet 内置了 cAdvisor，自动采集<strong>容器级别</strong>的资源数据（CPU、内存、网络、文件系统），无需额外部署 Exporter。</li>
+<li><strong>Node</strong>: 物理机或虚拟机本身，需要安装 <strong>Node Exporter</strong> 来采集宿主机层面的硬件和 OS 指标。</li>
+<li><strong>API Server</strong>: K8s 的核心大脑，存储所有对象的状态信息。</li>
+<li><strong>Applications</strong>: 运行在 Pod 中的业务程序，通过代码埋点暴露 <code>/metrics</code> 接口。</li>
+</ul>
+<h4 id="2-采集器层-exporters">2. 采集器层 (Exporters)</h4>
+<ul>
+<li><strong>Node Exporter</strong>: DaemonSet 部署，将宿主机的硬件指标转化为 Prometheus 格式。</li>
+<li><strong>Kube-State-Metrics (KSM)</strong>: <strong>关键组件</strong>。它不关心资源用了多少，只关心<strong>状态对不对</strong>。例如：Pod 是 Running 还是 Pending？它将 API Server 的状态转化为指标。</li>
+<li><strong>Custom Exporters</strong>: 针对特定中间件（如 MySQL, Redis）或黑盒监控（Blackbox Exporter）的采集器。</li>
+</ul>
+<h4 id="3-核心服务层-core">3. 核心服务层 (Core)</h4>
+<ul>
+<li><strong>Prometheus Server</strong>:</li>
+<li><strong>Pull 模型</strong>: 主动去抓取上述所有 Exporter 暴露的指标。</li>
+<li><strong>TSDB</strong>: 将数据存储在本地时间序列数据库中。</li>
+<li><strong>PromQL</strong>: 提供强大的查询语言进行数据分析。</li>
+<li><strong>Rule Manager</strong>: 评估告警规则，触发时发送给 Alertmanager。</li>
+</ul>
+<h4 id="4-告警处理层-alerting">4. 告警处理层 (Alerting)</h4>
+<ul>
+<li><strong>Alertmanager</strong>:</li>
+<li>接收 Prometheus 发出的原始告警。</li>
+<li><strong>去重/分组/静默</strong>: 减少告警轰炸，合并同类项，并在维护期间屏蔽特定告警。</li>
+<li><strong>路由</strong>: 根据标签将告警发送给对应渠道（钉钉、邮件、Slack 等）。</li>
+</ul>
+<h4 id="5-展示与应用层-visualization-action">5. 展示与应用层 (Visualization &amp; Action)</h4>
+<ul>
+<li><strong>Grafana</strong>: 仪表盘展示，连接 Prometheus 数据源。</li>
+<li><strong>Prometheus Adapter + HPA</strong>:</li>
+<li><strong>Adapter</strong> 将 Prometheus 指标转换为 K8s 能够识别的 Metrics API。</li>
+<li><strong>HPA</strong> 根据这些自定义指标（如 QPS）实现自动伸缩。</li>
+</ul>
+<hr>
+<h4 id="核心区别总结">💡 核心区别总结</h4>
+<ul>
+<li><strong>cAdvisor vs Node Exporter</strong>: 前者看<strong>容器</strong>，后者看<strong>宿主机</strong>。</li>
+<li><strong>KSM 的特殊性</strong>: 它监控的是 <strong>K8s 对象的生命周期状态</strong>（如副本数是否匹配），而不是 CPU 这种瞬时资源用量。</li>
+</ul>
+<h3 id="43-cadvisor-node-exporter-metrics-server-的区别和联系">43. cAdvisor、node-exporter、metrics-server 的区别和联系？</h3>
+<ul>
+<li><strong>cAdvisor</strong>:
+<ul>
+<li><strong>来源</strong>：Google 开发，已集成到 <strong>Kubelet</strong> 二进制文件中，无需单独部署。</li>
+<li><strong>作用</strong>：采集<strong>单个节点上所有容器</strong>的资源使用数据（CPU, Memory, Network, FS）。</li>
+<li><strong>数据粒度</strong>：容器级。</li>
+</ul>
+</li>
+<li><strong>Node Exporter</strong>:
+<ul>
+<li><strong>来源</strong>：Prometheus 社区项目，需作为 DaemonSet 单独部署。</li>
+<li><strong>作用</strong>：采集**宿主机（Node）**本身的硬件和 OS 指标（如物理 CPU 负载、磁盘剩余空间、系统 uptime）。</li>
+<li><strong>数据粒度</strong>：节点级（不含容器内部细节）。</li>
+</ul>
+</li>
+<li><strong>Metrics Server</strong>:
+<ul>
+<li><strong>来源</strong>：K8s 官方组件。</li>
+<li><strong>作用</strong>：<strong>聚合器</strong>。它从每个节点的 Kubelet（调用 cAdvisor 接口）收集数据，进行汇总，并通过 K8s <strong>Metrics API</strong> (<code>kubectl top</code>) 提供短期、实时的资源使用数据。</li>
+<li><strong>用途</strong>：主要用于 <code>kubectl top</code> 命令和 <strong>HPA</strong> (Horizontal Pod Autoscaler) 的自动伸缩决策。</li>
+<li><strong>区别</strong>：它<strong>不存储历史数据</strong>，重启后数据丢失；而 Prometheus 用于长期存储和历史趋势分析。</li>
+</ul>
+</li>
+<li><strong>联系</strong>：Metrics Server 的数据源头很大程度上依赖 Kubelet 中的 cAdvisor；而 Prometheus 可以同时抓取 cAdvisor (通过 Kubelet)、Node Exporter 和 KSM 的数据进行全方位监控。</li>
+</ul>
+<h3 id="44-pod-常见的状态有哪些结合生命周期回答">44. Pod 常见的状态有哪些？（结合生命周期回答）</h3>
+<p>Pod 的状态（Phase）反映了其在生命周期中的位置：</p>
+<ol>
+<li><strong>Pending</strong>：API Server 已创建对象，但 Pod 尚未调度到节点，或者正在下载镜像。
+<ul>
+<li><em>生命周期阶段</em>：调度前或初始化中。</li>
+</ul>
+</li>
+<li><strong>Running</strong>：Pod 已绑定节点，所有容器已创建，至少有一个容器正在运行、即将启动或重启中。
+<ul>
+<li><em>生命周期阶段</em>：正常运行中。</li>
+</ul>
+</li>
+<li><strong>Succeeded</strong>：所有容器都成功终止（退出码 0），且不会重启。
+<ul>
+<li><em>生命周期阶段</em>：任务完成（常见于 Job）。</li>
+</ul>
+</li>
+<li><strong>Failed</strong>：所有容器都已终止，且至少有一个容器是非正常退出（退出码非 0）。
+<ul>
+<li><em>生命周期阶段</em>：任务失败。</li>
+</ul>
+</li>
+<li><strong>Unknown</strong>：由于节点通信故障，无法获取 Pod 状态。
+<ul>
+<li><em>生命周期阶段</em>：状态丢失。</li>
+</ul>
+</li>
+</ol>
+<ul>
+<li><strong>常见中间/异常状态（Status 字段显示）</strong>：
+<ul>
+<li><code>ContainerCreating</code>：正在拉取镜像或挂载卷。</li>
+<li><code>ErrImagePull</code> / <code>ImagePullBackOff</code>：镜像拉取失败。</li>
+<li><code>CrashLoopBackOff</code>：容器反复崩溃重启，K8s 在等待冷却期。</li>
+<li><code>OOMKilled</code>：容器因内存超限被内核杀死。</li>
+<li><code>Terminating</code>：Pod 正在被删除，等待优雅终止。</li>
+</ul>
+</li>
+</ul>
+<h3 id="45-node-节点不能工作的处理流程">45. Node 节点不能工作的处理流程？</h3>
+<p>当发现节点异常（如 NotReady 或无响应）时：</p>
+<ol>
+<li><strong>查看状态</strong>：<code>kubectl get nodes</code> 确认状态（NotReady, Unknown）。</li>
+<li><strong>检查 Pod</strong>：<code>kubectl get pods -n kube-system -o wide | grep &lt;node-name&gt;</code> 查看该节点上的系统组件（CNI, kube-proxy）是否正常运行。</li>
+<li><strong>登录节点</strong>：SSH 登录到故障节点。</li>
+<li><strong>检查系统资源</strong>：<code>top</code>, <code>free -m</code>, <code>df -h</code> 查看 CPU、内存、磁盘是否满载（磁盘满会导致 kubelet 停止工作）。</li>
+<li><strong>检查关键服务</strong>：
+<ul>
+<li><code>systemctl status kubelet</code>：查看 kubelet 是否存活，<code>journalctl -u kubelet -f</code> 查看日志报错（如证书过期、配置错误、CNI 插件报错）。</li>
+<li><code>systemctl status docker</code> 或 <code>containerd</code>：检查容器运行时。</li>
+</ul>
+</li>
+<li><strong>检查网络</strong>：Ping Master 节点 API Server IP，检查防火墙规则，检查 CNI 插件配置。</li>
+<li><strong>检查证书</strong>：<code>/etc/kubernetes/pki/</code> 下的证书是否过期。</li>
+<li><strong>尝试重启</strong>：<code>systemctl restart kubelet</code>。</li>
+<li><strong>极端情况</strong>：如果节点彻底失联且无法恢复，可能需要 <code>kubectl drain</code> 驱逐业务，然后 <code>kubectl delete node</code> 移除节点，重新初始化加入。</li>
+</ol>
+<h3 id="46-k8s-常见健康检查的探针probe有几种">46. K8s 常见健康检查的探针（Probe）有几种？</h3>
+<p>主要有三种，作用于容器级别：</p>
+<ol>
+<li><strong>Liveness Probe（存活探针）</strong>：
+<ul>
+<li><strong>作用</strong>：判断容器是否“死锁”或“假死”。</li>
+<li><strong>失败动作</strong>：<strong>重启容器</strong>（Restart）。</li>
+<li><strong>场景</strong>：程序死循环、线程池耗尽但进程未退出。</li>
+</ul>
+</li>
+<li><strong>Readiness Probe（就绪探针）</strong>：
+<ul>
+<li><strong>作用</strong>：判断容器是否“准备好接收流量”。</li>
+<li><strong>失败动作</strong>：从 Service 的 Endpoints 中<strong>移除 IP</strong>（切断流量），<strong>不重启</strong>。</li>
+<li><strong>场景</strong>：应用启动加载大文件、依赖的 DB 尚未连通。</li>
+</ul>
+</li>
+<li><strong>Startup Probe（启动探针）</strong> (K8s 1.16+ Beta, 1.18+ Stable)：
+<ul>
+<li><strong>作用</strong>：专门用于处理<strong>启动缓慢</strong>的应用。在它成功之前，Liveness 和 Readiness 都不会执行。</li>
+<li><strong>失败动作</strong>：无（直到成功或达到失败阈值导致 Pod 重启）。</li>
+<li><strong>场景</strong>：遗留应用启动需要几分钟，避免 Liveness 探针过早杀掉正在启动的容器。</li>
+</ul>
+</li>
+</ol>
+<h3 id="47-k8s-中网络通信类型有几种">47. K8s 中网络通信类型有几种？</h3>
+<p>K8s 网络模型要求满足以下四种通信场景：</p>
+<ol>
+<li><strong>Pod 与 Pod 之间</strong>（同一节点或不同节点）：直接通过 IP 通信，无需 NAT。</li>
+<li><strong>Pod 与 Service 之间</strong>：通过 Service VIP 和 kube-proxy 规则进行负载均衡通信。</li>
+<li><strong>外部用户与 Service 之间</strong>：通过 NodePort, LoadBalancer 或 Ingress 访问集群内部服务。</li>
+<li><strong>节点与 Pod 之间</strong>：节点上的组件（如 kubelet, prometheus）访问本地或其他节点的 Pod。</li>
+</ol>
+<h3 id="48-k8s-中网络插件cni有哪些各自特点是什么">48. K8s 中网络插件（CNI）有哪些？各自特点是什么？</h3>
+<p>CNI (Container Network Interface) 是标准接口，常见插件：</p>
+<ol>
+<li><strong>Flannel</strong>：
+<ul>
+<li><strong>特点</strong>：简单、轻量、易部署。Overlay 网络（VXLAN 模式）。</li>
+<li><strong>缺点</strong>：功能单一，不支持 NetworkPolicy（网络策略），性能一般（VXLAN 有封装损耗）。</li>
+<li><strong>场景</strong>：小型集群、测试环境、对网络策略无要求的场景。</li>
+</ul>
+</li>
+<li><strong>Calico</strong>：
+<ul>
+<li><strong>特点</strong>：高性能（支持 BGP 路由模式，无封装损耗），功能强大（支持严格的 NetworkPolicy），生态成熟。</li>
+<li><strong>缺点</strong>：BGP 模式对底层网络有一定要求（需支持 BGP 或 IPIP 穿透）。</li>
+<li><strong>场景</strong>：生产环境首选，特别是需要网络隔离和大规模集群。</li>
+</ul>
+</li>
+<li><strong>Cilium</strong>：
+<ul>
+<li><strong>特点</strong>：基于 <strong>eBPF</strong> 技术，性能极高，可观测性强（Hubble），支持七层网络策略（HTTP/gRPC）。</li>
+<li><strong>场景</strong>：对性能、安全、可观测性有极高要求的现代化集群。</li>
+</ul>
+</li>
+<li><strong>Weave Net</strong>：
+<ul>
+<li><strong>特点</strong>：自动加密（sleeve 模式），部署极其简单。</li>
+<li><strong>场景</strong>：对安全性有基础要求且不想复杂配置的场景。</li>
+</ul>
+</li>
+<li><strong>Cloud Provider CNI</strong> (如 AWS VPC CNI, Aliyun Terway)：
+<ul>
+<li><strong>特点</strong>：直接将 Pod 分配到云厂商的 VPC 子网中，Pod 拥有真实云内网 IP。</li>
+<li><strong>场景</strong>：公有云托管集群，追求原生网络性能和兼容性。</li>
+</ul>
+</li>
+</ol>
+<h3 id="49-pod-网络连接超时的几种情况">49. Pod 网络连接超时的几种情况？</h3>
+<ol>
+<li><strong>CNI 插件故障</strong>：节点上的 CNI 组件未运行或配置错误，导致 Pod 网卡未正确分配 IP 或路由不通。</li>
+<li><strong>NetworkPolicy 拦截</strong>：配置了默认拒绝（Deny All）的策略，且未放行特定流量。</li>
+<li><strong>目标 Pod 未就绪</strong>：目标 Pod 的 Readiness Probe 失败，流量未被转发（如果是通过 Service 访问）。</li>
+<li><strong>防火墙/安全组</strong>：云厂商的安全组或节点内部的 <code>iptables/firewalld</code> 阻断了端口。</li>
+<li><strong>IP 冲突或路由缺失</strong>：跨节点通信时，底层物理网络路由不可达，或 Overlay 隧道建立失败。</li>
+<li><strong>DNS 解析超时</strong>：如果是通过域名访问，CoreDNS 故障或配置错误导致解析慢或失败。</li>
+<li><strong>应用自身问题</strong>：目标应用处理请求过慢、死锁或监听地址错误（如只监听了 localhost）。</li>
+</ol>
+<h3 id="50-访问-pod-的-ip端口-或-service-的-ip-显示超时的处理思路">50. 访问 Pod 的 IP:端口 或 Service 的 IP 显示超时的处理思路？</h3>
+<p><strong>排查步骤：</strong></p>
+<ol>
+<li><strong>确认目标状态</strong>：<code>kubectl get pod/svc</code> 确认 Pod 是 Running，Service 有 Endpoints。
+<ul>
+<li><em>关键点</em>：如果 Service 的 Endpoints 为空，说明没有后端 Pod，流量无处转发。</li>
+</ul>
+</li>
+<li><strong>同节点测试</strong>：登录到 Pod 所在的节点，使用 <code>curl &lt;Pod_IP&gt;:&lt;Port&gt;</code> 测试。
+<ul>
+<li>如果通：说明 Pod 正常，问题在跨节点网络或 Service 规则。</li>
+<li>如果不通：说明 Pod 应用未启动、监听端口错误或节点本地防火墙/CNI 问题。</li>
+</ul>
+</li>
+<li><strong>检查 NetworkPolicy</strong>：<code>kubectl get networkpolicy</code> 查看是否有策略限制了源或目的。</li>
+<li><strong>检查 kube-proxy</strong>：查看 <code>kube-proxy</code> 日志，确认 iptables/IPVS 规则是否生成。在节点执行 <code>iptables-save | grep &lt;Service_IP&gt;</code> 查看规则是否存在。</li>
+<li><strong>抓包分析</strong>：在源 Pod 或节点上使用 <code>tcpdump</code> 抓包，看 SYN 包是否发出，是否有 RST 或 DROP。</li>
+<li><strong>DNS 检查</strong>：如果是域名访问超时，先试 IP。如果 IP 通域名不通，排查 CoreDNS。</li>
+<li><strong>MTU 问题</strong>：跨节点大包不通可能是 MTU 设置不一致（Overlay 网络需预留头部空间）。</li>
+</ol>
+<h3 id="51-pod-的生命周期阶段">51. Pod 的生命周期阶段？</h3>
+<p>从创建到销毁的标准流程：</p>
+<ol>
+<li><strong>Pending</strong>：创建申请提交，等待调度。</li>
+<li><strong>ContainerCreating</strong>：调度完成，正在拉取镜像、挂载存储、配置网络。</li>
+<li><strong>Running</strong>：
+<ul>
+<li><strong>Init Containers</strong> 执行（如果有）。</li>
+<li><strong>Main Containers</strong> 启动。</li>
+<li><strong>Probes</strong> 开始工作（Startup -&gt; Readiness -&gt; Liveness）。</li>
+</ul>
+</li>
+<li><strong>Succeeded / Failed</strong>：任务型 Pod 的最终状态。</li>
+<li><strong>Terminating</strong>：
+<ul>
+<li>收到删除指令。</li>
+<li>发送 <code>SIGTERM</code> 信号给容器进程（优雅退出）。</li>
+<li>等待 <code>terminationGracePeriodSeconds</code>（默认 30s）。</li>
+<li>若未退出，发送 <code>SIGKILL</code> 强制杀死。</li>
+<li>清理资源（网络、存储挂载）。</li>
+</ul>
+</li>
+<li><strong>Deleted</strong>：从 Etcd 和 API 中移除。</li>
+</ol>
+<h3 id="52-pod-处于-running但应用不正常的几种情况">52. Pod 处于 Running，但应用不正常的几种情况？</h3>
+<p><code>Running</code> 仅代表容器进程在运行，不代表业务正常：</p>
+<ol>
+<li><strong>应用内部报错</strong>：代码逻辑错误、配置文件错误、依赖服务连不上（需看 <code>kubectl logs</code>）。</li>
+<li><strong>死锁/假死</strong>：进程在跑，但无法处理请求（需靠 <strong>Liveness Probe</strong> 发现并重启）。</li>
+<li><strong>未通过就绪检查</strong>：应用启动慢或依赖未好，流量被切断（需看 <strong>Readiness Probe</strong> 状态，<code>kubectl describe pod</code>）。</li>
+<li><strong>资源限制</strong>：CPU 被节流（Throttling）导致响应极慢，或内存接近 Limit 导致频繁 GC。</li>
+<li><strong>端口监听错误</strong>：进程启动了，但监听在错误的 IP（如 127.0.0.1 而不是 0.0.0.0）或错误端口。</li>
+<li><strong>持久化存储满</strong>：磁盘写满导致应用无法写入日志或数据而卡住。</li>
+<li><strong>时钟不同步</strong>：节点时间偏差导致 TLS 握手失败或逻辑判断错误。</li>
+</ol>
+<h3 id="53-当遇到-coredns-经常重启和报错这种故障如何排查">53. 当遇到 CoreDNS 经常重启和报错，这种故障如何排查？</h3>
+<p>CoreDNS 是集群 DNS 核心，不稳定会影响全网。<br>
+<strong>排查思路：</strong></p>
+<ol>
+<li><strong>查看日志</strong>：<code>kubectl logs -n kube-system -l k8s-app=kube-dns</code>。
+<ul>
+<li>常见错误：<code>plugin/loop: Loop in Hints</code>（通常是因为节点 hosts 文件配置不当或上游 DNS 配置环路）。</li>
+<li>OOMKilled：内存不足，需调整 <code>limits.memory</code>。</li>
+</ul>
+</li>
+<li><strong>检查配置 (ConfigMap)</strong>：<code>kubectl edit cm coredns -n kube-system</code>。
+<ul>
+<li>检查 <code>forward</code> 插件指向的上游 DNS 是否可达。</li>
+<li>检查是否有语法错误。</li>
+</ul>
+</li>
+<li><strong>检查网络插件兼容性</strong>：某些 CNI 插件（如早期版本的 Calico/Flannel）与 CoreDNS 的 IP 分配或网络策略冲突。</li>
+<li><strong>检查节点 DNS 配置</strong>：CoreDNS 依赖宿主机的 <code>/etc/resolv.conf</code> 进行上游转发，如果宿主机 DNS 配置错误，CoreDNS 也会失效。</li>
+<li><strong>资源竞争</strong>：节点负载过高导致 CoreDNS 被误杀或调度不均，建议设置亲和性让 CoreDNS 分散在不同节点。</li>
+<li><strong>版本问题</strong>：K8s 版本升级后，CoreDNS 配置格式可能变化（如 <code>proxy</code> 改为 <code>forward</code>）。</li>
+</ol>
+<h3 id="54-k8s-集群节点状态为-notready-的都有哪些情况">54. K8s 集群节点状态为 NotReady 的都有哪些情况？</h3>
+<p><code>NotReady</code> 意味着 Kubelet 无法向 API Server 上报“我准备好了”的状态。<br>
+<strong>常见原因：</strong></p>
+<ol>
+<li><strong>Kubelet 服务挂掉</strong>：<code>systemctl status kubelet</code> 显示 inactive 或 failed。</li>
+<li><strong>容器运行时故障</strong>：Docker/Containerd 未运行或无响应，Kubelet 无法检查容器状态。</li>
+<li><strong>CNI 插件未就绪</strong>：节点上的 CNI 配置缺失或 Pod 网络未打通，Kubelet 会认为节点未准备好（<code>NetworkPluginNotReady</code>）。</li>
+<li><strong>资源耗尽</strong>：
+<ul>
+<li><strong>磁盘压力</strong> (<code>DiskPressure</code>)：日志或镜像占满磁盘，Kubelet 进入保护模式。</li>
+<li><strong>内存压力</strong> (<code>MemoryPressure</code>)。</li>
+<li><strong>PID 耗尽</strong> (<code>PIDPressure</code>)。</li>
+</ul>
+</li>
+<li><strong>证书过期</strong>：Kubelet 连接 API Server 的客户端证书过期，导致认证失败，心跳中断。</li>
+<li><strong>时间不同步</strong>：节点时间与集群其他节点偏差过大，导致 TLS 握手失败。</li>
+<li><strong>网络中断</strong>：节点与 Master 节点之间的网络不通，心跳包丢失。</li>
+<li><strong>Swap 未关闭</strong>：K8s 默认要求关闭 Swap，如果开启且 Kubelet 配置未允许，可能导致启动失败或状态异常。</li>
+</ol>
+<h2 id="5-调度和资源管理-scheduling-resources">5. 调度和资源管理 (Scheduling &amp; Resources)</h2>
+<h3 id="55-k8s-的几种调度方式">55. K8s 的几种调度方式？</h3>
+<p>Kubernetes 的调度不仅仅是“自动”，它提供了多种策略来控制 Pod 落在哪个节点上：</p>
+<ol>
+<li><strong>自动调度 (Default Scheduler)</strong>：
+<ul>
+<li>由 <code>kube-scheduler</code> 根据节点的剩余资源（CPU/Mem）、亲和性、污点等默认策略，自动选择最优节点。</li>
+</ul>
+</li>
+<li><strong>指定节点调度 (nodeName)</strong>：
+<ul>
+<li>在 Pod Spec 中直接指定 <code>nodeName: &lt;node-name&gt;</code>。</li>
+<li><strong>特点</strong>：跳过调度器，强制绑定。如果该节点资源不足或不存在，Pod 会一直 Pending。</li>
+</ul>
+</li>
+<li><strong>节点选择器 (nodeSelector)</strong>：
+<ul>
+<li>基于简单的键值对标签匹配 (<code>key: value</code>)。节点必须拥有该标签才能被调度。</li>
+</ul>
+</li>
+<li><strong>节点亲和性 (Node Affinity)</strong>：
+<ul>
+<li><strong>硬策略 (required...)</strong>：必须满足条件，否则不调度。支持复杂的逻辑运算（In, NotIn, Exists 等）。</li>
+<li><strong>软策略 (preferred...)</strong>：尽量满足，打分制，不满足也能调度。</li>
+</ul>
+</li>
+<li><strong>污点与容忍 (Taints and Tolerations)</strong>：
+<ul>
+<li><strong>排斥机制</strong>。节点设置污点（Taint），Pod 设置容忍度（Toleration）。只有容忍了污点的 Pod 才能调度到该节点。常用于专用节点（如 GPU 节点）或 Master 节点隔离。</li>
+</ul>
+</li>
+<li><strong>Pod 亲和性与反亲和性 (Pod Affinity/Anti-Affinity)</strong>：
+<ul>
+<li>根据<strong>其他 Pod</strong>的位置来调度。</li>
+<li><strong>亲和</strong>：让 Pod 尽量靠近某些 Pod（如同一服务的不同组件）。</li>
+<li><strong>反亲和</strong>：让 Pod 尽量远离某些 Pod（如将同一应用的副本分散到不同节点/可用区，实现高可用）。</li>
+</ul>
+</li>
+<li><strong>拓扑分布约束 (Topology Spread Constraints)</strong>：
+<ul>
+<li>更精细的控制，确保 Pod 在指定的拓扑域（如可用区、主机名、区域）中均匀分布，避免倾斜。</li>
+</ul>
+</li>
+</ol>
+<h3 id="56-k8s-中一个-node-节点突然断电恢复后上面的-pod-无法启动怎么办">56. K8s 中一个 Node 节点突然断电，恢复后上面的 Pod 无法启动怎么办？</h3>
+<p>这种情况通常是因为节点状态异常或资源冲突。<br>
+<strong>排查与解决步骤：</strong></p>
+<ol>
+<li><strong>检查节点状态</strong>：
+<ul>
+<li><code>kubectl get nodes</code>。如果节点仍为 <code>NotReady</code>，先修复节点（参考第 54 题：检查 kubelet、CNI、证书、资源等）。</li>
+</ul>
+</li>
+<li><strong>检查 Pod 状态</strong>：
+<ul>
+<li><code>kubectl get pods -o wide | grep &lt;node-name&gt;</code>。</li>
+<li>如果 Pod 状态是 <code>Terminating</code> 且卡住：说明节点失联，API Server 收不到删除确认。需<strong>强制删除</strong>：<code>kubectl delete pod &lt;pod-name&gt; --grace-period=0 --force</code>。控制器（Deployment）会自动在其他健康节点重建新 Pod。</li>
+<li>如果 Pod 状态是 <code>Pending</code>：可能是原节点资源未释放，或者调度器认为原节点不可用但还没触发驱逐逻辑。</li>
+</ul>
+</li>
+<li><strong>检查驱逐逻辑</strong>：
+<ul>
+<li>K8s 有 <code>pod-eviction-timeout</code>（默认 5 分钟）。如果节点失联超过此时间，控制器管理器会将 Pod 标记为终止并重新调度。如果刚恢复，可能还在等待期内。</li>
+</ul>
+</li>
+<li><strong>资源冲突</strong>：
+<ul>
+<li>如果节点恢复后，原来的 Pod 试图启动但失败，检查是否因为挂载的卷（Volume）具有 <code>ReadWriteOnce</code> (RWO) 属性，且未被正确卸载（例如云盘还挂载在旧的网络命名空间或认为仍被占用）。可能需要手动介入解除挂载或重启 kubelet。</li>
+</ul>
+</li>
+<li><strong>最终手段</strong>：
+<ul>
+<li>如果节点数据损坏严重，最稳妥的方式是：<code>kubectl drain &lt;node-name&gt; --ignore-daemonsets --delete-emptydir-data</code> (如果节点可达) 或直接 <code>kubectl delete node &lt;node-name&gt;</code>，然后重置该节点并重新加入集群，让 Pod 调度到其他节点。</li>
+</ul>
+</li>
+</ol>
+<h3 id="57-pod-超过节点资源限制的故障情况有哪些">57. Pod 超过节点资源限制的故障情况有哪些？</h3>
+<p>这里指 Pod 请求/限制超过了节点能提供的能力，或运行时超出了 Limit。</p>
+<ol>
+<li><strong>调度失败 (Pending)</strong>：
+<ul>
+<li><strong>原因</strong>：Pod 的 <code>requests</code> (请求值) 大于任何可用节点的剩余资源。</li>
+<li><strong>现象</strong>：Pod 一直处于 <code>Pending</code> 状态，事件显示 <code>FailedScheduling: Insufficient cpu/memory</code>。</li>
+</ul>
+</li>
+<li><strong>OOMKilled (内存超限)</strong>：
+<ul>
+<li><strong>原因</strong>：容器进程使用的内存超过了 <code>limits.memory</code>。</li>
+<li><strong>现象</strong>：Pod 状态变为 <code>Running</code> 但容器反复重启，<code>kubectl get pod</code> 显示 <code>OOMKilled</code>，退出码 137。</li>
+</ul>
+</li>
+<li><strong>CPU 节流 (Throttling)</strong>：
+<ul>
+<li><strong>原因</strong>：容器使用的 CPU 超过了 <code>limits.cpu</code>。</li>
+<li><strong>现象</strong>：Pod 不会重启，但应用响应变慢、卡顿。可以通过监控看到 <code>cpu_cfs_throttled_seconds_total</code> 指标升高。</li>
+</ul>
+</li>
+<li><strong>Evicted (被驱逐)</strong>：
+<ul>
+<li><strong>原因</strong>：节点整体资源不足（如磁盘满、内存压力），Kubelet 主动驱逐优先级较低（QoS 为 BestEffort 或 Burstable）的 Pod。</li>
+<li><strong>现象</strong>：Pod 状态变为 <code>Failed</code>，理由为 <code>Evicted</code>。</li>
+</ul>
+</li>
+<li><strong>创建失败 (CreateContainerConfigError)</strong>：
+<ul>
+<li><strong>原因</strong>：极少见，但如果配置的 Limit 小于 Request，或者数值格式错误，会导致无法创建。</li>
+</ul>
+</li>
+</ol>
+<h3 id="58-pod-的自动扩容和缩容的方法有哪些hpavpa">58. Pod 的自动扩容和缩容的方法有哪些？（HPA/VPA）</h3>
+<ol>
+<li><strong>HPA (Horizontal Pod Autoscaler，水平自动伸缩)</strong>：
+<ul>
+<li><strong>原理</strong>：增加或减少 <strong>Pod 的副本数量</strong>。</li>
+<li><strong>指标</strong>：基于 CPU 使用率、内存使用率，或通过 Metrics Server/Prometheus Adapter 获取自定义指标（如 QPS、消息队列长度）。</li>
+<li><strong>适用</strong>：无状态应用（Deployment），最常用的扩缩容方式。</li>
+<li><strong>命令</strong>：<code>kubectl autoscale deployment &lt;name&gt; --cpu-percent=50 --min=1 --max=10</code>。</li>
+</ul>
+</li>
+<li><strong>VPA (Vertical Pod Autoscaler，垂直自动伸缩)</strong>：
+<ul>
+<li><strong>原理</strong>：调整 <strong>单个 Pod 的资源请求 (requests) 和限制 (limits)</strong>（即加大/减小 CPU/内存配额）。</li>
+<li><strong>代价</strong>：调整资源通常需要<strong>重启 Pod</strong> 才能生效（因为容器启动时已确定 cgroup 限制）。</li>
+<li><strong>适用</strong>：有状态应用或无法简单通过增加副本来扩展的应用。注意：HPA 和 VPA 通常不建议同时用于同一个资源的同一个维度（如都控制 CPU），以免冲突。</li>
+</ul>
+</li>
+<li><strong>Cluster Autoscaler (CA，集群自动伸缩)</strong>：
+<ul>
+<li><strong>原理</strong>：当 Pod 因资源不足无法调度（Pending）时，自动<strong>增加节点</strong>；当节点利用率低时，自动<strong>减少节点</strong>。</li>
+<li><strong>依赖</strong>：需要云厂商支持或底层基础设施支持动态添加机器。</li>
+<li><strong>关系</strong>：通常配合 HPA 使用。HPA 增加 Pod -&gt; 资源不足 -&gt; CA 增加 Node。</li>
+</ul>
+</li>
+</ol>
+<h3 id="59-k8s-中-service-访问异常的常见问题有哪些如何处理">59. K8s 中 Service 访问异常的常见问题有哪些？如何处理？</h3>
+<ol>
+<li><strong>Endpoints 为空</strong>：
+<ul>
+<li><strong>原因</strong>：Service 的 <code>selector</code> 标签与 Pod 的 <code>labels</code> 不匹配。</li>
+<li><strong>处理</strong>：<code>kubectl get endpoints &lt;svc-name&gt;</code> 查看是否为空。修正 Deployment 或 Service 的标签。</li>
+</ul>
+</li>
+<li><strong>目标 Pod 未就绪</strong>：
+<ul>
+<li><strong>原因</strong>：Pod 虽然 Running，但 Readiness Probe 失败，导致 IP 被从 Endpoints 移除。</li>
+<li><strong>处理</strong>：<code>kubectl describe pod</code> 查看探针失败原因，修复应用启动逻辑或调整探针参数。</li>
+</ul>
+</li>
+<li><strong>网络插件 (CNI) 问题</strong>：
+<ul>
+<li><strong>原因</strong>：跨节点通信失败，iptables/IPVS 规则未生成。</li>
+<li><strong>处理</strong>：检查 CNI 插件 Pod 状态，重启 kube-proxy，检查节点间网络连通性。</li>
+</ul>
+</li>
+<li><strong>端口映射错误</strong>：
+<ul>
+<li><strong>原因</strong>：Service 的 <code>targetPort</code> 与容器实际监听端口不一致。</li>
+<li><strong>处理</strong>：核对 YAML 配置。</li>
+</ul>
+</li>
+<li><strong>NetworkPolicy 拦截</strong>：
+<ul>
+<li><strong>原因</strong>：存在默认拒绝的 NetworkPolicy。</li>
+<li><strong>处理</strong>：<code>kubectl get networkpolicy</code>，检查入站/出站规则，添加允许规则。</li>
+</ul>
+</li>
+<li><strong>DNS 解析失败</strong>：
+<ul>
+<li><strong>原因</strong>：CoreDNS 故障。</li>
+<li><strong>处理</strong>：尝试直接用 IP 访问。如果 IP 通域名不通，排查 CoreDNS（参考第 53 题）。</li>
+</ul>
+</li>
+</ol>
+<h3 id="60-k8s-中-pod-删除失败有哪些情况和如何解决">60. K8s 中 Pod 删除失败，有哪些情况？和如何解决？</h3>
+<p>Pod 卡在 <code>Terminating</code> 状态无法删除：</p>
+<ol>
+<li><strong>节点失联 (Node Unreachable)</strong>：
+<ul>
+<li><strong>原因</strong>：Pod 所在的节点宕机或网络中断，API Server 发送删除指令后，Kubelet 无法接收并执行，也无法上报状态。</li>
+<li><strong>解决</strong>：强制删除。<code>kubectl delete pod &lt;pod-name&gt; --grace-period=0 --force</code>。这会直接从 Etcd 移除记录，但需注意如果是有状态应用，可能需要人工清理残留资源。</li>
+</ul>
+</li>
+<li><strong>Finalizers (终结器) 阻塞</strong>：
+<ul>
+<li><strong>原因</strong>：Pod 或其他关联资源（如 PVC）上有 <code>finalizers</code> 字段，控制器逻辑未完成清理工作（例如外部存储卷正在卸载中，或自定义控制器卡死）。</li>
+<li><strong>解决</strong>：
+<ul>
+<li>先排查关联控制器日志。</li>
+<li>若确认安全，可手动编辑资源移除 finalizer：<code>kubectl edit pod &lt;pod-name&gt;</code>，删除 <code>metadata.finalizers</code> 列表中的内容，保存后 K8s 会立即完成删除。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>存储卷挂载无法卸载</strong>：
+<ul>
+<li><strong>原因</strong>：底层存储（如 NFS、云盘）繁忙或驱动 bug，导致 Volume 无法 Detach。</li>
+<li><strong>解决</strong>：检查 CSI 驱动日志，必要时在节点上手动 umount，或重启该节点上的 kubelet。</li>
+</ul>
+</li>
+<li><strong>API Server 负载过高</strong>：
+<ul>
+<li><strong>原因</strong>：集群并发量大，删除请求处理延迟。</li>
+<li><strong>解决</strong>：等待或扩容 API Server。</li>
+</ul>
+</li>
+</ol>
+<h3 id="61-pause-容器的概念和作用">61. Pause 容器的概念和作用？</h3>
+<p><strong>Pause 容器</strong>（也称为 Infra Container 或 Sandbox Container）是 K8s Pod 设计的核心基石。</p>
+<ul>
+<li><strong>概念</strong>：每个 Pod 在启动业务容器之前，都会先启动一个极小的镜像（<code>k8s.gcr.io/pause</code> 或 <code>registry.k8s.io/pause</code>），这个容器就是 Pause 容器。</li>
+<li><strong>核心作用</strong>：
+<ol>
+<li><strong>持有命名空间 (Hold Namespaces)</strong>：
+<ul>
+<li>Pause 容器负责创建并持有 Pod 共享的 <strong>Network Namespace</strong>（IP 地址、端口范围）和 <strong>IPC Namespace</strong>。</li>
+<li>业务容器加入（Join）Pause 容器的网络命名空间，从而共享 IP 和 localhost 通信能力。</li>
+</ul>
+</li>
+<li><strong>作为 PID 1 (Init Process)</strong>：
+<ul>
+<li>在 Linux 中，PID 1 负责回收僵尸进程。Pause 容器作为一个极简的 init 进程运行，负责回收 Pod 内业务容器产生的僵尸进程，防止资源泄漏。</li>
+</ul>
+</li>
+<li><strong>生命周期管理</strong>：
+<ul>
+<li>只要 Pause 容器活着，Pod 的网络环境就存在。</li>
+<li>如果业务容器崩溃重启，Pause 容器不受影响，IP 地址保持不变，保证服务连续性。</li>
+<li>只有当 Pause 容器退出时，整个 Pod 才会销毁。</li>
+</ul>
+</li>
+</ol>
+</li>
+<li><strong>为什么需要它？</strong>：如果没有 Pause 容器，当主业务容器重启时，其网络命名空间可能会重建，导致 IP 变化，破坏 K8s “Pod IP 固定”的承诺。</li>
+</ul>
+<h2 id="6-网络和通信-networking">6. 网络和通信 (Networking)</h2>
+<h3 id="62-同一个节点多个-pod-之间通信示意图及原理">62. 同一个节点多个 Pod 之间通信示意图及原理？</h3>
+<p><strong>原理：</strong><br>
+在同一个节点（Node）上，所有 Pod 都连接到同一个虚拟网桥（通常是 <code>cni0</code> 或 <code>docker0</code>，取决于 CNI 插件）。</p>
+<ol>
+<li><strong>网络命名空间隔离但连通</strong>：每个 Pod 有自己的 Network Namespace，拥有独立的 IP。</li>
+<li><strong>网桥转发</strong>：CNI 插件会在宿主机创建一个虚拟网桥，并将每个 Pod 的虚拟网卡（veth pair 的一端）插入到这个网桥中。</li>
+<li><strong>二层通信</strong>：当 Pod A 访问 Pod B 的 IP 时，数据包从 Pod A 发出 -&gt; 经过 veth pair -&gt; 到达宿主机网桥 -&gt; 网桥根据 MAC 地址表直接转发给 Pod B 的 veth pair -&gt; 进入 Pod B。</li>
+<li><strong>无需 NAT</strong>：同节点通信通常不需要经过 iptables 的 NAT 规则（除非有 NetworkPolicy 限制），直接通过二层交换完成，速度极快。</li>
+</ol>
+<p><strong>通信示意图：</strong></p>
+<pre><code class="language-text">+-----------------------+  Node (Host)
+|                       |
+|   +-------+           |
+|   | Pod A |---(veth)--+
+|   | 10.244.1.2        |      +---------+
+|   +-------+           +------|  cni0   | (Virtual Bridge)
+|                           +--| /172.17 |
+|   +-------+           +----|         |
+|   | Pod B |---(veth)--+    +---------+
+|   | 10.244.1.3        |           ^
+|   +-------+           |           | (Direct L2 Forwarding)
+|                       |           v
++-----------------------+    (No NAT, No Routing needed usually)
+</code></pre>
+<h3 id="63-跨主机之间的多个-pod-之间通信示意图及原理">63. 跨主机之间的多个 Pod 之间通信示意图及原理？</h3>
+<p><strong>原理：</strong><br>
+跨节点通信依赖于 CNI 插件实现的 Overlay 网络（如 VXLAN, IPIP）或路由模式（如 BGP）。以最常见的 <strong>Flannel VXLAN</strong> 为例：</p>
+<ol>
+<li><strong>路由查找</strong>：Pod A (Node 1) 发送数据包给 Pod B (Node 2)。Node 1 的路由表知道 Pod B 的网段属于 Node 2 的 IP。</li>
+<li><strong>封装 (Encapsulation)</strong>：
+<ul>
+<li>数据包到达 Node 1 的网桥。</li>
+<li><code>flanneld</code> 守护进程（或内核 VXLAN 模块）拦截数据包。</li>
+<li>将原始数据包（源 IP: Pod A, 目的 IP: Pod B）作为载荷，封装在一个新的 UDP 包中。</li>
+<li>新包头：源 IP = Node 1 IP, 目的 IP = Node 2 IP, 目的端口 = 8472 (VXLAN 默认)。</li>
+</ul>
+</li>
+<li><strong>物理传输</strong>：封装后的包通过物理网络发送到 Node 2。</li>
+<li><strong>解封装 (Decapsulation)</strong>：
+<ul>
+<li>Node 2 收到 UDP 包，识别是 VXLAN 流量。</li>
+<li>剥离外层包头，还原出原始数据包。</li>
+<li>根据内部目的 IP (Pod B)，通过本地网桥转发给 Pod B。</li>
+</ul>
+</li>
+</ol>
+<p><strong>通信示意图：</strong></p>
+<pre><code class="language-text">  Node 1                                      Node 2
++------------+                              +------------+
+|  Pod A     |                              |  Pod B     |
+| 10.244.1.2 |                              | 10.244.2.5 |
++-----+------+                              +-----+------+
+      | veth                                      ^ veth
+      v                                           |
++-----+------+                              +-----+------+
+|   cni0     |                              |   cni0     |
+| (Bridge)   |                              | (Bridge)   |
++-----+------+                              +-----+------+
+      |                                           ^
+      | [Original Pkt: Src=A, Dst=B]              |
+      v                                           |
++-----+------+                              +-----+------+
+| flannel.1  | (VXLAN Device)               | flannel.1  |
+| (Encap)    |                              | (Decap)    |
++-----+------+                              +-----+------+
+      |                                           ^
+      | [Outer Pkt: Src=Node1, Dst=Node2, Port=8472]
+      +-------------------------------------------+
+                 Physical Network (Underlay)
+</code></pre>
+<p><em>(注：如果是 Calico BGP 模式，则不需要封装，直接通过路由协议将 Pod 网段广播到物理网络，性能更高)</em></p>
+<h3 id="64-k8s-中同一个命名空间下服务间是怎么调用的">64. K8s 中同一个命名空间下服务间是怎么调用的？</h3>
+<p>在同一个 Namespace 内，服务发现非常简洁，依赖 <strong>CoreDNS</strong>。</p>
+<ol>
+<li><strong>DNS 解析</strong>：
+<ul>
+<li>应用 A 想要访问应用 B 的 Service，只需使用 Service 的名称，例如 <code>http://my-service</code>。</li>
+<li>Pod 内的 <code>/etc/resolv.conf</code> 配置了搜索域为当前 Namespace。</li>
+<li>DNS 查询请求发送给 CoreDNS，CoreDNS 解析 <code>my-service</code> 为对应的 <strong>ClusterIP</strong>。</li>
+</ul>
+</li>
+<li><strong>流量转发</strong>：
+<ul>
+<li>应用 A 向 ClusterIP 发起请求。</li>
+<li>节点上的 <code>kube-proxy</code> 监听到该 ClusterIP 的流量，根据 iptables 或 IPVS 规则，将流量负载均衡转发到后端某个具体的 Pod IP。</li>
+</ul>
+</li>
+<li><strong>简称调用</strong>：直接使用 <code>ServiceName</code> 即可。</li>
+</ol>
+<p><strong>示例：</strong></p>
+<pre><code class="language-yaml"># App A 访问 App B
+url: &quot;http://backend-service:8080&quot;
+# DNS 解析 backend-service -&gt; 10.96.x.x (ClusterIP)
+</code></pre>
+<h3 id="65-k8s-中不同命名空间下服务是怎么调用的">65. K8s 中不同命名空间下服务是怎么调用的？</h3>
+<p>跨 Namespace 调用需要使用 <strong>FQDN (Fully Qualified Domain Name)</strong> 格式。</p>
+<ol>
+<li><strong>DNS 格式</strong>：
+<ul>
+<li>格式：<code>&lt;ServiceName&gt;.&lt;NamespaceName&gt;.svc.cluster.local</code></li>
+<li>通常简写为：<code>&lt;ServiceName&gt;.&lt;NamespaceName&gt;</code> (因为 <code>svc.cluster.local</code> 是默认搜索后缀)。</li>
+</ul>
+</li>
+<li><strong>流程</strong>：
+<ul>
+<li>应用 A (NS: <code>dev</code>) 访问 应用 B (NS: <code>prod</code>)。</li>
+<li>调用地址：<code>http://db-service.prod</code>。</li>
+<li>CoreDNS 解析 <code>db-service.prod.svc.cluster.local</code> 得到 <code>prod</code> 命名空间下 <code>db-service</code> 的 ClusterIP。</li>
+<li>后续流量转发逻辑同单命名空间（通过 kube-proxy 转发）。</li>
+</ul>
+</li>
+<li><strong>注意</strong>：NetworkPolicy 可能会默认禁止跨 Namespace 流量，需确认策略允许。</li>
+</ol>
+<p><strong>示例：</strong></p>
+<pre><code class="language-bash"># 在 dev 命名空间的 Pod 中 curl prod 命名空间的 service
+curl http://redis-master.production
+# 完整域名：redis-master.production.svc.cluster.local
+</code></pre>
+<h3 id="66-externalname-类型的-service-的概念深入理解">66. ExternalName 类型的 Service 的概念深入理解？</h3>
+<p><strong>概念：</strong><br>
+<code>ExternalName</code> 是 Service 的一种特殊类型，它<strong>不创建 ClusterIP，也不设置 iptables/IPVS 规则，更不进行代理</strong>。<br>
+它的唯一作用是将 Service 映射到一个外部的 DNS 名称（CNAME 记录）。</p>
+<p><strong>工作原理：</strong></p>
+<ol>
+<li>
+<p><strong>定义</strong>：</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Service
+metadata:
+  name: my-db
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: db.example.com  # 外部真实域名
+</code></pre>
+</li>
+<li>
+<p><strong>调用过程</strong>：</p>
+<ul>
+<li>当 Pod 内应用访问 <code>my-db.default.svc.cluster.local</code> 时。</li>
+<li>CoreDNS 拦截请求，发现这是一个 <code>ExternalName</code> 类型的 Service。</li>
+<li>CoreDNS <strong>直接返回</strong> 配置中的 <code>db.example.com</code> 域名（作为 CNAME 记录）。</li>
+<li>客户端（Pod 内的应用）收到 CNAME 后，会<strong>再次</strong>发起 DNS 查询去解析 <code>db.example.com</code> 的真实 IP。</li>
+<li>客户端直接向 <code>db.example.com</code> 解析出的 IP 发起连接。</li>
+</ul>
+</li>
+<li>
+<p><strong>关键特点</strong>：</p>
+<ul>
+<li><strong>无代理</strong>：流量<strong>不经过</strong> kube-proxy，也不经过 Service 的虚拟 IP。它是直连外部服务的。</li>
+<li><strong>依赖 DNS</strong>：完全依赖集群内部的 DNS 解析能力。</li>
+<li><strong>用途</strong>：
+<ul>
+<li>将集群外的数据库、消息队列抽象为集群内的 Service 名称，使应用代码无需修改（代码里写 <code>my-db</code>，实际连的是外部 AWS RDS 或自建 MySQL）。</li>
+<li>实现服务迁移的透明化（先指向旧 IP，后期修改 Service 指向新 IP，应用无感知）。</li>
+</ul>
+</li>
+<li><strong>局限性</strong>：不支持端口映射（<code>externalName</code> 本身不带端口，依赖 DNS 解析后的默认端口或应用指定端口），不支持 Session Affinity，不支持选择器。</li>
+</ul>
+</li>
+</ol>
+<p><strong>深入理解总结：</strong><br>
+它本质上是一个 <strong>DNS 别名（CNAME）</strong>，而不是一个真正的负载均衡器或代理。它解决了“如何让集群内应用通过统一的 Service 名称访问集群外资源”的问题，实现了内外网服务寻址的统一接口。</p>
+<h2 id="7-日志和配置-logging-config">7. 日志和配置 (Logging &amp; Config)</h2>
+<h3 id="67-docker-镜像的优化方法有哪些">67. Docker 镜像的优化方法有哪些？</h3>
+<p>优化目标：<strong>减小体积</strong>、<strong>加快构建速度</strong>、<strong>提高安全性</strong>。</p>
+<ol>
+<li><strong>选择合适的基础镜像</strong>：
+<ul>
+<li>使用 <strong>Alpine</strong> 或 <strong>Distroless</strong> 镜像（体积极小，仅包含运行所需库，无 shell，安全性高）。</li>
+<li>避免使用 <code>ubuntu</code> 或 <code>centos</code> 等全量发行版，除非必须。</li>
+</ul>
+</li>
+<li><strong>多阶段构建 (Multi-stage Builds)</strong>：
+<ul>
+<li>在第一个阶段编译代码（需要 GCC, Maven 等重型工具）。</li>
+<li>在第二个阶段只复制编译好的二进制文件/产物到干净的基础镜像中。</li>
+<li><strong>效果</strong>：最终镜像不包含编译工具和源代码，体积可减少 90% 以上。</li>
+</ul>
+</li>
+<li><strong>优化 Dockerfile 指令顺序</strong>：
+<ul>
+<li>将<strong>变化频率低</strong>的指令（如安装系统依赖、复制 <code>package.json</code>）放在前面。</li>
+<li>将<strong>变化频率高</strong>的指令（如复制源代码 <code>COPY . .</code>）放在最后。</li>
+<li><strong>原理</strong>：充分利用 Docker 的<strong>层缓存 (Layer Cache)</strong>，加速构建。</li>
+</ul>
+</li>
+<li><strong>合并 RUN 指令</strong>：
+<ul>
+<li>将多个 <code>RUN</code> 命令合并为一个，用 <code>&amp;&amp;</code> 连接，并清理缓存（如 <code>apt-get clean</code>, <code>rm -rf /var/cache/apk/*</code>）。</li>
+<li><strong>效果</strong>：减少镜像层数（Layer），减小体积。</li>
+</ul>
+</li>
+<li><strong>使用 <code>.dockerignore</code></strong>：
+<ul>
+<li>排除不需要上传到 Docker 守护进程的文件（如 <code>.git</code>, <code>node_modules</code>, <code>logs</code>, <code>*.md</code>）。</li>
+<li><strong>效果</strong>：加快 <code>docker build</code> 上下文传输速度，避免敏感信息泄露。</li>
+</ul>
+</li>
+<li><strong>移除无用文件</strong>：
+<ul>
+<li>删除文档、man pages、临时文件。</li>
+<li>对于 Python/Node 应用，安装依赖时使用 <code>--no-cache-dir</code> 或 <code>production</code> 模式。</li>
+</ul>
+</li>
+</ol>
+<h3 id="68-k8s-中针对标准化输出方式stdoutstderr的日志如何进行收集">68. K8s 中针对标准化输出方式（stdout/stderr）的日志，如何进行收集？</h3>
+<p>这是 K8s 推荐的日志处理方式（Cloud-Native 方式）。</p>
+<ul>
+<li><strong>原理</strong>：容器进程将日志打印到标准输出（stdout）和标准错误（stderr）。Docker/Containerd 捕获这些流，并将其写入节点上的 JSON 文件（通常位于 <code>/var/log/pods/&lt;pod_uid&gt;/&lt;container_name&gt;/&lt;run_id&gt;.log</code>）。</li>
+<li><strong>收集方案</strong>：
+<ol>
+<li><strong>DaemonSet 模式（主流）</strong>：
+<ul>
+<li>在每个节点部署一个日志采集 Agent（如 <strong>Filebeat</strong>, <strong>Fluentd</strong>, <strong>Fluent Bit</strong>, <strong>Logstash</strong>）。</li>
+<li>Agent 以 DaemonSet 运行，挂载宿主机的 <code>/var/log/pods</code> 目录。</li>
+<li>Agent 实时监控日志文件变化，解析 JSON，添加 Pod 元数据（Namespace, Pod Name, Labels），然后发送到中央存储（如 <strong>Elasticsearch</strong>, <strong>Kafka</strong>, <strong>S3</strong>）。</li>
+</ul>
+</li>
+<li><strong>Sidecar 模式</strong>（不推荐用于纯 stdout 日志，资源开销大）：
+<ul>
+<li>在每个 Pod 中伴生一个日志容器，共享空目录卷，主容器将日志重定向到文件，Sidecar 收集发送。</li>
+</ul>
+</li>
+<li><strong>直接推送</strong>：
+<ul>
+<li>应用 SDK 直接将日志推送到日志后端（侵入性强，不推荐）。</li>
+</ul>
+</li>
+</ol>
+</li>
+</ul>
+<h3 id="69-k8s-中针对容器内部的日志文件如何进行收集">69. K8s 中针对容器内部的日志文件，如何进行收集？</h3>
+<p>很多传统应用会将日志写入容器内的文件（如 <code>/var/log/app/access.log</code>），而非 stdout。</p>
+<ul>
+<li><strong>挑战</strong>：容器重启后，内部文件会丢失（如果是 emptyDir 或未挂载持久卷）。</li>
+<li><strong>收集方案</strong>：
+<ol>
+<li><strong>Sidecar 模式（经典方案）</strong>：
+<ul>
+<li>在 Pod 中定义一个专门的日志 Sidecar 容器。</li>
+<li>主容器和 Sidecar 共享一个 <code>emptyDir</code> 或 <code>hostPath</code> 卷。</li>
+<li>主容器将日志写入该卷中的文件。</li>
+<li>Sidecar 容器运行日志采集 agent（如 filebeat），监控该卷中的文件并发送到后端。</li>
+<li><strong>缺点</strong>：每个 Pod 多跑一个容器，资源消耗大，管理复杂。</li>
+</ul>
+</li>
+<li><strong>DaemonSet + 宿主机路径映射（推荐方案）</strong>：
+<ul>
+<li>主容器将日志文件挂载到宿主机的特定目录（通过 <code>hostPath</code> 或特定的卷插件）。</li>
+<li>节点上的 DaemonSet 日志 Agent 监控宿主机上的这些特定目录。</li>
+<li><strong>注意</strong>：K8s 默认不推荐随意使用 <code>hostPath</code>，需规划好目录结构（如 <code>/var/log/myapp/&lt;namespace&gt;/&lt;pod&gt;</code>）。</li>
+</ul>
+</li>
+<li><strong>Log-Pilot / Filebeat 自动发现</strong>：
+<ul>
+<li>利用采集工具的自动发现机制，识别容器内的日志路径配置，直接从容器文件系统读取（需挂载 <code>/var/lib/docker</code> 或 <code>/run/containerd</code> 等，较复杂且依赖运行时）。</li>
+<li>更常见的做法是：<strong>修改应用配置</strong>，将日志路径指向一个挂载出来的 Volume，让外部 Agent 能访问到。</li>
+</ul>
+</li>
+</ol>
+</li>
+</ul>
+<h3 id="70-什么是标准输出日志什么是容器内部日志">70. 什么是标准输出日志？什么是容器内部日志？</h3>
+<ul>
+<li><strong>标准输出日志 (Standard Output/Stdout &amp; Stderr)</strong>：
+<ul>
+<li><strong>定义</strong>：应用程序将日志信息打印到操作系统的标准输出流（文件描述符 1）或标准错误流（文件描述符 2）。</li>
+<li><strong>特点</strong>：
+<ul>
+<li><strong>无状态</strong>：日志内容不保存在容器文件系统中，由容器运行时（Docker/Kubelet）接管并写入宿主机的日志文件。</li>
+<li><strong>生命周期</strong>：容器销毁后，日志仍保留在宿主机的日志文件中（直到被轮转清理）。</li>
+<li><strong>最佳实践</strong>：12-Factor App 原则推荐的方式，便于平台统一收集。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>容器内部日志 (Container Internal Log Files)</strong>：
+<ul>
+<li><strong>定义</strong>：应用程序将日志写入容器文件系统内的具体文件路径（如 <code>/app/logs/error.log</code>）。</li>
+<li><strong>特点</strong>：
+<ul>
+<li><strong>有状态（易失）</strong>：如果日志文件所在的目录没有被挂载为持久卷（PVC）或 HostPath，<strong>容器重启或销毁后，日志文件会随容器一起消失</strong>。</li>
+<li><strong>收集困难</strong>：需要进入容器内部或通过特殊挂载才能读取。</li>
+<li><strong>传统习惯</strong>：传统虚拟机部署应用的遗留习惯。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="71-k8s-中阿里云开源软件-log-pilot-如何收集标准化输出的日志">71. K8s 中阿里云开源软件 Log-Pilot 如何收集标准化输出的日志？</h3>
+<p><em>Log-Pilot 是阿里云开源的智能日志采集工具（底层基于 Filebeat），现已逐渐演进为更通用的方案，但其核心逻辑依然适用。</em></p>
+<ul>
+<li><strong>收集机制</strong>：
+<ol>
+<li><strong>DaemonSet 部署</strong>：Log-Pilot 以 DaemonSet 形式运行在每个节点。</li>
+<li><strong>监听 Docker/Containerd 事件</strong>：Log-Pilot 监听容器启动/停止事件。</li>
+<li><strong>自动挂载日志目录</strong>：它会自动挂载宿主机的 <code>/var/log/pods</code> (或 Docker 的 json-log 路径)。</li>
+<li><strong>标签过滤与解析</strong>：
+<ul>
+<li>通过读取容器的 Labels 或 Annotations（例如 <code>aliyun.logs.stdout=stdout</code>）。</li>
+<li>识别出哪些容器是输出到 stdout 的。</li>
+</ul>
+</li>
+<li><strong>采集与发送</strong>：
+<ul>
+<li>直接读取运行时生成的 JSON 日志文件。</li>
+<li>解析 JSON，提取时间戳、日志内容。</li>
+<li>自动注入 K8s 元数据（Pod Name, Namespace, Container Name）。</li>
+<li>根据配置输出到 Elasticsearch、Kafka 等。</li>
+</ul>
+</li>
+</ol>
+</li>
+<li><strong>配置示例</strong>（通过 Annotation）：<pre><code class="language-yaml">metadata:
+  annotations:
+    aliyun.logs.stdout: &quot;stdout&quot; # 告诉 Log-Pilot 采集该容器的标准输出
+    aliyun.logs.tags: &quot;app=nginx&quot; # 添加自定义标签
+</code></pre>
+</li>
+</ul>
+<h3 id="72-k8s-中阿里云开源软件-log-pilot-如何收集容器内的日志">72. K8s 中阿里云开源软件 Log-Pilot 如何收集容器内的日志？</h3>
+<ul>
+<li><strong>收集机制</strong>：
+<ol>
+<li><strong>文件路径发现</strong>：Log-Pilot 支持通过环境变量或 Annotation 指定容器内部的日志文件路径。</li>
+<li><strong>挂载点映射</strong>：
+<ul>
+<li>Log-Pilot 容器启动时，通常会挂载宿主机的整个文件系统根目录（或特定目录，如 <code>/</code> 挂载到 <code>/host</code>），或者利用 Docker 的驱动信息找到容器层的可读写层。</li>
+<li>它能够“穿透”到容器内部的文件系统视图中去读取文件。</li>
+</ul>
+</li>
+<li><strong>配置方式</strong>：
+<ul>
+<li>通过 Annotation 指定：<code>aliyun.logs.&lt;name&gt;=&lt;path&gt;</code>。</li>
+<li>例如：<code>aliyun.logs.access=/var/log/nginx/access.log</code>。</li>
+</ul>
+</li>
+<li><strong>工作流程</strong>：
+<ul>
+<li>Log-Pilot 扫描到该 Annotation。</li>
+<li>定位到对应容器的文件系统路径（例如 <code>/var/lib/docker/overlay2/.../merged/var/log/nginx/access.log</code>）。</li>
+<li>像读取本地文件一样 Tail 该文件。</li>
+<li>解析日志内容（支持正则、JSON、分隔符等格式）。</li>
+<li>添加元数据并发送。</li>
+</ul>
+</li>
+</ol>
+</li>
+<li><strong>优势</strong>：无需在业务 Pod 中配置 Sidecar，也无需业务容器修改挂载卷，实现了<strong>无侵入式</strong>的容器内文件日志采集。</li>
+</ul>
+<h3 id="73-k8s-中-pod-的亲和性affinity和反亲和性anti-affinity的概念如何配置">73. K8s 中 Pod 的亲和性（Affinity）和反亲和性（Anti-Affinity）的概念？如何配置？</h3>
+<p><strong>概念：</strong></p>
+<ul>
+<li><strong>亲和性 (Affinity)</strong>：一种调度规则，表示 Pod <strong>倾向于</strong> 或 <strong>必须</strong> 调度到满足特定条件的节点上（或靠近其他 Pod）。</li>
+<li><strong>反亲和性 (Anti-Affinity)</strong>：一种调度规则，表示 Pod <strong>尽量避免</strong> 或 <strong>禁止</strong> 调度到满足特定条件的节点上（或远离其他 Pod）。</li>
+<li><strong>目的</strong>：实现高可用（分散部署）、性能优化（就近部署）、硬件专用（GPU 节点）等。</li>
+</ul>
+<p><strong>类型：</strong></p>
+<ol>
+<li><strong>Node Affinity</strong>：基于<strong>节点标签</strong>的亲和/反亲和。</li>
+<li><strong>Pod Affinity/Anti-Affinity</strong>：基于<strong>已运行 Pod 的标签</strong>的亲和/反亲和。</li>
+</ol>
+<p><strong>硬性 vs 软性：</strong></p>
+<ul>
+<li><code>requiredDuringSchedulingIgnoredDuringExecution</code> (<strong>硬策略</strong>)：<strong>必须</strong>满足，否则不调度。</li>
+<li><code>preferredDuringSchedulingIgnoredDuringExecution</code> (<strong>软策略</strong>)：<strong>尽量</strong>满足，打分制，不满足也能调度。</li>
+</ul>
+<p><strong>配置示例 (YAML)：</strong></p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app
+spec:
+  affinity:
+    # 1. 节点亲和性 (Node Affinity)
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: disktype
+            operator: In
+            values:
+            - ssd  # 必须调度到有 disktype=ssd 标签的节点
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 1
+        preference:
+          matchExpressions:
+          - key: zone
+            operator: In
+            values:
+            - cn-hangzhou-a # 优先调度到 A 区
+
+    # 2. Pod 反亲和性 (Pod Anti-Affinity) - 常用于高可用
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - my-app # 匹配自身标签
+        topologyKey: kubernetes.io/hostname 
+        # 含义：同一个节点 (hostname) 上，不能运行两个 app=my-app 的 Pod
+        # 这样会强制将副本分散到不同节点
+        
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - database
+          topologyKey: topology.kubernetes.io/zone
+          # 含义：尽量不和 database 类型的 Pod 在同一个可用区 (Zone)
+</code></pre>
+<p><strong>关键点总结：</strong></p>
+<ul>
+<li><code>topologyKey</code>：定义“在一起”或“分开”的范围（如 <code>kubernetes.io/hostname</code> 指同一节点，<code>topology.kubernetes.io/zone</code> 指同一可用区）。</li>
+<li><strong>IgnoredDuringExecution</strong>：意味着一旦 Pod 调度成功，即使后续标签变化导致不再</li>
+</ul>
+<h2 id="8-存储和持久化-storage">8. 存储和持久化 (Storage)</h2>
+<p>以下是针对 Kubernetes 存储（PV）、Etcd 特性及 Raft 一致性算法的详细解答：</p>
+<h3 id="74-简述-kubernetes-中-pv-生命周期内的阶段有哪些">74. 简述 Kubernetes 中 PV 生命周期内的阶段有哪些？</h3>
+<p>PersistentVolume (PV) 的生命周期主要包含以下五个阶段（Phase）：</p>
+<ol>
+<li><strong>Available（可用）</strong>：
+<ul>
+<li>PV 已创建并存在于集群中，但尚未被任何 PersistentVolumeClaim (PVC) 绑定。</li>
+<li>此时 PV 处于空闲状态，等待匹配。</li>
+</ul>
+</li>
+<li><strong>Bound（已绑定）</strong>：
+<ul>
+<li>PV 已成功与某个 PVC 绑定。</li>
+<li>此时 PV 专属于该 PVC，其他 PVC 无法再使用此 PV。</li>
+</ul>
+</li>
+<li><strong>Released（已释放）</strong>：
+<ul>
+<li>关联的 PVC 已被用户删除。</li>
+<li>PV 对象本身仍存在，但资源已被释放。</li>
+<li><strong>注意</strong>：此时数据仍保留在底层存储中，PV <strong>不会</strong> 立即变为 <code>Available</code>，因为需要等待回收策略（Reclaim Policy）执行完毕（如删除数据或保留数据）。</li>
+</ul>
+</li>
+<li><strong>Failed（失败）</strong>：
+<ul>
+<li>PV 的自动回收过程失败（例如：云厂商 API 调用失败、存储后端故障、权限不足等）。</li>
+<li>需要管理员手动介入干预（修复存储问题或手动删除 PV）。</li>
+</ul>
+</li>
+<li><strong>Recycled / Terminating（回收中/终止中）</strong>：
+<ul>
+<li><em>注：<code>Recycled</code> 策略在较新版本 K8s 中已废弃，但在旧版本中存在。</em></li>
+<li>当 PVC 删除后，根据 <code>persistentVolumeReclaimPolicy</code> 的不同（<code>Retain</code>, <code>Delete</code>, <code>Recycle</code>），PV 会经历清理数据或删除底层存储资源的过程，最终回到 <code>Available</code> 或被彻底删除。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3 id="75-k8s-中-etcd-的特点">75. K8s 中 Etcd 的特点？</h3>
+<p>Etcd 是 Kubernetes 的核心数据库，存储集群的所有状态数据。其核心特点包括：</p>
+<ol>
+<li><strong>强一致性 (Strong Consistency)</strong>：
+<ul>
+<li>基于 <strong>Raft</strong> 共识算法，保证集群中所有节点的数据在任何时刻都是一致的。读取操作默认也是线性的（Linearizable），确保读到最新数据。</li>
+</ul>
+</li>
+<li><strong>高可用性 (High Availability)</strong>：
+<ul>
+<li>采用集群部署（通常奇数个节点，如 3, 5, 7），允许部分节点故障而不影响服务。只要超过半数节点存活，集群即可正常工作。</li>
+</ul>
+</li>
+<li><strong>键值存储 (Key-Value Store)</strong>：
+<ul>
+<li>数据结构简单，基于路径的层级键值对（类似文件系统目录结构），非常适合存储配置信息和状态元数据。</li>
+</ul>
+</li>
+<li><strong>Watch 机制 (监听/通知)</strong>：
+<ul>
+<li>支持客户端对特定 Key 或目录进行监听。当数据发生变化时，Etcd 会主动推送通知给客户端。这是 K8s Controller 模式（控制循环）的基础。</li>
+</ul>
+</li>
+<li><strong>轻量级与高性能</strong>：
+<ul>
+<li>用 Go 语言编写，编译为单一二进制文件，部署简单。针对读写优化，但在高并发写场景下性能会有瓶颈（K8s 主要是读多写少，适合 Etcd）。</li>
+</ul>
+</li>
+<li><strong>安全性</strong>：
+<ul>
+<li>支持 TLS 加密通信和基于角色的访问控制 (RBAC)。</li>
+</ul>
+</li>
+<li><strong>TTL (Time To Live)</strong>：
+<ul>
+<li>支持键的过期时间，常用于实现分布式锁或临时注册信息（K8s 中 Node 的心跳检测依赖此机制）。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3 id="76-简述-etcd-适应的场景">76. 简述 Etcd 适应的场景？</h3>
+<p>Etcd 的设计目标决定了它适用的场景：</p>
+<ol>
+<li><strong>服务发现与服务注册</strong>：
+<ul>
+<li>利用其 Key-Value 结构和 Watch 机制，服务启动时注册 IP，客户端监听变化获取最新服务列表（K8s 的核心功能）。</li>
+</ul>
+</li>
+<li><strong>配置管理与共享</strong>：
+<ul>
+<li>存储应用的配置信息，支持动态更新配置并实时通知应用生效（如 K8s 的 ConfigMap 底层存储）。</li>
+</ul>
+</li>
+<li><strong>分布式锁与选举</strong>：
+<ul>
+<li>利用 TTL 和原子操作（Compare-And-Swap），实现分布式环境下的互斥锁和 Leader 选举。</li>
+</ul>
+</li>
+<li><strong>集群状态存储</strong>：
+<ul>
+<li>存储整个集群的“真实状态”（Source of Truth），如 Pod 定义、Node 状态、Secret 等（K8s 的主要用途）。</li>
+</ul>
+</li>
+<li><strong>不适用场景</strong>：
+<ul>
+<li><strong>海量数据存储</strong>：Etcd 不适合存储大量非结构化数据或大文件（建议 Value 大小控制在 1MB 以内，总数据量建议在 GB 级别，不宜过大）。</li>
+<li><strong>高频写入</strong>：由于 Raft 协议需要多数派确认，写性能受限，不适合高吞吐的日志存储或消息队列场景。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3 id="77-etcd-集群节点之间是怎么同步数据的">77. Etcd 集群节点之间是怎么同步数据的？</h3>
+<p>Etcd 集群通过 <strong>Raft 协议</strong> 进行数据同步，核心流程如下：</p>
+<ol>
+<li><strong>角色划分</strong>：
+<ul>
+<li><strong>Leader (领导者)</strong>：集群中唯一能处理写请求的节点。所有写操作必须先发给 Leader。</li>
+<li><strong>Follower (跟随者)</strong>：被动接收 Leader 的日志复制，处理读请求（取决于一致性级别）。</li>
+<li><strong>Candidate (候选人)</strong>：当 Leader 挂掉或超时，Follower 转变为 Candidate 发起选举。</li>
+</ul>
+</li>
+<li><strong>写同步流程</strong>：
+<ul>
+<li><strong>接收请求</strong>：Client 发送写请求给 Leader。</li>
+<li><strong>追加日志</strong>：Leader 将操作作为一条日志条目（Log Entry）追加到自己的本地日志中。</li>
+<li><strong>复制日志</strong>：Leader 并行地将该日志条目发送给所有 Follower。</li>
+<li><strong>多数派确认</strong>：Follower 收到日志后写入本地，并回复 ACK。当 Leader 收到<strong>超过半数 (Quorum)</strong> 节点的 ACK 后，认为该日志已提交（Committed）。</li>
+<li><strong>应用状态</strong>：Leader 将日志应用到状态机（更新内存中的数据树），并通知 Follower 应用该日志。</li>
+<li><strong>返回结果</strong>：Leader 向 Client 返回成功。</li>
+</ul>
+</li>
+<li><strong>心跳机制</strong>：
+<ul>
+<li>Leader 定期向 Follower 发送心跳包（空日志），维持领导地位并防止 Follower 发起选举。</li>
+</ul>
+</li>
+<li><strong>快照 (Snapshot)</strong>：
+<ul>
+<li>当日志文件过大时，Leader 会生成快照，将当前状态压缩保存，并发送给落后的 Follower，以加快同步速度并截断旧日志。</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h3 id="78-raft-一致性算法核心解析顺便介绍下">78. Raft 一致性算法核心解析（顺便介绍下）</h3>
+<p><strong>Raft</strong> 是一种易于理解的一致性算法，旨在替代复杂的 Paxos。它的核心思想是将一致性问题分解为三个子问题：<strong>Leader 选举</strong>、<strong>日志复制</strong>、<strong>安全性</strong>。</p>
+<h4 id="1-节点状态">1. 节点状态</h4>
+<p>每个节点处于以下三种状态之一：</p>
+<ul>
+<li><strong>Follower</strong>：被动状态，只响应 Leader 和 Candidate 的请求。</li>
+<li><strong>Candidate</strong>：选举过程中的临时状态。</li>
+<li><strong>Leader</strong>：处理所有客户端请求，负责日志复制。</li>
+</ul>
+<h4 id="2-核心机制">2. 核心机制</h4>
+<p><strong>A. Leader 选举 (Leader Election)</strong></p>
+<ul>
+<li><strong>触发</strong>：系统启动时所有节点都是 Follower。如果 Follower 在随机超时时间（Election Timeout）内没收到 Leader 的心跳，就转变为 Candidate。</li>
+<li><strong>拉票</strong>：Candidate 增加当前任期号（Term），向其他节点发送 <code>RequestVote</code> RPC。</li>
+<li><strong>投票</strong>：其他节点如果在该任期内还没投过票，且 Candidate 的日志比自己新（或至少一样新），就投赞成票。</li>
+<li><strong>当选</strong>：Candidate 获得<strong>多数派</strong>选票后，成为 Leader，并开始发送心跳。其他 Candidate 退回到 Follower。</li>
+<li><strong>分裂投票</strong>：如果多个节点同时超时成为 Candidate，导致票数分散，无人当选。它们会等待新的随机超时时间后再次尝试，概率上总会有一方先超时从而赢得选举。</li>
+</ul>
+<p><strong>B. 日志复制 (Log Replication)</strong></p>
+<ul>
+<li><strong>唯一入口</strong>：只有 Leader 能接收写请求。</li>
+<li><strong>流程</strong>：
+<ol>
+<li>Leader 接收命令，追加到本地日志。</li>
+<li>并行发送给所有 Follower。</li>
+<li>一旦多数派节点成功写入日志，Leader 提交（Commit）该条目。</li>
+<li>Leader 通知 Follower 提交，并应用到状态机。</li>
+</ol>
+</li>
+<li><strong>一致性保证</strong>：Raft 保证如果一条日志被提交，那么它一定存在于大多数节点的日志中，且未来的 Leader 必然包含这条日志。</li>
+</ul>
+<p><strong>C. 安全性 (Safety)</strong></p>
+<ul>
+<li><strong>选举限制</strong>：Candidate 必须拥有“至少和其他节点一样新”的日志才能当选 Leader。这保证了已提交的日志不会丢失。</li>
+<li><strong>Leader 完整性</strong>：一旦某条日志被提交，它将永远存在于后续的 Leader 中。</li>
+<li><strong>状态机安全</strong>：如果两个节点在同一个索引位置应用了日志，那么这两条日志一定是相同的。</li>
+</ul>
+<h4 id="3-为什么-k8s-选择-raft-而不是-paxos">3. 为什么 K8s 选择 Raft 而不是 Paxos？</h4>
+<ul>
+<li><strong>易理解性</strong>：Raft 将复杂的一致性逻辑拆解得非常清晰，工程实现和调试更容易。</li>
+<li><strong>强 Leader 模型</strong>：简化了日志复制流程，避免了 Paxos 多主或多阶段提交的复杂性，虽然写性能受限于 Leader，但对于 K8s 这种“读多写少”且强依赖一致性的场景非常合适。</li>
+</ul>
+<p><strong>总结图示逻辑：</strong></p>
+<pre><code class="language-text">[Client] --&gt; [Leader] --(Replicate Log)--&gt; [Follower 1]
+                     |                    [Follower 2] (Majority)
+                     |&lt;--(Ack)------------^
+                     |&lt;--(Ack)------------^
+[Leader] Commits Log --&gt; Applies to State Machine
+</code></pre>
+<h2 id="9-综合问题-comprehensive">9. 综合问题 (Comprehensive)</h2>
+<h3 id="79-简述-kubernetes-和-docker-的关系和区别">79. 简述 Kubernetes 和 Docker 的关系和区别？</h3>
+<ul>
+<li><strong>关系</strong>：
+<ul>
+<li><strong>互补而非竞争</strong>：Docker 是<strong>容器运行时</strong>（负责打包、构建镜像、运行单个容器），Kubernetes 是<strong>容器编排平台</strong>（负责管理成百上千个容器的生命周期、调度、 networking、存储）。</li>
+<li><strong>历史演变</strong>：早期 K8s 强依赖 Docker Engine 作为运行时。但从 v1.20 起，K8s 弃用了 Docker Shim，转而直接使用符合 <strong>CRI (Container Runtime Interface)</strong> 标准的运行时（如 containerd, CRI-O）。现在 Docker 更多用于本地开发和镜像构建，而生产环境 K8s 节点通常直接运行 containerd。</li>
+</ul>
+</li>
+<li><strong>区别</strong>：
+<ul>
+<li><strong>层级</strong>：Docker 是工具/引擎；K8s 是操作系统/集群管理系统。</li>
+<li><strong>范围</strong>：Docker 关注单机容器；K8s 关注多机集群协调。</li>
+<li><strong>功能</strong>：Docker 提供 <code>docker build/run</code>；K8s 提供自动扩缩容、自愈、服务发现、负载均衡、滚动更新等高级功能。</li>
+</ul>
+</li>
+</ul>
+<h3 id="80-简述-kubernetes-的-cni-模型">80. 简述 Kubernetes 的 CNI 模型？</h3>
+<ul>
+<li><strong>CNI (Container Network Interface)</strong> 是 CNCF 制定的标准接口规范，用于配置容器网络。</li>
+<li><strong>核心机制</strong>：
+<ol>
+<li><strong>插件化</strong>：K8s 本身不实现网络，而是调用 CNI 插件（如 Calico, Flannel, Cilium, Weave）。</li>
+<li><strong>调用时机</strong>：当 Kubelet 创建 Pod 时，会调用 CNI 插件为 Pod 分配 IP 地址并配置网络接口（veth pair）。</li>
+<li><strong>输入输出</strong>：Kubelet 将包含容器 ID、网络命名空间路径等信息的 JSON 配置文件传给 CNI 插件，插件执行网络配置后返回结果（主要是 IP 地址）。</li>
+<li><strong>IPAM</strong>：CNI 通常配合 IPAM (IP Address Management) 插件来管理 IP 池的分配。</li>
+</ol>
+</li>
+<li><strong>目标</strong>：实现“每个 Pod 一个 IP”，且所有 Pod 无需 NAT 即可互相通信。</li>
+</ul>
+<h3 id="81-简述-kubernetes-如何实现集群管理">81. 简述 Kubernetes 如何实现集群管理？</h3>
+<p>K8s 采用 <strong>控制平面 (Control Plane)</strong> 与 <strong>工作节点 (Worker Nodes)</strong> 分离的架构，基于 <strong>声明式 API</strong> 和 <strong>控制循环 (Control Loop)</strong> 进行管理：</p>
+<ol>
+<li><strong>API Server</strong>：集群的统一入口，所有组件通过 REST API 交互。</li>
+<li><strong>Etcd</strong>：存储集群所有状态数据（Source of Truth）。</li>
+<li><strong>Controller Manager</strong>：运行各种控制器（如 Deployment Controller, Node Controller），不断对比 <strong>期望状态</strong>（用户定义的 YAML）和 <strong>实际状态</strong>（Etcd 中的数据），驱动集群向期望状态收敛。</li>
+<li><strong>Scheduler</strong>：负责将未调度的 Pod 分配到合适的节点。</li>
+<li><strong>Kubelet</strong>：运行在每个节点上，监听 API Server，负责启动/停止容器，汇报节点状态。</li>
+<li><strong>Kube-Proxy</strong>：维护节点网络规则，实现 Service 的负载均衡。</li>
+</ol>
+<ul>
+<li><strong>核心逻辑</strong>：用户提交 YAML -&gt; API Server 写入 Etcd -&gt; 控制器检测到变化 -&gt; 执行操作（如调用 Scheduler 或通知 Kubelet）-&gt; Kubelet 调用 CRI/CNI -&gt; 状态更新回 Etcd。</li>
+</ul>
+<h3 id="82-简述-kubernetes-的优势-适应场景及其特点">82. 简述 Kubernetes 的优势、适应场景及其特点？</h3>
+<ul>
+<li><strong>优势</strong>：
+<ul>
+<li><strong>高可用与自愈</strong>：节点故障自动迁移 Pod，容器崩溃自动重启。</li>
+<li><strong>弹性伸缩</strong>：支持 HPA（Pod 级）和 CA（节点级）自动扩缩容。</li>
+<li><strong>服务发现与负载均衡</strong>：内置 Service 和 DNS。</li>
+<li><strong>声明式配置</strong>：基础设施即代码 (IaC)，版本可控。</li>
+<li><strong>生态丰富</strong>：拥有庞大的 CNCF 生态系统。</li>
+</ul>
+</li>
+<li><strong>适应场景</strong>：
+<ul>
+<li>微服务架构应用。</li>
+<li>需要频繁发布、回滚的应用。</li>
+<li>混合云/多云部署。</li>
+<li>大数据、AI 训练任务调度。</li>
+</ul>
+</li>
+<li><strong>特点</strong>：轻量级（相对虚拟机）、可移植性强、自动化程度高。</li>
+</ul>
+<h3 id="83-同一节点上的-pod-通信原理">83. 同一节点上的 Pod 通信原理？</h3>
+<ul>
+<li><strong>原理</strong>：通过 <strong>虚拟网桥 (Bridge)</strong> 进行二层转发。</li>
+<li><strong>流程</strong>：
+<ol>
+<li>CNI 插件在节点上创建一个网桥（如 <code>cni0</code>）。</li>
+<li>每个 Pod 通过 veth pair 连接到该网桥。</li>
+<li>Pod A 发送数据包 -&gt; veth -&gt; 网桥 -&gt; 网桥根据 MAC 地址表直接转发给 Pod B 的 veth -&gt; Pod B。</li>
+<li><strong>特点</strong>：不走 iptables NAT，延迟极低，类似同一交换机下的通信。</li>
+</ol>
+</li>
+</ul>
+<h3 id="84-不同节点上的-pod-通信原理">84. 不同节点上的 Pod 通信原理？</h3>
+<ul>
+<li><strong>原理</strong>：依赖 CNI 插件实现的 <strong>Overlay 网络</strong> (如 VXLAN, IPIP) 或 <strong>路由模式</strong> (如 BGP)。</li>
+<li><strong>流程 (以 VXLAN 为例)</strong>：
+<ol>
+<li>Pod A (Node 1) 发送包给 Pod B (Node 2)。</li>
+<li>Node 1 的 CNI 组件拦截包，将其封装在 UDP 包中（外层 IP 为 Node 1 和 Node 2 的 IP）。</li>
+<li>物理网络传输到 Node 2。</li>
+<li>Node 2 解封装，还原原始包，通过本地网桥交给 Pod B。</li>
+</ol>
+</li>
+<li><strong>特点</strong>：对应用透明，应用看到的始终是 Pod IP，底层由 CNI 处理跨机路由。</li>
+</ul>
+<h3 id="85-简述-kubernetes-scheduler-使用哪两种算法将-pod-调度到-node">85. 简述 Kubernetes Scheduler 使用哪两种算法将 Pod 调度到 Node？</h3>
+<p>调度过程分为两个阶段：</p>
+<ol>
+<li><strong>预选 (Predicates / Filtering)</strong>：
+<ul>
+<li><strong>作用</strong>：过滤掉不满足条件的节点。</li>
+<li><strong>策略</strong>：资源充足性（CPU/Mem）、端口冲突、节点亲和性/污点容忍、卷绑定等。</li>
+<li><strong>结果</strong>：得到一个合格节点列表。</li>
+</ul>
+</li>
+<li><strong>优选 (Priorities / Scoring)</strong>：
+<ul>
+<li><strong>作用</strong>：对合格节点进行打分，选择得分最高的。</li>
+<li><strong>策略</strong>：资源均衡度（避免倾斜）、节点亲和性权重、Pod 反亲和性（分散部署）、拓扑分布约束等。</li>
+<li><strong>结果</strong>：选出最优节点进行绑定 (Bind)。</li>
+</ul>
+</li>
+</ol>
+<h3 id="86-简述-kubernetes-如何保证集群的安全性">86. 简述 Kubernetes 如何保证集群的安全性？</h3>
+<ol>
+<li><strong>认证 (Authentication)</strong>：确认用户身份（x509 证书、Bearer Token、ServiceAccount）。</li>
+<li><strong>授权 (Authorization)</strong>：确认用户权限（RBAC - 基于角色的访问控制，ABAC, Webhook）。</li>
+<li><strong>准入控制 (Admission Control)</strong>：请求落地前的最后检查（如限制特权容器、强制镜像签名、资源配额 LimitRange/ResourceQuota）。</li>
+<li><strong>网络安全</strong>：NetworkPolicy 限制 Pod 间流量，TLS 加密组件间通信。</li>
+<li><strong>秘密管理</strong>：Secret 对象加密存储敏感信息（建议开启 Etcd 静态加密）。</li>
+<li><strong>镜像安全</strong>：扫描漏洞，使用可信仓库，禁止 root 运行。</li>
+</ol>
+<h3 id="87-k8s-中-namespace-的作用">87. K8s 中 Namespace 的作用？</h3>
+<ul>
+<li><strong>逻辑隔离</strong>：将集群资源划分为多个虚拟子集群。</li>
+<li><strong>用途</strong>：
+<ul>
+<li><strong>多租户</strong>：不同团队/项目使用不同 Namespace，互不干扰。</li>
+<li><strong>环境隔离</strong>：dev, test, prod 环境分开。</li>
+<li><strong>资源配额</strong>：可在 Namespace 级别设置 ResourceQuota 和 LimitRange。</li>
+<li><strong>权限隔离</strong>：RBAC 角色绑定通常限定在特定 Namespace。</li>
+</ul>
+</li>
+<li><strong>注意</strong>：Namespace 不是严格的.security 边界（默认网络互通，需 NetworkPolicy 隔离），主要是管理边界。</li>
+</ul>
+<h3 id="88-pod-是什么">88. Pod 是什么？</h3>
+<ul>
+<li><strong>定义</strong>：K8s 中最小的<strong>调度单元</strong>和<strong>部署单元</strong>。</li>
+<li><strong>特点</strong>：
+<ul>
+<li>一个 Pod 可以包含一个或多个紧密耦合的容器（共享网络、存储、IPC）。</li>
+<li>拥有独立的 IP 地址。</li>
+<li>生命周期短暂，不可变（不可直接修改，需重建）。</li>
+<li>由控制器（Deployment, StatefulSet 等）管理，而非直接创建。</li>
+</ul>
+</li>
+</ul>
+<h3 id="89-什么是静态-podstatic-pod">89. 什么是静态 Pod（Static Pod）？</h3>
+<ul>
+<li><strong>定义</strong>：不由 API Server 管理，而是由 <strong>Kubelet</strong> 直接监控特定目录（如 <code>/etc/kubernetes/manifests</code>）下的 YAML 文件创建和管理的 Pod。</li>
+<li><strong>特点</strong>：
+<ul>
+<li><strong>无法通过 <code>kubectl</code> 删除/修改</strong>（只能修改文件或删文件）。</li>
+<li><strong>高可用关键</strong>：通常用于部署控制平面组件（API Server, Etcd, Scheduler, Controller Manager），确保即使 API Server 挂了，这些核心组件也能由 Kubelet 维持运行。</li>
+<li><strong>可见性</strong>：会在 API Server 中创建一个“镜像”Pod 供查看，状态为 Pending（实际上由 Kubelet 运行）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="90-简述-k8s-中-pod-的常见调度方式">90. 简述 K8s 中 Pod 的常见调度方式？</h3>
+<ol>
+<li><strong>自动调度</strong>：默认调度器根据资源和服务策略自动选择。</li>
+<li><strong>指定节点 (nodeName)</strong>：强制指定具体节点名。</li>
+<li><strong>节点选择器 (nodeSelector)</strong>：基于标签简单匹配。</li>
+<li><strong>节点亲和性 (Node Affinity)</strong>：基于标签的复杂逻辑匹配（硬/软）。</li>
+<li><strong>污点与容忍 (Taints &amp; Tolerations)</strong>：节点排斥，Pod 需容忍才能调度。</li>
+<li><strong>Pod 亲和/反亲和</strong>：根据其他 Pod 的位置调度。</li>
+<li><strong>拓扑分布约束</strong>：跨域均匀分布。</li>
+</ol>
+<h3 id="91-简述一下在-k8s-中删除-pod-的流程">91. 简述一下在 K8s 中删除 Pod 的流程？</h3>
+<ol>
+<li><strong>接收请求</strong>：用户执行 <code>kubectl delete</code>，API Server 接收请求。</li>
+<li><strong>更新状态</strong>：API Server 将 Pod 标记为 <code>Terminating</code>，记录 <code>deletionTimestamp</code>。</li>
+<li><strong>移除端点</strong>：Endpoint Controller 检测到状态变化，将该 Pod IP 从 Service 的 Endpoints 列表中移除（切断流量）。</li>
+<li><strong>PreStop 钩子</strong>：如果定义了 <code>preStop</code> 生命周期钩子，Kubelet 执行它（用于优雅关闭）。</li>
+<li><strong>发送 SIGTERM</strong>：Kubelet 向容器主进程发送 <code>SIGTERM</code> 信号，应用开始清理工作。</li>
+<li><strong>等待宽限期</strong>：等待 <code>terminationGracePeriodSeconds</code>（默认 30s）。</li>
+<li><strong>强制杀死</strong>：若超时仍未退出，发送 <code>SIGKILL</code> 强制终止。</li>
+<li><strong>清理资源</strong>：Kubelet 清理容器、网络、挂载卷等资源。</li>
+<li><strong>最终删除</strong>：Kubelet 通知 API Server，API Server 从 Etcd 中彻底删除 Pod 对象。</li>
+</ol>
+<h3 id="92-pod-的资源请求request和限制limit如何定义">92. Pod 的资源请求（Request）和限制（Limit）如何定义？</h3>
+<p>在 Pod Spec 的 <code>containers</code> 字段中定义：</p>
+<ul>
+<li><strong>requests</strong>：调度依据。K8s 保证节点至少有这么多资源可用。用于计算 QoS 等级。</li>
+<li><strong>limits</strong>：运行上限。容器不能超过此限制，否则会被 OOMKilled (内存) 或 Throttled (CPU)。</li>
+</ul>
+<pre><code class="language-yaml">resources:
+  requests:
+    memory: &quot;64Mi&quot;
+    cpu: &quot;250m&quot;
+  limits:
+    memory: &quot;128Mi&quot;
+    cpu: &quot;500m&quot;
+</code></pre>
+<h3 id="93-标签labels及标签选择器label-selectors是什么作用是什么">93. 标签（Labels）及标签选择器（Label Selectors）是什么，作用是什么？</h3>
+<ul>
+<li><strong>Labels</strong>：键值对元数据（Key=Value），附加在对象（Pod, Node, Service 等）上。用于标识对象的属性（如 <code>app=nginx</code>, <code>env=prod</code>）。</li>
+<li><strong>Label Selectors</strong>：查询语句，用于筛选具有特定标签的对象。
+<ul>
+<li><strong>等值</strong>：<code>app=nginx</code></li>
+<li><strong>集合</strong>：<code>env in (prod, dev)</code></li>
+<li><strong>存在性</strong>：<code>env</code> (只要存在该 key)</li>
+</ul>
+</li>
+<li><strong>作用</strong>：
+<ul>
+<li><strong>关联对象</strong>：Service 通过 Selector 找到后端 Pod；Deployment 通过 Selector 管理 ReplicaSet。</li>
+<li><strong>调度</strong>：Node Selector/Affinity 基于标签调度。</li>
+<li><strong>监控/日志</strong>：筛选特定组别的资源进行采集。</li>
+<li><strong>批量操作</strong>：<code>kubectl delete pods -l app=nginx</code>。</li>
+</ul>
+</li>
+</ul>
+<h3 id="94-service-的域名解析格式">94. Service 的域名解析格式？</h3>
+<p>K8s 内部通过 CoreDNS 解析，格式遵循：<br>
+<code>&lt;ServiceName&gt;.&lt;Namespace&gt;.svc.cluster.local</code></p>
+<ul>
+<li><strong>同命名空间</strong>：可直接用 <code>&lt;ServiceName&gt;</code>。</li>
+<li><strong>跨命名空间</strong>：需用 <code>&lt;ServiceName&gt;.&lt;Namespace&gt;</code>。</li>
+<li><strong>完整 FQDN</strong>：上述长格式，确保全局唯一。</li>
+</ul>
+<h3 id="95-pod-与-service-的通信信息是怎么样的">95. Pod 与 Service 的通信信息是怎么样的？</h3>
+<ul>
+<li><strong>虚拟 IP (ClusterIP)</strong>：Pod 访问 Service 时，目标是 Service 的 ClusterIP 和端口。</li>
+<li><strong>iptables/IPVS 规则</strong>：节点上的 Kube-Proxy 监听该 ClusterIP，通过内核网络规则将流量 <strong>NAT/DNAT</strong> 转发到后端某个具体的 Pod IP。</li>
+<li><strong>负载均衡</strong>：转发策略通常是轮询（iptables 随机，IPVS 支持多种算法）。</li>
+<li><strong>会话保持</strong>：默认无状态，若需会话保持需配置 <code>sessionAffinity: ClientIP</code>。</li>
+</ul>
+<h3 id="96-在-k8s-集群内的应用如何访问外部的服务">96. 在 K8s 集群内的应用如何访问外部的服务？</h3>
+<ol>
+<li><strong>ExternalName Service</strong>：将 Service 映射为外部域名（CNAME），应用访问 Service 域名，DNS 解析到外部 IP。</li>
+<li><strong>直接 IP/域名访问</strong>：应用代码直接配置外部服务的 IP 或公网域名（需节点能通外网）。</li>
+<li><strong>Egress Gateway</strong>：通过 Istio 等网格组件或专用网关统一出口，进行流量控制和审计。</li>
+<li><strong>NAT Gateway</strong>：节点通过云厂商的 NAT 网关访问公网。</li>
+</ol>
+<h3 id="97-service-endpoint-kube-proxy-三者的关系是什么">97. Service、Endpoint、Kube-Proxy 三者的关系是什么？</h3>
+<ul>
+<li><strong>Service</strong>：定义了一组 Pod 的逻辑访问入口（VIP + 端口 + 选择器）。</li>
+<li><strong>Endpoint</strong>：Service 的“后端列表”。Endpoint Controller 监听 Service 和 Pod 变化，将符合 Service Selector 的 <strong>Pod IP:Port</strong> 实时更新到 Endpoint 对象中。</li>
+<li><strong>Kube-Proxy</strong>：监听 <strong>Endpoint</strong> 的变化。一旦 Endpoint 更新，Kube-Proxy 就在节点上刷新 <strong>iptables/IPVS 规则</strong>，确保发往 Service VIP 的流量能被正确转发到最新的 Pod IP 列表。</li>
+<li><strong>总结</strong>：Service 是抽象定义，Endpoint 是实时状态，Kube-Proxy 是执行者。</li>
+</ul>
+<h3 id="98-pod-创建删除时service-endpoint-kube-proxy-三者发生了什么变化">98. Pod 创建/删除时，Service、Endpoint、Kube-Proxy 三者发生了什么变化？</h3>
+<ul>
+<li><strong>Pod 创建 (且标签匹配 Service)</strong>：
+<ol>
+<li><strong>Endpoint Controller</strong> 发现新 Pod，将其 IP 添加到对应的 <strong>Endpoint</strong> 列表中。</li>
+<li><strong>Kube-Proxy</strong> 监听到 Endpoint 变更，在所有节点的 iptables/IPVS 中<strong>添加一条转发规则</strong>，指向新 Pod IP。</li>
+<li><strong>Service</strong> 本身定义不变，但后端容量增加。</li>
+</ol>
+</li>
+<li><strong>Pod 删除</strong>：
+<ol>
+<li><strong>Endpoint Controller</strong> 发现 Pod 终止，将其 IP 从 <strong>Endpoint</strong> 列表中移除。</li>
+<li><strong>Kube-Proxy</strong> 监听到变更，<strong>删除对应的转发规则</strong>，流量不再发往该 Pod。</li>
+<li>若 Pod 正在终止，Service 会先停止向其分发新流量（优雅下线）。</li>
+</ol>
+</li>
+</ul>
+<h3 id="99-deployment-怎么扩容或缩容">99. Deployment 怎么扩容或缩容？</h3>
+<ol>
+<li><strong>命令方式</strong>：
+<ul>
+<li><code>kubectl scale deployment &lt;name&gt; --replicas=5</code></li>
+</ul>
+</li>
+<li><strong>修改 YAML</strong>：
+<ul>
+<li>编辑 <code>spec.replicas</code> 字段，apply 生效。</li>
+</ul>
+</li>
+<li><strong>自动扩缩容 (HPA)</strong>：
+<ul>
+<li>配置 HorizontalPodAutoscaler，根据 CPU/内存或自定义指标自动调整 replicas 数量。</li>
+</ul>
+</li>
+</ol>
+<ul>
+<li><strong>原理</strong>：Deployment 控制器检测到 replicas 数变化，创建或删除对应的 ReplicaSet，进而创建或终止 Pod。</li>
+</ul>
+<h3 id="100-k8s-数据持久化的方式有哪些">100. K8s 数据持久化的方式有哪些？</h3>
+<ol>
+<li><strong>EmptyDir</strong>：临时存储，随 Pod 销毁而消失（用于缓存、临时交换空间）。</li>
+<li><strong>HostPath</strong>：挂载宿主机文件系统，风险高，仅限单节点测试或特权系统组件。</li>
+<li><strong>NFS / GlusterFS / CephFS</strong>：网络文件系统，支持多节点读写，适合共享存储。</li>
+<li><strong>云厂商块存储 (Cloud Volumes)</strong>：
+<ul>
+<li>AWS EBS, GCP PD, Azure Disk, 阿里云云盘等。</li>
+<li>通常通过 <strong>CSI (Container Storage Interface)</strong> 驱动动态供给 PV。</li>
+<li>特性：高性能，通常支持 ReadWriteOnce (RWO)。</li>
+</ul>
+</li>
+<li><strong>对象存储 (S3/OSS)</strong>：通过挂载工具（如 s3fs）或应用 SDK 访问，适合非结构化数据。</li>
+<li><strong>StatefulSet + PVC</strong>：有状态应用的标准持久化方案，保证 Pod 重启后挂载相同的 PV。</li>
+</ol>
+<h2 id="10-高级主题-advanced-topics">10. 高级主题 (Advanced Topics)</h2>
+<h3 id="101-什么是-kubernetes它的主要目标是什么">101. 什么是 Kubernetes？它的主要目标是什么？</h3>
+<ul>
+<li><strong>定义</strong>：Kubernetes (K8s) 是一个开源的<strong>容器编排引擎</strong>，用于自动化部署、扩展和管理容器化应用程序。它由 Google 设计并捐赠给 CNCF。</li>
+<li><strong>主要目标</strong>：
+<ol>
+<li><strong>自动化部署与回滚</strong>：自动发布应用，若失败则自动回滚。</li>
+<li><strong>服务发现与负载均衡</strong>：无需修改应用代码，自动分配 IP 和 DNS。</li>
+<li><strong>存储编排</strong>：自动挂载本地或云存储。</li>
+<li><strong>自动扩缩容</strong>：根据负载自动调整 Pod 数量或节点数量。</li>
+<li><strong>自愈能力</strong>：自动重启失败的容器，替换不可用的节点。</li>
+<li><strong>密钥与配置管理</strong>：安全地管理敏感信息和配置文件。</li>
+</ol>
+</li>
+</ul>
+<h3 id="102-什么是-replicaset">102. 什么是 ReplicaSet？</h3>
+<ul>
+<li><strong>定义</strong>：ReplicaSet 是 K8s 的控制器，用于确保在任何时候都有<strong>指定数量 (replicas)</strong> 的相同 Pod 副本在运行。</li>
+<li><strong>作用</strong>：维持期望状态。如果 Pod 崩溃或被删除，ReplicaSet 会自动创建新的 Pod 来补足数量。</li>
+<li><strong>关系</strong>：通常不直接创建 ReplicaSet，而是通过 <strong>Deployment</strong> 来管理 ReplicaSet，从而获得滚动更新等高级功能。</li>
+</ul>
+<h3 id="103-什么是-deployment">103. 什么是 Deployment？</h3>
+<ul>
+<li><strong>定义</strong>：Deployment 是管理无状态应用的高级控制器。它在 ReplicaSet 之上提供了一层抽象。</li>
+<li><strong>核心功能</strong>：
+<ul>
+<li><strong>声明式更新</strong>：支持滚动更新（Rolling Update），零停机发布新版本。</li>
+<li><strong>回滚</strong>：支持一键回滚到之前的版本。</li>
+<li><strong>扩缩容</strong>：方便地调整副本数量。</li>
+<li><strong>暂停/继续</strong>：支持暂停更新过程进行调试。</li>
+</ul>
+</li>
+<li><strong>原理</strong>：Deployment 创建和管理多个版本的 ReplicaSet，通过控制 ReplicaSet 的副本数来实现版本切换。</li>
+</ul>
+<h3 id="104-什么是-service">104. 什么是 Service？</h3>
+<ul>
+<li><strong>定义</strong>：Service 是一种抽象，定义了一组逻辑上的 Pod 集合以及访问它们的策略（微服务）。</li>
+<li><strong>作用</strong>：
+<ul>
+<li><strong>服务发现</strong>：为一组动态变化的 Pod 提供稳定的 IP 地址 (ClusterIP) 和 DNS 名称。</li>
+<li><strong>负载均衡</strong>：将流量分发到后端健康的 Pod。</li>
+</ul>
+</li>
+<li><strong>类型</strong>：ClusterIP (集群内), NodePort (节点端口), LoadBalancer (云负载均衡), ExternalName (外部域名)。</li>
+</ul>
+<h3 id="105-什么是命名空间-namespace">105. 什么是命名空间 (Namespace)？</h3>
+<ul>
+<li><strong>定义</strong>：Namespace 是 K8s 中资源的<strong>逻辑隔离</strong>机制。</li>
+<li><strong>作用</strong>：
+<ul>
+<li>将集群资源划分为多个虚拟集群（如 <code>dev</code>, <code>test</code>, <code>prod</code> 或按团队划分）。</li>
+<li>不同 Namespace 中的资源名称可以重复。</li>
+<li>用于实施资源配额 (ResourceQuota) 和访问控制 (RBAC)。</li>
+</ul>
+</li>
+<li><strong>注意</strong>：默认情况下，不同 Namespace 的网络是互通的（除非配置 NetworkPolicy）。</li>
+</ul>
+<h3 id="106-如何进行应用程序的水平扩展">106. 如何进行应用程序的水平扩展？</h3>
+<p>水平扩展指增加 Pod 的副本数量。</p>
+<ol>
+<li><strong>手动扩展</strong>：
+<ul>
+<li>命令：<code>kubectl scale deployment &lt;name&gt; --replicas=5</code></li>
+<li>修改 YAML 中的 <code>spec.replicas</code> 字段并 apply。</li>
+</ul>
+</li>
+<li><strong>自动扩展 (HPA)</strong>：
+<ul>
+<li>创建 HorizontalPodAutoscaler 对象，基于 CPU、内存或自定义指标自动调整副本数。</li>
+<li>命令：<code>kubectl autoscale deployment &lt;name&gt; --cpu-percent=50 --min=2 --max=10</code></li>
+</ul>
+</li>
+</ol>
+<h3 id="107-如何在-kubernetes-中进行滚动更新-rolling-update">107. 如何在 Kubernetes 中进行滚动更新 (Rolling Update)？</h3>
+<p>滚动更新允许在不中断服务的情况下更新应用。</p>
+<ul>
+<li><strong>方法</strong>：
+<ol>
+<li>修改 Deployment 的 YAML 文件（如更改镜像版本 <code>image: nginx:1.21</code>）。</li>
+<li>执行 <code>kubectl apply -f deployment.yaml</code>。</li>
+<li>或者使用命令：<code>kubectl set image deployment/&lt;name&gt; &lt;container&gt;=&lt;new-image&gt;</code>。</li>
+</ol>
+</li>
+<li><strong>过程</strong>：K8s 会逐步创建新版本的 Pod，待其就绪（Readiness Probe 通过）后，再逐步终止旧版本的 Pod，始终保持可用的副本数满足要求。</li>
+</ul>
+<h3 id="108-如何在-kubernetes-中进行滚动回滚-rollback">108. 如何在 Kubernetes 中进行滚动回滚 (Rollback)？</h3>
+<p>当新版本出现 bug 时，快速恢复到上一个稳定版本。</p>
+<ul>
+<li><strong>查看历史</strong>：<code>kubectl rollout history deployment/&lt;name&gt;</code></li>
+<li><strong>回滚到上一版本</strong>：<code>kubectl rollout undo deployment/&lt;name&gt;</code></li>
+<li><strong>回滚到特定版本</strong>：<code>kubectl rollout undo deployment/&lt;name&gt; --to-revision=2</code></li>
+<li><strong>原理</strong>：Deployment 会保留旧的 ReplicaSet，回滚只是将旧 ReplicaSet 的副本数调大，新版本的调小。</li>
+</ul>
+<h3 id="109-什么是-kubernetes-的水平自动扩展-horizontal-pod-autoscaler-hpa">109. 什么是 Kubernetes 的水平自动扩展 (Horizontal Pod Autoscaler, HPA)？</h3>
+<ul>
+<li><strong>定义</strong>：HPA 是一个控制器，根据观测到的指标（如 CPU 利用率、内存或自定义指标）自动调整 Deployment 或 ReplicaSet 中的 Pod 副本数量。</li>
+<li><strong>工作流程</strong>：
+<ol>
+<li>Metrics Server 收集指标。</li>
+<li>HPA 定期查询指标。</li>
+<li>如果指标高于阈值，增加 Pod；低于阈值，减少 Pod。</li>
+</ol>
+</li>
+<li><strong>限制</strong>：仅适用于可以通过增加副本来提升性能的应用（无状态应用）。</li>
+</ul>
+<h3 id="110-如何进行存储卷-volume-的使用">110. 如何进行存储卷 (Volume) 的使用？</h3>
+<ol>
+<li><strong>定义 Volume</strong>：在 Pod 的 <code>spec.volumes</code> 中定义存储来源（如 <code>emptyDir</code>, <code>hostPath</code>, <code>persistentVolumeClaim</code>, <code>configMap</code> 等）。</li>
+<li><strong>挂载 Volume</strong>：在容器的 <code>spec.containers.volumeMounts</code> 中指定挂载点 (<code>mountPath</code>) 和对应的 volume 名称。</li>
+<li><strong>持久化流程 (推荐)</strong>：
+<ul>
+<li>创建 PV (PersistentVolume)。</li>
+<li>创建 PVC (PersistentVolumeClaim) 请求存储。</li>
+<li>在 Pod 中引用 PVC。</li>
+<li>K8s 自动绑定 PV 和 PVC，并将存储挂载到 Pod。</li>
+</ul>
+</li>
+</ol>
+<h3 id="111-什么是-init-容器-init-container">111. 什么是 Init 容器 (Init Container)？</h3>
+<ul>
+<li><strong>定义</strong>：在主应用容器启动之前运行的专用容器。</li>
+<li><strong>特点</strong>：
+<ul>
+<li>可以包含多个，按顺序依次执行。</li>
+<li>必须成功退出（Exit Code 0），主容器才会启动；若失败，Pod 会重启。</li>
+<li>拥有独立的文件系统（但可共享 EmptyDir 卷与主容器交换数据）。</li>
+</ul>
+</li>
+<li><strong>用途</strong>：等待依赖服务（如数据库）就绪、初始化配置文件、执行权限设置等。</li>
+</ul>
+<h3 id="112-如何在-kubernetes-中进行配置文件的安全管理secretconfigmap">112. 如何在 Kubernetes 中进行配置文件的安全管理（Secret/ConfigMap）？</h3>
+<ul>
+<li><strong>ConfigMap</strong>：
+<ul>
+<li>存储非敏感配置（键值对）。</li>
+<li>使用方式：环境变量注入、命令行参数、挂载为文件。</li>
+</ul>
+</li>
+<li><strong>Secret</strong>：
+<ul>
+<li>存储敏感信息（密码、Token、Key）。</li>
+<li><strong>安全性</strong>：数据在 Etcd 中以 Base64 编码存储（建议开启 Etcd 静态加密），传输和使用过程中比 ConfigMap 更受控。</li>
+<li>使用方式：同 ConfigMap，但 K8s 会将其挂载为内存临时文件系统（tmpfs），避免落盘。</li>
+</ul>
+</li>
+<li><strong>最佳实践</strong>：结合 RBAC 限制访问权限，使用 External Secrets Operator 从云厂商密钥管理服务同步 Secret。</li>
+</ul>
+<h3 id="113-如何监控-kubernetes-集群">113. 如何监控 Kubernetes 集群？</h3>
+<p>主流方案是 <strong>Prometheus + Grafana</strong>：</p>
+<ol>
+<li><strong>数据采集</strong>：
+<ul>
+<li><strong>Metrics Server</strong>：提供基础资源指标（CPU/Mem），供 HPA 和 <code>kubectl top</code> 使用。</li>
+<li><strong>Prometheus</strong>：通过 Service Discovery 自动发现 K8s 组件（Node, Pod, Service）和中间件，拉取指标数据。</li>
+<li><strong>Exporters</strong>：节点导出器 (Node Exporter)、Kube-State-Metrics (监控 K8s 对象状态)。</li>
+</ul>
+</li>
+<li><strong>可视化</strong>：Grafana 连接 Prometheus 数据源，展示仪表盘。</li>
+<li><strong>日志监控</strong>：ELK (Elasticsearch, Logstash, Kibana) 或 EFK (Fluentd/Fluent Bit) 栈。</li>
+<li><strong>告警</strong>：Alertmanager 配置规则，发送通知到邮件/Slack/钉钉。</li>
+</ol>
+<h3 id="114-如何进行跨集群部署和管理">114. 如何进行跨集群部署和管理？</h3>
+<ul>
+<li><strong>联邦集群 (KubeFed)</strong>：CNCF 项目，允许在一个控制平面管理多个 K8s 集群，实现配置同步和故障转移（目前成熟度一般）。</li>
+<li><strong>GitOps (推荐)</strong>：使用 <strong>ArgoCD</strong> 或 <strong>Flux</strong>。
+<ul>
+<li>将多个集群的配置存储在 Git 仓库。</li>
+<li>ArgoCD 在每个集群中运行，监听 Git 变化并自动同步应用到对应集群。</li>
+</ul>
+</li>
+<li><strong>多集群管理平台</strong>：如 Rancher, OpenShift ACM, Google Anthos，提供统一的 UI 和策略管理。</li>
+<li><strong>服务网格 (Istio)</strong>：通过 Istio Multi-Cluster 实现跨集群的服务发现和流量治理。</li>
+</ul>
+<h3 id="115-什么是-kubernetes-的生命周期钩子-lifecycle-hooks">115. 什么是 Kubernetes 的生命周期钩子 (Lifecycle Hooks)？</h3>
+<p>允许容器在特定生命周期节点执行命令。</p>
+<ol>
+<li><strong>postStart</strong>：容器创建后立即执行。若失败，容器会被杀死。<strong>注意</strong>：不能保证在容器 ENTRYPOINT 之前运行。</li>
+<li><strong>preStop</strong>：容器被终止前执行（收到 SIGTERM 之前）。常用于优雅下线（如刷新缓冲区、通知注册中心下线）。</li>
+</ol>
+<ul>
+<li><strong>执行方式</strong>：执行 Shell 命令 (<code>exec</code>) 或 HTTP 请求 (<code>httpGet</code>)。</li>
+</ul>
+<h3 id="116-什么是-pod-的探针-probeliveness-readiness-startup">116. 什么是 Pod 的探针 (Probe)？(Liveness, Readiness, Startup)</h3>
+<p>探针用于检测容器状态，Kubelet 据此采取行动。</p>
+<ol>
+<li><strong>Liveness Probe (存活探针)</strong>：
+<ul>
+<li><strong>作用</strong>：检测容器是否死锁或无法恢复。</li>
+<li><strong>失败动作</strong>：<strong>重启容器</strong>。</li>
+<li><strong>场景</strong>：应用死循环、线程池耗尽。</li>
+</ul>
+</li>
+<li><strong>Readiness Probe (就绪探针)</strong>：
+<ul>
+<li><strong>作用</strong>：检测容器是否准备好接收流量。</li>
+<li><strong>失败动作</strong>：从 Service 的 Endpoints 中<strong>移除 IP</strong>（切断流量），但不重启。</li>
+<li><strong>场景</strong>：应用正在加载大文件、依赖服务未连通。</li>
+</ul>
+</li>
+<li><strong>Startup Probe (启动探针)</strong>：
+<ul>
+<li><strong>作用</strong>：用于启动缓慢的容器。在它成功之前，Liveness 和 Readiness 都不会生效。</li>
+<li><strong>场景</strong>：遗留应用启动需要几分钟，避免被 Liveness 误杀。</li>
+</ul>
+</li>
+</ol>
+<h3 id="117-什么是-kubernetes-的安全性措施">117. 什么是 Kubernetes 的安全性措施？</h3>
+<ol>
+<li><strong>认证 (AuthN)</strong>：x509 证书、ServiceAccount Token、OIDC。</li>
+<li><strong>授权 (AuthZ)</strong>：RBAC (Role-Based Access Control) 是最常用的授权模式。</li>
+<li><strong>准入控制 (Admission Control)</strong>：Mutating/Validating Webhook，强制安全策略（如禁止特权容器、强制镜像签名）。</li>
+<li><strong>网络策略 (NetworkPolicy)</strong>：限制 Pod 间的进出流量（白名单机制）。</li>
+<li><strong>Pod 安全标准 (PSS)</strong>：替代旧的 PSP，限制 Pod 的安全上下文（如禁止 root 用户、禁止挂载宿主机目录）。</li>
+<li><strong>秘密管理</strong>：Secrets 加密存储，集成外部密钥管理系统。</li>
+<li><strong>镜像扫描</strong>：集成 Trivy/Clair 等工具扫描漏洞。</li>
+</ol>
+<h3 id="118-什么是容器资源限制-resource-limit-和容器资源请求-resource-request">118. 什么是容器资源限制 (Resource Limit) 和容器资源请求 (Resource Request)？</h3>
+<ul>
+<li><strong>Request (请求)</strong>：
+<ul>
+<li>调度器依据此值判断节点是否有足够资源来放置 Pod。</li>
+<li>保证 Pod 至少能获得的资源量。</li>
+</ul>
+</li>
+<li><strong>Limit (限制)</strong>：
+<ul>
+<li>容器运行时（Docker/containerd）依据此值限制容器能使用的最大资源。</li>
+<li><strong>CPU 超限</strong>：会被节流 (Throttled)，变慢但不会被杀。</li>
+<li><strong>内存 超限</strong>：会被 OOMKilled (Out Of Memory) 直接杀死并重启。</li>
+</ul>
+</li>
+<li><strong>QoS 等级</strong>：根据 Request 和 Limit 的设置，Pod 分为 Guaranteed, Burstable, BestEffort 三个等级，影响被驱逐的优先级。</li>
+</ul>
+<h3 id="119-什么是-kubernetes-中的水平和垂直扩展">119. 什么是 Kubernetes 中的水平和垂直扩展？</h3>
+<ul>
+<li><strong>水平扩展 (Scale Out/In)</strong>：
+<ul>
+<li>增加或减少 <strong>Pod 的副本数量</strong>。</li>
+<li>由 HPA 或手动操作完成。</li>
+<li>适用于无状态应用，是最常用的扩展方式。</li>
+</ul>
+</li>
+<li><strong>垂直扩展 (Scale Up/Down)</strong>：
+<ul>
+<li>增加或减少 <strong>单个 Pod 的资源配额</strong> (CPU/Memory)。</li>
+<li>由 VPA (Vertical Pod Autoscaler) 建议或自动执行（通常需要重启 Pod 才能生效）。</li>
+<li>适用于有状态应用或无法简单拆分的应用。</li>
+</ul>
+</li>
+</ul>
+<h3 id="120-什么是-kubernetes-的事件-event">120. 什么是 Kubernetes 的事件 (Event)？</h3>
+<ul>
+<li><strong>定义</strong>：Event 是 K8s 对象（如 Pod, Node, Deployment）状态变化或发生重要事情时的记录。</li>
+<li><strong>内容</strong>：包含时间、涉及的对象、原因 (Reason)、消息 (Message)、类型 (Normal/Warning)。</li>
+<li><strong>作用</strong>：
+<ul>
+<li>故障排查的核心依据（如 <code>FailedScheduling</code>, <code>OOMKilling</code>, <code>BackOff</code>）。</li>
+<li>查看命令：<code>kubectl get events --sort-by=.lastTimestamp</code> 或 <code>kubectl describe pod &lt;name&gt;</code>。</li>
+</ul>
+</li>
+<li><strong>注意</strong>：Event 默认保留 1 小时，长期存储需导出到外部系统。</li>
+</ul>
+<h3 id="121-什么是-helm">121. 什么是 Helm？</h3>
+<ul>
+<li><strong>定义</strong>：Kubernetes 的<strong>包管理器</strong>。</li>
+<li><strong>核心概念</strong>：
+<ul>
+<li><strong>Chart</strong>：打包好的应用描述文件集合（包含 templates, values.yaml, Chart.yaml）。</li>
+<li><strong>Release</strong>：Chart 在集群中运行的实例。</li>
+<li><strong>Repository</strong>：存放 Chart 的仓库。</li>
+</ul>
+</li>
+<li><strong>优势</strong>：
+<ul>
+<li>模板化：通过 <code>values.yaml</code> 定制配置，一套 Chart 适配多环境。</li>
+<li>版本管理：支持 Release 的升级、回滚。</li>
+<li>依赖管理：可管理复杂应用的子图表依赖。</li>
+</ul>
+</li>
+</ul>
+<h3 id="122-如何进行-kubernetes-集群的高可用性配置">122. 如何进行 Kubernetes 集群的高可用性配置？</h3>
+<p>高可用 (HA) 旨在消除单点故障。</p>
+<ol>
+<li><strong>控制平面 (Control Plane) HA</strong>：
+<ul>
+<li><strong>多 Master 节点</strong>：部署 3 个或更多奇数个 API Server / Controller Manager / Scheduler。</li>
+<li><strong>Etcd 集群</strong>：部署奇数个节点（3, 5, 7），跨可用区分布，利用 Raft 协议保证数据一致性。</li>
+<li><strong>负载均衡</strong>：在 Master 节点前架设负载均衡器 (LB)，指向所有 API Server。</li>
+</ul>
+</li>
+<li><strong>工作节点 (Worker Nodes) HA</strong>：
+<ul>
+<li>多节点部署，配合 Pod 反亲和性，确保关键应用分散在不同节点/可用区。</li>
+<li>使用集群自动伸缩组 (Auto Scaling Group) 自动替换故障节点。</li>
+</ul>
+</li>
+<li><strong>网络与存储 HA</strong>：
+<ul>
+<li>CNI 插件高可用配置。</li>
+<li>存储后端采用多副本机制（如 Ceph, 云厂商多副本云盘）。</li>
+</ul>
+</li>
+</ol>
+<h3 id="123-什么是-k8s-的配置管理工具">123. 什么是 K8s 的配置管理工具？</h3>
+<p>除了原生的 ConfigMap/Secret，还有第三方工具：</p>
+<ol>
+<li><strong>Helm</strong>：最流行的包管理工具，基于模板。</li>
+<li><strong>Kustomize</strong>：K8s 原生集成 (<code>kubectl kustomize</code>)，基于补丁 (Patch) 和叠加 (Overlay) 机制，无需模板语法，更适合纯 YAML 管理。</li>
+<li><strong>Ansible/Terraform</strong>：基础设施即代码工具，用于集群搭建和初始配置。</li>
+<li><strong>ArgoCD/Flux</strong>：GitOps 工具，将 Git 仓库作为配置源，自动同步集群状态。</li>
+<li><strong>External Secrets Operator</strong>：将外部密钥系统（AWS Secrets Manager, Vault）同步为 K8s Secret。</li>
+</ol>
+<h3 id="124-什么是-k8s-的网络模型">124. 什么是 K8s 的网络模型？</h3>
+<p>K8s 网络模型遵循以下核心原则（CNI 规范）：</p>
+<ol>
+<li><strong>Pod IP 唯一性</strong>：每个 Pod 拥有一个唯一的 IP 地址。</li>
+<li><strong>无 NAT 通信</strong>：所有 Pod 可以在<strong>无需 NAT</strong> 的情况下相互通信（无论是否在同一节点）。</li>
+<li><strong>节点与 Pod 互通</strong>：节点上的 Agent（如 Kubelet）可以与该节点或其他节点上的 Pod 通信。</li>
+</ol>
+<ul>
+<li><strong>实现</strong>：通过 CNI 插件（Calico, Flannel, Cilium 等）构建 Overlay 网络或 BGP 路由网络来实现上述模型。</li>
+</ul>
+<h3 id="125-kubernetes-的升级策略有哪些">125. Kubernetes 的升级策略有哪些？</h3>
+<p>主要指集群版本升级和应用升级。</p>
+<ol>
+<li><strong>应用升级 (Deployment)</strong>：
+<ul>
+<li><strong>滚动更新 (RollingUpdate)</strong>：默认策略，逐步替换，零停机。</li>
+<li><strong>重建 (Recreate)</strong>：先杀光旧 Pod，再建新 Pod，会有短暂停机。</li>
+<li><strong>蓝绿部署 (Blue/Green)</strong>：部署全新版本环境，切换 Service 流量，旧环境保留以备回滚。</li>
+<li><strong>金丝雀发布 (Canary)</strong>：先将少量流量导入新版本，验证无误后全量切换（常结合 Istio 或 Ingress 控制器实现）。</li>
+</ul>
+</li>
+<li><strong>集群升级 (Kubeadm/Managed)</strong>：
+<ul>
+<li><strong>原地升级</strong>：逐个升级 Master 和 Worker 节点（先控制面，后工作节点）。</li>
+<li><strong>蓝绿集群升级</strong>：新建一套新版集群，迁移应用和数据，切换流量，销毁旧集群（风险最低，适合生产环境）。</li>
+</ul>
+</li>
+</ol>
+<h3 id="126-什么是-kubernetes-的监控和日志记录解决方案">126. 什么是 Kubernetes 的监控和日志记录解决方案？</h3>
+<ul>
+<li><strong>监控 (Monitoring)</strong>：
+<ul>
+<li><strong>核心栈</strong>：<strong>Prometheus</strong> (数据采集与存储) + <strong>Grafana</strong> (可视化) + <strong>Alertmanager</strong> (告警)。</li>
+<li><strong>组件</strong>：
+<ul>
+<li><code>Metrics Server</code>：提供基础资源指标（CPU/Mem），供 <code>kubectl top</code> 和 HPA 使用。</li>
+<li><code>Node Exporter</code>：采集节点硬件指标。</li>
+<li><code>Kube-State-Metrics</code>：采集 K8s 对象状态（Pod 相位、Deployment 副本数等）。</li>
+<li><code>cAdvisor</code>：集成在 Kubelet 中，采集容器级指标。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>日志 (Logging)</strong>：
+<ul>
+<li><strong>架构模式</strong>：通常采用 <strong>Node-Level Agent</strong> 模式（DaemonSet）。</li>
+<li><strong>主流方案</strong>：
+<ul>
+<li><strong>EFK</strong>：Elasticsearch (存储/搜索) + Fluentd/Fluent Bit (采集) + Kibana (可视化)。</li>
+<li><strong>PLG</strong>：Promtail (采集) + Loki (存储，轻量级) + Grafana (可视化)。</li>
+<li><strong>商业/云原生</strong>：Datadog, Splunk, 阿里云 SLS, AWS CloudWatch。</li>
+</ul>
+</li>
+<li><strong>原理</strong>：Agent 挂载宿主机的 <code>/var/log/pods</code>，实时收集 stdout/stderr 或文件日志，添加元数据后发送至后端。</li>
+</ul>
+</li>
+</ul>
+<h3 id="127-怎样从一个镜像创建一个-pod">127. 怎样从一个镜像创建一个 Pod？</h3>
+<p>虽然生产环境通常使用 Deployment，但可以直接创建 Pod 用于测试：</p>
+<ol>
+<li><strong>生成 YAML</strong>：<code>kubectl run my-pod --image=nginx --restart=Never --dry-run=client -o yaml &gt; pod.yaml</code></li>
+<li><strong>编辑 YAML</strong>：确保 <code>kind: Pod</code>，配置镜像、端口等。</li>
+<li><strong>应用</strong>：<code>kubectl apply -f pod.yaml</code></li>
+<li><strong>直接命令</strong>：<code>kubectl run my-pod --image=nginx --restart=Never</code> (交互式创建)。<br>
+<em>注意：直接创建的 Pod 不会被自动重启或扩缩容，适合调试。</em></li>
+</ol>
+<h3 id="128-如何将应用程序部署到-kubernetes">128. 如何将应用程序部署到 Kubernetes？</h3>
+<p>标准流程是通过控制器（如 Deployment）：</p>
+<ol>
+<li><strong>编写 manifests</strong>：创建 <code>deployment.yaml</code> (定义副本、镜像、资源) 和 <code>service.yaml</code> (定义暴露方式)。</li>
+<li><strong>应用配置</strong>：<code>kubectl apply -f deployment.yaml -f service.yaml</code>。</li>
+<li><strong>验证</strong>：<code>kubectl get pods</code> 查看状态，<code>kubectl logs</code> 查看日志。</li>
+<li><strong>包管理 (可选)</strong>：使用 Helm Chart (<code>helm install my-app ./chart</code>)。</li>
+<li><strong>CI/CD 集成</strong>：流水线自动执行 <code>kubectl apply</code> 或 <code>helm upgrade</code>。</li>
+</ol>
+<h3 id="129-如何水平扩展-deployment">129. 如何水平扩展 Deployment？</h3>
+<ul>
+<li><strong>命令方式</strong>：<br>
+<code>kubectl scale deployment &lt;name&gt; --replicas=10</code></li>
+<li><strong>自动方式 (HPA)</strong>：<br>
+创建 HPA 对象：<pre><code class="language-yaml">kubectl autoscale deployment &lt;name&gt; --cpu-percent=50 --min=2 --max=20
+</code></pre>
+</li>
+<li><strong>修改 YAML</strong>：<br>
+更新 <code>spec.replicas</code> 字段并执行 <code>kubectl apply</code>。</li>
+</ul>
+<h3 id="130-怎样在-kubernetes-中进行服务发现">130. 怎样在 Kubernetes 中进行服务发现？</h3>
+<p>K8s 内置了强大的服务发现机制：</p>
+<ol>
+<li><strong>环境变量</strong>：当 Pod 启动时，K8s 会自动将当前 Namespace 内所有 Service 的信息注入为环境变量（如 <code>MY_SERVICE_SERVICE_HOST</code>, <code>MY_SERVICE_SERVICE_PORT</code>）。</li>
+<li><strong>DNS (推荐)</strong>：
+<ul>
+<li>集群内运行 CoreDNS (或 kube-dns)。</li>
+<li>每个 Service 都有 DNS 记录：<code>&lt;service-name&gt;.&lt;namespace&gt;.svc.cluster.local</code>。</li>
+<li>同 Namespace 下可直接通过 <code>&lt;service-name&gt;</code> 访问。</li>
+<li>应用只需配置域名，无需硬编码 IP。</li>
+</ul>
+</li>
+</ol>
+<h3 id="131-怎样进行容器间通信">131. 怎样进行容器间通信？</h3>
+<ol>
+<li><strong>同一 Pod 内</strong>：
+<ul>
+<li>通过 <code>localhost</code> + 端口通信。</li>
+<li>共享网络命名空间，IP 相同。</li>
+<li>可通过共享 Volume 交换文件。</li>
+</ul>
+</li>
+<li><strong>同一节点不同 Pod</strong>：
+<ul>
+<li>通过 <strong>Pod IP</strong> 直接通信（CNI 插件保证二层互通）。</li>
+</ul>
+</li>
+<li><strong>不同节点 Pod</strong>：
+<ul>
+<li>通过 <strong>Pod IP</strong> 直接通信（CNI 插件通过 Overlay 网络或路由实现跨节点互通）。</li>
+<li>或通过 <strong>Service</strong> (ClusterIP) 进行负载均衡访问。</li>
+</ul>
+</li>
+<li><strong>外部访问</strong>：
+<ul>
+<li>通过 Service (NodePort/LoadBalancer) 或 Ingress。</li>
+</ul>
+</li>
+</ol>
+<h3 id="132-如何进行安全访问控制-rbac">132. 如何进行安全访问控制 (RBAC)？</h3>
+<p>RBAC 通过四个核心对象实现：</p>
+<ol>
+<li><strong>Role / ClusterRole</strong>：定义权限规则（能做什么，如 <code>get</code>, <code>list</code>, <code>create</code> 哪些资源）。
+<ul>
+<li><code>Role</code>：限定在特定 Namespace。</li>
+<li><code>ClusterRole</code>：集群范围或所有 Namespace。</li>
+</ul>
+</li>
+<li><strong>RoleBinding / ClusterRoleBinding</strong>：将角色绑定给用户/组/ServiceAccount。
+<ul>
+<li>定义谁（Subject）拥有什么权限（RoleRef）。</li>
+</ul>
+</li>
+<li><strong>User/Group/ServiceAccount</strong>：身份主体。</li>
+<li><strong>配置示例</strong>：<pre><code class="language-yaml"># 创建 Role
+kind: Role
+rules:
+- apiGroups: [&quot;&quot;]
+  resources: [&quot;pods&quot;]
+  verbs: [&quot;get&quot;, &quot;list&quot;]
+---
+# 绑定给 ServiceAccount
+kind: RoleBinding
+subjects:
+- kind: ServiceAccount
+  name: my-sa
+  namespace: default
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+</code></pre>
+</li>
+</ol>
+<h3 id="133-怎样进行热更新-hot-deployment">133. 怎样进行热更新 (Hot Deployment)？</h3>
+<p>K8s 原生支持<strong>滚动更新 (Rolling Update)</strong>，实现业务零停机：</p>
+<ol>
+<li><strong>配置策略</strong>：在 Deployment 中设置 <code>strategy.type: RollingUpdate</code>。
+<ul>
+<li><code>maxSurge</code>：更新过程中允许超出期望副本数的最大数量。</li>
+<li><code>maxUnavailable</code>：更新过程中允许不可用的最大数量。</li>
+</ul>
+</li>
+<li><strong>执行更新</strong>：修改镜像版本 (<code>kubectl set image ...</code> 或 <code>apply</code>)。</li>
+<li><strong>配合探针</strong>：必须配置 <code>readinessProbe</code>，确保新 Pod 完全启动并准备好接收流量后，才销毁旧 Pod。</li>
+<li><strong>应用层要求</strong>：应用需支持优雅停机（监听 SIGTERM，处理完现有请求再退出）。</li>
+</ol>
+<h3 id="134-如何在-prometheus-中定义监控指标">134. 如何在 Prometheus 中定义监控指标？</h3>
+<p>Prometheus 本身不“定义”指标，而是<strong>抓取 (Scrape)</strong> 目标暴露的指标。</p>
+<ul>
+<li><strong>指标格式</strong>：目标应用需暴露 HTTP 接口（默认 <code>/metrics</code>），遵循 Prometheus 文本格式：<pre><code class="language-text"># HELP http_requests_total Total number of HTTP requests.
+# TYPE http_requests_total counter
+http_requests_total{method=&quot;POST&quot;,handler=&quot;/api&quot;} 1024
+</code></pre>
+</li>
+<li><strong>客户端库</strong>：应用可使用 Prometheus 官方客户端库（Go, Java, Python 等）在代码中注册 Counter, Gauge, Histogram, Summary 类型的指标。</li>
+</ul>
+<h3 id="135-如何配置-prometheus-进行目标抓取-scrape-config">135. 如何配置 Prometheus 进行目标抓取 (Scrape Config)？</h3>
+<p>在 <code>prometheus.yml</code> 中配置 <code>scrape_configs</code>：</p>
+<pre><code class="language-yaml">scrape_configs:
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      # 只抓取带有 prometheus.io/scrape=true 注解的 Pod
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      # 动态替换抓取端口
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: (.+)
+        replacement: ${1}
+</code></pre>
+<ul>
+<li><strong>静态配置</strong>：直接指定 <code>static_configs</code> 中的 targets。</li>
+<li><strong>服务发现</strong>：利用 <code>kubernetes_sd_configs</code>, <code>consul_sd_configs</code> 等自动发现目标。</li>
+</ul>
+<h3 id="136-prometheus-如何处理数据存储和保留策略">136. Prometheus 如何处理数据存储和保留策略？</h3>
+<ul>
+<li><strong>本地存储</strong>：默认将时间序列数据存储在本地磁盘（TSDB 格式）。</li>
+<li><strong>保留策略</strong>：通过 <code>--storage.tsdb.retention.time</code> (如 <code>15d</code>) 或 <code>--storage.tsdb.retention.size</code> (如 <code>50GB</code>) 参数控制。</li>
+<li><strong>清理机制</strong>：后台进程定期删除超过保留期限的数据块 (Blocks)。</li>
+<li><strong>长期存储</strong>：原生 Prometheus 不适合长期海量存储，通常配合 <strong>Thanos</strong> 或 <strong>Cortex</strong> 将数据卸载到对象存储 (S3/GCS)。</li>
+</ul>
+<h3 id="137-如何设置警报规则并配置-alertmanager">137. 如何设置警报规则并配置 Alertmanager？</h3>
+<ol>
+<li><strong>定义规则 (rules.yml)</strong>：<pre><code class="language-yaml">groups:
+- name: example
+  rules:
+  - alert: HighMemoryUsage
+    expr: container_memory_usage_bytes / container_spec_memory_limit_bytes &gt; 0.9
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: &quot;High memory usage detected&quot;
+</code></pre>
+</li>
+<li><strong>加载规则</strong>：在 <code>prometheus.yml</code> 中引用 <code>rule_files</code>。</li>
+<li><strong>配置 Alertmanager</strong> (<code>alertmanager.yml</code>)：
+<ul>
+<li>定义 <strong>Receiver</strong> (接收器)：Email, Slack, Webhook (钉钉/企微), PagerDuty。</li>
+<li>定义 <strong>Route</strong> (路由)：根据标签将告警分发到不同接收器。</li>
+<li>配置 <strong>抑制 (Inhibition)</strong> 和 <strong>分组 (Grouping)</strong>。</li>
+</ul>
+</li>
+</ol>
+<h3 id="138-prometheus-支持哪些查询操作和聚合函数-promql">138. Prometheus 支持哪些查询操作和聚合函数 (PromQL)？</h3>
+<ul>
+<li><strong>选择器</strong>：<code>http_requests_total</code>, <code>http_requests_total{job=&quot;api&quot;}</code>.</li>
+<li><strong>范围向量</strong>：<code>http_requests_total[5m]</code> (过去 5 分钟的数据)。</li>
+<li><strong>聚合函数</strong>：
+<ul>
+<li><code>sum()</code>, <code>avg()</code>, <code>max()</code>, <code>min()</code>, <code>count()</code>.</li>
+<li><code>rate()</code> (计算每秒增长率，最常用), <code>irate()</code>, <code>increase()</code>.</li>
+<li><code>histogram_quantile()</code> (计算分位数，如 P99)。</li>
+</ul>
+</li>
+<li><strong>数学运算</strong>：加减乘除，布尔比较。</li>
+<li><strong>连接操作</strong>：<code>on</code>, <code>ignoring</code>, <code>group_left/right</code> (类似 SQL Join)。</li>
+</ul>
+<h3 id="139-什么是-prometheus-的服务发现机制">139. 什么是 Prometheus 的服务发现机制？</h3>
+<p>Prometheus 支持动态发现目标，无需硬编码 IP：</p>
+<ul>
+<li><strong>Kubernetes SD</strong>：自动发现 Node, Pod, Service, Endpoint, Ingress。可根据 Label/Annotation 过滤。</li>
+<li><strong>Consul/Etcd SD</strong>：从注册中心拉取服务列表。</li>
+<li><strong>File SD</strong>：监控文件变化，自动重载目标列表。</li>
+<li><strong>DNS SD</strong>：通过 DNS SRV/A 记录发现目标。</li>
+<li><strong>EC2/GCE SD</strong>：自动发现云厂商的实例。</li>
+<li><strong>优势</strong>：适应云环境动态变化的 IP，实现自动化监控。</li>
+</ul>
+<h3 id="140-prometheus-的可视化和查询界面是什么-grafanapromui">140. Prometheus 的可视化和查询界面是什么 (Grafana/PromUI)？</h3>
+<ul>
+<li><strong>PromUI (Expression Browser)</strong>：
+<ul>
+<li>Prometheus 自带的简单界面 (<code>/graph</code>)。</li>
+<li>功能：执行 PromQL 查询，查看原始数据表格和简单图表。</li>
+<li>缺点：功能简陋，不适合生产大屏展示。</li>
+</ul>
+</li>
+<li><strong>Grafana</strong>：
+<ul>
+<li><strong>行业标准</strong>可视化平台。</li>
+<li>功能：连接 Prometheus 数据源，创建丰富的仪表盘（Dashboard），支持多种图表、变量插值、模板化、告警面板。</li>
+<li>生态：拥有大量社区预制的 K8s/Prometheus 模板。</li>
+</ul>
+</li>
+</ul>
+<h3 id="141-什么是-prometheus-的推模式-push-和拉模式-pull-抓取">141. 什么是 Prometheus 的推模式 (Push) 和拉模式 (Pull) 抓取？</h3>
+<ul>
+<li><strong>拉模式 (Pull - 默认)</strong>：
+<ul>
+<li>Prometheus Server 主动去 Target 的 <code>/metrics</code> 接口抓取数据。</li>
+<li><strong>优点</strong>：控制端掌握节奏，易于监控 Target 是否存活，防火墙配置简单（只需 Target 对 Server 开放）。</li>
+<li><strong>适用</strong>：大多数长期运行的服务。</li>
+</ul>
+</li>
+<li><strong>推模式 (Push)</strong>：
+<ul>
+<li>Target 主动将数据推送到 <strong>Pushgateway</strong>。</li>
+<li>Prometheus 再从 Pushgateway 拉取。</li>
+<li><strong>适用</strong>：短作业 (Batch Jobs)、临时任务，这些任务运行时间短，可能在 Prometheus 来抓取前就结束了。</li>
+<li><strong>注意</strong>：Pushgateway 不是长期存储，仅作为中转。</li>
+</ul>
+</li>
+</ul>
+<h3 id="142-如何在-prometheus-中配置持久化存储">142. 如何在 Prometheus 中配置持久化存储？</h3>
+<ul>
+<li><strong>K8s 环境</strong>：
+<ul>
+<li>使用 <strong>StatefulSet</strong> 部署 Prometheus。</li>
+<li>配置 <code>volumeClaimTemplates</code>，动态申请 <strong>PVC</strong> (对接云盘或 Ceph/NFS)。</li>
+<li>示例：<pre><code class="language-yaml">volumeClaimTemplates:
+- metadata:
+    name: prometheus-data
+  spec:
+    accessModes: [&quot;ReadWriteOnce&quot;]
+    resources:
+      requests:
+        storage: 50Gi
+</code></pre>
+</li>
+</ul>
+</li>
+<li><strong>单机环境</strong>：启动时指定 <code>--storage.tsdb.path=/data/prometheus</code> 并挂载磁盘。</li>
+</ul>
+<h3 id="143-prometheus-是否支持高可用性-ha-部署">143. Prometheus 是否支持高可用性 (HA) 部署？</h3>
+<p>原生 Prometheus <strong>不支持</strong> 集群模式（多主写入），但可通过架构实现 HA：</p>
+<ol>
+<li><strong>多副本独立运行</strong>：部署两套完全相同的 Prometheus 实例，抓取相同的目标。
+<ul>
+<li>查询时通过 Grafana 配置 <strong>PromQL Federation</strong> 或使用 <strong>Thanos Query</strong> / <strong>Cortex</strong> 进行合并查询。</li>
+<li>只要有一套存活，数据就不丢失（数据会有重复，查询层去重）。</li>
+</ul>
+</li>
+<li><strong>Thanos/Cortex 架构</strong>：
+<ul>
+<li>Sidecar 模式：多个 Prometheus 将数据上传到对象存储 (S3)。</li>
+<li>Query 层：从对象存储和各 Prometheus 实例统一查询，实现全局视图和高可用。</li>
+<li>这是生产环境推荐的 HA 方案。</li>
+</ul>
+</li>
+</ol>
+<h3 id="144-什么是-prometheus-的持续查询-recording-rules">144. 什么是 Prometheus 的持续查询 (Recording Rules)？</h3>
+<ul>
+<li><strong>定义</strong>：预先计算复杂的 PromQL 表达式，并将结果保存为新的时间序列指标。</li>
+<li><strong>目的</strong>：
+<ul>
+<li><strong>优化性能</strong>：将昂贵的查询（如大范围 <code>rate</code> 或多表 <code>join</code>）提前算好，查询时直接读取结果，加快 Dashboard 加载速度。</li>
+<li><strong>简化查询</strong>：将复杂逻辑封装为简单的指标名（如 <code>job:http_requests:rate5m</code>）。</li>
+</ul>
+</li>
+<li><strong>配置</strong>：在 <code>rules.yml</code> 中定义 <code>record</code> 规则。</li>
+</ul>
+<h3 id="145-k8s-中-rbac-role-based-access-control-详解">145. K8s 中 RBAC (Role-Based Access Control) 详解？</h3>
+<ul>
+<li><strong>核心逻辑</strong>：基于角色的权限控制，解耦了“用户”和“权限”。</li>
+<li><strong>四大资源</strong>：
+<ol>
+<li><strong>Role</strong>：Namespaced 级别的权限集合（定义动词 verbs + 资源 resources + API 组 apiGroups）。</li>
+<li><strong>ClusterRole</strong>：Cluster 级别的权限集合（可访问所有 Namespace 或集群级资源如 Node, PV）。</li>
+<li><strong>RoleBinding</strong>：将 Role 授予特定 Namespace 内的 Subject (User/Group/SA)。</li>
+<li><strong>ClusterRoleBinding</strong>：将 ClusterRole 授予集群范围的 Subject。</li>
+</ol>
+</li>
+<li><strong>聚合 ClusterRole</strong>：可以通过 <code>aggregationRule</code> 自动聚合带有特定 Label 的其他 ClusterRole 的权限，方便插件扩展。</li>
+<li><strong>默认行为</strong>：默认拒绝所有未明确允许的请求。</li>
+</ul>
+<h3 id="146-k8s-中如何安全地传递敏感信息-如密码-密钥等">146. K8s 中如何安全地传递敏感信息 (如密码、密钥等)？</h3>
+<ol>
+<li><strong>使用 Secret 对象</strong>：
+<ul>
+<li>创建：<code>kubectl create secret generic my-secret --from-literal=password=123</code>。</li>
+<li>使用方式：
+<ul>
+<li><strong>环境变量</strong>：<code>valueFrom.secretKeyRef</code>。</li>
+<li><strong>挂载卷</strong>：以文件形式挂载到容器内（推荐，避免环境变量泄露给子进程或日志）。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>加密存储 (Encryption at Rest)</strong>：
+<ul>
+<li>配置 API Server 的 <code>EncryptionConfiguration</code>，使 Etcd 中存储的 Secret 数据经过加密（使用 AES-CBC 或 aescbc 提供者），即使 Etcd 文件被盗也无法解密。</li>
+</ul>
+</li>
+<li><strong>外部密钥管理 (最佳实践)</strong>：
+<ul>
+<li>使用 <strong>External Secrets Operator</strong> 或 <strong>Sealed Secrets</strong>。</li>
+<li>将密钥存储在专业的密钥管理系统（AWS Secrets Manager, HashiCorp Vault, Azure Key Vault）中，同步到 K8s。</li>
+<li>避免将明文 Secret YAML 提交到 Git 仓库。</li>
+</ul>
+</li>
+</ol>
+<h3 id="147-kubernetes-中如何管理容器的安全性可以列举几点">147. Kubernetes 中如何管理容器的安全性？可以列举几点？</h3>
+<ol>
+<li><strong>Pod Security Standards (PSS)</strong>：启用 PSS (Baseline, Restricted)，禁止特权容器、宿主机网络/PID 命名空间、Root 用户运行。</li>
+<li><strong>非 Root 运行</strong>：在 <code>securityContext</code> 中设置 <code>runAsNonRoot: true</code> 和 <code>runAsUser</code>。</li>
+<li><strong>只读文件系统</strong>：设置 <code>readOnlyRootFilesystem: true</code>，防止恶意篡改二进制文件。</li>
+<li><strong>能力丢弃 (Drop Capabilities)</strong>：默认丢弃所有 Linux Capabilities (<code>drop: [&quot;ALL&quot;]</code>)，仅添加必要的（如 <code>NET_BIND_SERVICE</code>）。</li>
+<li><strong>镜像扫描</strong>：在 CI/CD 流水线中集成 Trivy/Clair，阻止有高危漏洞的镜像上线。</li>
+<li><strong>网络策略 (NetworkPolicy)</strong>：默认拒绝所有流量，仅放行必要的 Pod 间通信。</li>
+<li><strong>ServiceAccount 最小权限</strong>：不为 Pod 绑定默认的 <code>default</code> SA（尤其不要绑定 cluster-admin），创建专用的 SA 并绑定最小权限 Role。</li>
+</ol>
+<h3 id="148-如何查看和分析-pod-的日志有哪些工具可以帮助实现">148. 如何查看和分析 Pod 的日志？有哪些工具可以帮助实现？</h3>
+<ul>
+<li><strong>基础命令</strong>：
+<ul>
+<li><code>kubectl logs &lt;pod-name&gt;</code>：查看单容器日志。</li>
+<li><code>kubectl logs &lt;pod-name&gt; -c &lt;container-name&gt;</code>：查看多容器 Pod 中指定容器日志。</li>
+<li><code>kubectl logs -f &lt;pod-name&gt;</code>：实时跟踪 (Follow)。</li>
+<li><code>kubectl logs --previous &lt;pod-name&gt;</code>：查看崩溃重启前的日志。</li>
+<li><code>kubectl logs -l app=nginx</code>：查看匹配标签的所有 Pod 日志。</li>
+</ul>
+</li>
+<li><strong>高级工具</strong>：
+<ul>
+<li><strong>Stern</strong>：同时 tail 多个 Pod 的日志，支持正则高亮 (<code>stern -l app=nginx</code>)。</li>
+<li><strong>Kubetail</strong>：类似的 Bash 脚本工具。</li>
+<li><strong>K9s</strong>：终端 UI 工具，可交互式查看日志。</li>
+<li><strong>ELK/Loki + Grafana</strong>：集中式日志平台，支持全文检索、聚合分析和可视化。</li>
+</ul>
+</li>
+</ul>
+<h3 id="149-如何使用-kubernetes-进行多环境部署如开发-测试-生产">149. 如何使用 Kubernetes 进行多环境部署（如开发、测试、生产）？</h3>
+<ol>
+<li><strong>Namespace 隔离 (轻量级)</strong>：
+<ul>
+<li>创建 <code>dev</code>, <code>test</code>, <code>prod</code> Namespace。</li>
+<li>配合 <strong>Kustomize</strong> 或 <strong>Helm Values</strong> 区分配置（如 replica 数、资源限制、镜像 tag）。</li>
+<li>优点：简单，资源共享。缺点：隔离性较弱（噪声邻居问题）。</li>
+</ul>
+</li>
+<li><strong>独立集群 (重量级/推荐用于 Prod)</strong>：
+<ul>
+<li>为 Dev/Test/Prod 建立完全独立的 K8s 集群。</li>
+<li>通过 CI/CD 流水线将应用部署到不同集群。</li>
+<li>优点：故障隔离彻底，安全性高，可定制不同版本的 K8s。</li>
+</ul>
+</li>
+<li><strong>GitOps 管理</strong>：
+<ul>
+<li>使用 ArgoCD，在 Git 仓库中维护不同目录（<code>overlays/dev</code>, <code>overlays/prod</code>），分别同步到对应的 Namespace 或集群。</li>
+</ul>
+</li>
+</ol>
+<h3 id="150-如何在-kubernetes-中实现应用程序的配置管理">150. 如何在 Kubernetes 中实现应用程序的配置管理？</h3>
+<ol>
+<li><strong>ConfigMap</strong>：存储非敏感配置（配置文件、环境变量）。
+<ul>
+<li>挂载为文件：适用于传统应用读取配置文件。</li>
+<li>注入环境变量：适用于云原生应用。</li>
+</ul>
+</li>
+<li><strong>Secret</strong>：存储敏感配置。</li>
+<li><strong>外部配置中心</strong>：
+<ul>
+<li>应用启动时从 Apollo, Nacos, Consul 拉取配置。</li>
+<li>配合 Sidecar 或 Init Container 同步配置到本地文件。</li>
+</ul>
+</li>
+<li><strong>Helm/Kustomize</strong>：在部署阶段通过模板渲染生成具体的 ConfigMap/Secret，实现“一次构建，多处部署”。</li>
+<li><strong>动态更新</strong>：
+<ul>
+<li>挂载 ConfigMap 为文件时，应用需支持热重载或配合 Sidecar (如 Reloader) 重启 Pod。</li>
+<li>环境变量方式通常需要重启 Pod 才能生效。</li>
+</ul>
+</li>
+</ol>
+<h3 id="151-kubernetes-与-cicd-如-jenkins-gitlab-ci-如何集成">151. Kubernetes 与 CI/CD (如 Jenkins, GitLab CI) 如何集成？</h3>
+<ol>
+<li><strong>Kubectl 方式</strong>：
+<ul>
+<li>CI 环境中安装 <code>kubectl</code>，配置 kubeconfig。</li>
+<li>脚本执行 <code>kubectl apply -f ...</code> 或 <code>kubectl set image ...</code>。</li>
+<li>缺点：命令式，难以回滚，状态管理弱。</li>
+</ul>
+</li>
+<li><strong>Helm 方式</strong>：
+<ul>
+<li>CI 执行 <code>helm upgrade --install</code>。</li>
+<li>优点：版本管理，回滚方便，参数化配置。</li>
+</ul>
+</li>
+<li><strong>GitOps 方式 (现代最佳实践)</strong>：
+<ul>
+<li>CI 只负责构建镜像、推送镜像、更新 Git 仓库中的 Manifest (镜像 tag)。</li>
+<li><strong>ArgoCD/Flux</strong> (运行在 K8s 内) 监听 Git 变化，自动同步集群状态。</li>
+<li>优点：声明式，审计性强，集群权限无需暴露给 CI。</li>
+</ul>
+</li>
+<li><strong>Jenkins Kubernetes Plugin</strong>：
+<ul>
+<li>Jenkins Master 动态在 K8s 中创建 Agent Pod 来执行构建任务，用完即毁。</li>
+</ul>
+</li>
+</ol>
+<h3 id="152-如何实现-kubernetes-集群的备份特别是-etcd">152. 如何实现 Kubernetes 集群的备份（特别是 Etcd）？</h3>
+<ul>
+<li><strong>Etcd 备份 (核心)</strong>：
+<ul>
+<li><strong>快照命令</strong>：<code>etcdctl snapshot save backup.db --endpoints=&lt;ip&gt;:2379 ...</code></li>
+<li><strong>定时任务</strong>：使用 CronJob 定期执行快照并上传到对象存储 (S3)。</li>
+<li><strong>恢复</strong>：停止 API Server，执行 <code>etcdctl snapshot restore</code>，重启 Etcd 和 API Server。</li>
+</ul>
+</li>
+<li><strong>资源清单备份</strong>：
+<ul>
+<li>使用 <strong>Velero</strong> (推荐)：
+<ul>
+<li>备份 K8s 资源对象 (YAML) 到对象存储。</li>
+<li>备份 PV 数据 (通过云厂商快照插件或 Restic/Kopia)。</li>
+<li>支持灾难恢复、集群迁移、定时备份。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><strong>配置即代码</strong>：最根本的备份是 Git 仓库中的 Manifest/Helm Chart。</li>
+</ul>
+<h3 id="153-kubernetes-中如何管理和优化资源-如-cpu-内存">153. Kubernetes 中如何管理和优化资源 (如 CPU、内存)？</h3>
+<ol>
+<li><strong>合理设置 Request/Limit</strong>：
+<ul>
+<li>基于实际压测数据设置，避免过大浪费或过小导致 OOM/节流。</li>
+<li>利用 QoS 等级 (Guaranteed/Burstable) 保障关键业务。</li>
+</ul>
+</li>
+<li><strong>垂直自动伸缩 (VPA)</strong>：
+<ul>
+<li>分析历史用量，自动推荐或调整 Request/Limit 值（注意：修改 Limit 通常需要重启 Pod）。</li>
+</ul>
+</li>
+<li><strong>水平自动伸缩 (HPA)</strong>：
+<ul>
+<li>根据负载动态增减副本，提高资源利用率。</li>
+</ul>
+</li>
+<li><strong>集群自动伸缩 (CA)</strong>：
+<ul>
+<li>当节点资源不足时自动增加节点，空闲时缩容节点。</li>
+</ul>
+</li>
+<li><strong>资源配额 (ResourceQuota)</strong>：
+<ul>
+<li>限制 Namespace 总资源使用，防止单一团队耗尽集群资源。</li>
+</ul>
+</li>
+<li><strong>调度优化</strong>：
+<ul>
+<li>使用亲和性/反亲和性、拓扑分布约束，平衡节点负载，避免热点。</li>
+</ul>
+</li>
+</ol>
+<h3 id="154-kubernetes-中如何管理和更新容器的安全补丁">154. Kubernetes 中如何管理和更新容器的安全补丁？</h3>
+<ol>
+<li><strong>基础镜像更新</strong>：
+<ul>
+<li>定期重建基础镜像（OS 层补丁），触发应用镜像重新构建。</li>
+</ul>
+</li>
+<li><strong>自动化扫描与修复</strong>：
+<ul>
+<li>集成 <strong>Trivy/Grype</strong> 在 CI 中扫描。</li>
+<li>使用 <strong>Renovate</strong> 或 <strong>Dependabot</strong> 自动检测基础镜像漏洞并提 PR 更新 Dockerfile。</li>
+</ul>
+</li>
+<li><strong>滚动更新策略</strong>：
+<ul>
+<li>发布新镜像版本，利用 Deployment 滚动更新替换旧 Pod。</li>
+</ul>
+</li>
+<li><strong>运行时防护</strong>：
+<ul>
+<li>使用 Falco 等工具监控异常行为。</li>
+<li>对于无法立即重启的关键应用，考虑热补丁技术（较少见，通常还是重启）。</li>
+</ul>
+</li>
+<li><strong>K8s 组件升级</strong>：
+<ul>
+<li>定期升级 Kubelet, Kube-Proxy 及控制平面组件以修复 CVE。</li>
+</ul>
+</li>
+</ol>
+<h3 id="155-kubernetes-中如何实现故障转移和自动恢复">155. Kubernetes 中如何实现故障转移和自动恢复？</h3>
+<ol>
+<li><strong>Pod 级别自愈</strong>：
+<ul>
+<li><strong>Restart Policy</strong>：容器崩溃自动重启。</li>
+<li><strong>Liveness Probe</strong>：检测到死锁/无响应，自动重启 Pod。</li>
+<li><strong>Controller (Deployment/StatefulSet)</strong>：Pod 意外删除或节点故障导致 Pod 丢失时，控制器会自动在新节点创建新 Pod。</li>
+</ul>
+</li>
+<li><strong>节点级别故障转移</strong>：
+<ul>
+<li><strong>Node Controller</strong>：检测到 Node 失联 (NotReady) 超过阈值，将该节点上的 Pod 标记为终止，并在其他健康节点重新调度。</li>
+<li><strong>Pod Disruption Budget (PDB)</strong>：确保在自愿干扰（如节点维护）期间，始终有最小数量的 Pod 可用。</li>
+</ul>
+</li>
+<li><strong>多可用区 (Multi-AZ) 部署</strong>：
+<ul>
+<li>配置 <strong>Topology Spread Constraints</strong> 或 <strong>Pod Anti-Affinity</strong>，强制 Pod 分散在不同的可用区 (Zone)。</li>
+<li>当某个 AZ 整体故障时，其他 AZ 的 Pod 继续服务，配合 LoadBalancer 流量切换。</li>
+</ul>
+</li>
+<li><strong>控制平面 HA</strong>：
+<ul>
+<li>多 Master + Etcd 集群，单点故障不影响集群管理功能。</li>
+</ul>
+</li>
+</ol>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#kubernetes-docker-%E6%A0%B8%E5%BF%83%E9%9D%A2%E8%AF%95%E9%A2%98%E6%95%B4%E7%90%86">Kubernetes &amp; Docker 核心面试题整理</a>
+<ul>
+<li><a href="#1-%E5%9F%BA%E7%A1%80%E6%A6%82%E5%BF%B5-basic-concepts">1. 基础概念 (Basic Concepts)</a>
+<ul>
+<li><a href="#1-k8s-%E4%B8%AD%E5%B8%B8%E8%A7%81%E7%B1%BB%E5%9E%8B%E7%9A%84%E8%B5%84%E6%BA%90%E4%BB%8B%E7%BB%8D%E5%92%8C%E5%8C%BA%E5%88%AB">1. K8s 中常见类型的资源介绍和区别？</a></li>
+<li><a href="#2-k8s-%E4%B8%AD-pod-%E6%9C%8D%E5%8A%A1%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5%E6%96%B9%E5%BC%8F%E6%9C%89%E5%93%AA%E4%B8%A4%E7%A7%8D">2. K8s 中 Pod 服务健康检查方式有哪两种？</a></li>
+<li><a href="#3-k8s-%E8%AE%A4%E8%AF%81%E6%96%B9%E5%BC%8F%E6%9C%89%E5%87%A0%E7%A7%8D">3. K8s 认证方式有几种？</a></li>
+<li><a href="#4-k8s-%E4%B8%AD%E7%9A%84%E8%AF%81%E4%B9%A6%E5%92%8C%E7%A7%81%E9%92%A5%E7%A7%8D%E7%B1%BB%E6%9C%89%E5%93%AA%E4%BA%9B">4. K8s 中的证书和私钥种类有哪些？</a></li>
+<li><a href="#5-k8s-%E4%B8%AD%E5%90%84%E4%B8%AA%E4%B8%BB%E8%A6%81%E7%BB%84%E4%BB%B6%E6%9C%89%E5%93%AA%E4%BA%9B%E5%90%84%E8%87%AA%E4%BD%9C%E7%94%A8%E6%98%AF%E4%BB%80%E4%B9%88">5. K8s 中各个主要组件有哪些？各自作用是什么？</a></li>
+<li><a href="#6-k8s-%E9%9B%86%E7%BE%A4%E4%B8%AD%E6%9C%89%E6%B2%A1%E6%9C%89%E9%AB%98%E5%8F%AF%E7%94%A8%E4%BD%A0%E4%BB%AC%E5%85%AC%E5%8F%B8%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%9E%B6%E6%9E%84%E6%98%AF%E4%BB%80%E4%B9%88">6. K8s 集群中有没有高可用？你们公司的高可用架构是什么？</a></li>
+<li><a href="#7-k8s-%E4%B8%AD%E9%95%9C%E5%83%8F%E4%B8%8B%E8%BD%BD%E7%AD%96%E7%95%A5imagepullpolicy%E6%9C%89%E5%93%AA%E5%87%A0%E7%A7%8D">7. K8s 中镜像下载策略（ImagePullPolicy）有哪几种？</a></li>
+<li><a href="#8-k8s-%E4%B8%AD-pod-%E6%95%85%E9%9A%9C%E9%87%8D%E5%90%AF%E7%AD%96%E7%95%A5restartpolicy%E6%9C%89%E5%93%AA%E5%87%A0%E7%A7%8D">8. K8s 中 Pod 故障重启策略（RestartPolicy）有哪几种？</a></li>
+<li><a href="#9-k8s-%E4%B8%AD-pv-%E6%9C%89%E5%87%A0%E7%A7%8D%E8%AE%BF%E9%97%AE%E6%A8%A1%E5%BC%8Faccess-modes">9. K8s 中 PV 有几种访问模式（Access Modes）？</a></li>
+<li><a href="#10-k8s-%E4%B8%AD-pv-%E5%92%8C-pvc-%E7%9A%84%E4%BD%9C%E7%94%A8%E6%98%AF%E4%BB%80%E4%B9%88pv-pvc-%E5%92%8C%E5%BA%95%E5%B1%82%E5%AD%98%E5%82%A8%E7%9A%84%E5%85%B3%E7%B3%BB">10. K8s 中 PV 和 PVC 的作用是什么？PV、PVC 和底层存储的关系？</a>
+<ul>
+<li><a href="#1-%E6%A0%B8%E5%BF%83%E8%A7%92%E8%89%B2%E6%B7%B1%E5%8C%96">1. 核心角色深化</a>
+<ul>
+<li><a href="#pv-persistentvolume-%E4%BB%93%E5%BA%93"><strong>PV (PersistentVolume) - “仓库”</strong></a></li>
+<li><a href="#pvc-persistentvolumeclaim-%E8%AE%A2%E5%8D%95"><strong>PVC (PersistentVolumeClaim) - “订单”</strong></a></li>
+<li><a href="#storageclass-sc-%E8%87%AA%E5%8A%A8%E5%8C%96%E9%87%87%E8%B4%AD%E7%BB%8F%E7%90%86%E6%A8%A1%E6%9D%BF"><strong>StorageClass (SC) - “自动化采购经理/模板”</strong></a></li>
+</ul>
+</li>
+<li><a href="#2-%E4%B8%89%E8%80%85%E4%B8%8E%E5%BA%95%E5%B1%82%E5%AD%98%E5%82%A8%E7%9A%84%E5%AE%8C%E6%95%B4%E5%85%B3%E7%B3%BB%E5%9B%BE%E8%B0%B1">2. 三者与底层存储的完整关系图谱</a>
+<ul>
+<li><a href="#%E5%9C%BA%E6%99%AF-a%E9%9D%99%E6%80%81%E4%BE%9B%E7%BB%99-static-provisioning-%E4%BC%A0%E7%BB%9F%E6%A8%A1%E5%BC%8F"><strong>场景 A：静态供给 (Static Provisioning) - 传统模式</strong></a></li>
+<li><a href="#%E5%9C%BA%E6%99%AF-b%E5%8A%A8%E6%80%81%E4%BE%9B%E7%BB%99-dynamic-provisioning-%E7%8E%B0%E4%BB%A3%E4%B8%BB%E6%B5%81%E6%A8%A1%E5%BC%8F-%E5%BC%95%E5%85%A5-storageclass"><strong>场景 B：动态供给 (Dynamic Provisioning) - 现代主流模式 (引入 StorageClass)</strong></a></li>
+</ul>
+</li>
+<li><a href="#3-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E4%B8%8E%E5%9B%9E%E6%94%B6%E7%AD%96%E7%95%A5-reclaim-policy">3. 生命周期与回收策略 (Reclaim Policy)</a></li>
+<li><a href="#4-%E6%80%BB%E7%BB%93%E5%9B%BE%E7%A4%BA%E5%8C%96%E7%90%86%E8%A7%A3">4. 总结图示化理解</a></li>
+<li><a href="#%E5%85%B3%E9%94%AE%E7%BB%93%E8%AE%BA">关键结论</a></li>
+</ul>
+</li>
+<li><a href="#11-%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%AE%BF%E9%97%AE-k8s-%E8%B5%84%E6%BA%90%E9%9C%80%E8%A6%81%E7%BB%8F%E8%BF%87%E5%87%A0%E5%85%B3%E5%88%86%E5%88%AB%E6%98%AF%E4%BB%80%E4%B9%88">11. 客户端访问 K8s 资源需要经过几关？分别是什么？</a></li>
+<li><a href="#12-k8s-%E9%9B%86%E7%BE%A4%E4%B8%AD%E7%9A%84%E6%95%B0%E6%8D%AE%E6%98%AF%E5%AD%98%E5%82%A8%E5%9C%A8%E5%93%AA%E4%B8%AA%E4%BD%8D%E7%BD%AE">12. K8s 集群中的数据是存储在哪个位置？</a></li>
+<li><a href="#13-%E4%BB%80%E4%B9%88%E6%98%AF-headless%E6%97%A0%E5%A4%B4service">13. 什么是 Headless（无头）Service？</a></li>
+</ul>
+</li>
+<li><a href="#2-docker-%E7%9B%B8%E5%85%B3-docker-related">2. Docker 相关 (Docker Related)</a>
+<ul>
+<li><a href="#14-docker-%E6%80%8E%E4%B9%88%E7%94%A8-dockerfile-%E6%96%87%E4%BB%B6%E6%9E%84%E5%BB%BA%E9%95%9C%E5%83%8F%E5%85%B7%E4%BD%93%E5%91%BD%E4%BB%A4%E6%98%AF%E4%BB%80%E4%B9%88">14. Docker 怎么用 Dockerfile 文件构建镜像？具体命令是什么？</a></li>
+<li><a href="#15-docker-%E6%80%8E%E4%B9%88%E7%94%A8%E9%95%9C%E5%83%8F%E8%BF%90%E8%A1%8C%E4%B8%80%E4%B8%AA%E5%AE%B9%E5%99%A8%E5%A6%82%E4%BD%95%E8%AE%BE%E7%BD%AE%E5%9C%A8%E5%90%8E%E5%8F%B0%E8%BF%90%E8%A1%8C">15. Docker 怎么用镜像运行一个容器？如何设置在后台运行？</a></li>
+<li><a href="#16-docker-harbor-%E6%98%AF%E6%80%8E%E4%B9%88%E5%AE%89%E8%A3%85%E7%9A%84%E6%9C%89%E5%93%AA%E5%87%A0%E7%A7%8D%E5%AE%89%E8%A3%85%E6%96%B9%E5%BC%8F">16. Docker Harbor 是怎么安装的？有哪几种安装方式？</a></li>
+<li><a href="#17-dockerfile-%E4%B8%AD%E9%83%BD%E6%9C%89%E5%93%AA%E4%BA%9B%E5%85%B3%E9%94%AE%E5%AD%97%E5%90%84%E8%87%AA%E7%9A%84%E4%BD%9C%E7%94%A8%E6%98%AF%E4%BB%80%E4%B9%88">17. Dockerfile 中都有哪些关键字？各自的作用是什么？</a></li>
+<li><a href="#%E6%B7%B1%E5%BA%A6%E8%A7%A3%E6%9E%90entrypoint-vs-cmd">🔍 深度解析：ENTRYPOINT vs CMD</a>
+<ul>
+<li><a href="#1-%E6%A0%B8%E5%BF%83%E5%8C%BA%E5%88%AB">1. 核心区别</a></li>
+<li><a href="#2-%E5%9C%BA%E6%99%AF%E6%BC%94%E7%A4%BA">2. 场景演示</a>
+<ul>
+<li><a href="#%E5%9C%BA%E6%99%AF-a%E5%8F%AA%E4%BD%BF%E7%94%A8-cmd-%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F">场景 A：只使用 <code>CMD</code> (传统方式)</a></li>
+<li><a href="#%E5%9C%BA%E6%99%AF-b%E5%8F%AA%E4%BD%BF%E7%94%A8-entrypoint-%E5%BC%BA%E5%88%B6%E6%A8%A1%E5%BC%8F">场景 B：只使用 <code>ENTRYPOINT</code> (强制模式)</a></li>
+<li><a href="#%E5%9C%BA%E6%99%AF-centrypoint-cmd-%E7%BB%84%E5%90%88-%E6%9C%80%E4%BD%B3%E5%AE%9E%E8%B7%B5">场景 C：<code>ENTRYPOINT</code> + <code>CMD</code> 组合 (最佳实践 ⭐)</a></li>
+</ul>
+</li>
+<li><a href="#3-%E5%AE%9E%E6%88%98%E6%A1%88%E4%BE%8Bnginx-%E9%95%9C%E5%83%8F">3. 实战案例：Nginx 镜像</a></li>
+<li><a href="#%E6%A0%BC%E5%BC%8F%E9%87%8D%E8%A6%81%E6%8F%90%E7%A4%BA">📝 格式重要提示</a></li>
+<li><a href="#%E6%80%BB%E7%BB%93%E5%AF%B9%E7%85%A7%E8%A1%A8">总结对照表</a></li>
+</ul>
+</li>
+<li><a href="#18-%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8-docker-%E5%BF%AB%E9%80%9F%E8%BF%90%E8%A1%8C%E7%9B%B8%E5%85%B3%E6%9C%8D%E5%8A%A1%E4%BE%8B%E5%A6%82-docker-%E5%AE%89%E8%A3%85-mysqlredis-%E7%AD%89">18. 如何使用 Docker 快速运行相关服务？（例如 Docker 安装 MySQL/Redis 等）</a></li>
+<li><a href="#19-%E4%BD%BF%E7%94%A8%E8%BF%87-docker-compose-%E5%90%97%E6%AF%94-docker-%E6%9D%A5%E8%AE%B2%E6%9C%89%E4%BB%80%E4%B9%88%E4%BC%98%E5%8A%BF">19. 使用过 Docker Compose 吗？比 Docker 来讲，有什么优势？</a></li>
+<li><a href="#20-%E4%BC%9A%E7%BC%96%E5%86%99-docker-compose-%E7%9A%84-yaml-%E6%96%87%E4%BB%B6%E5%90%97%E5%A6%82%E4%BD%95%E7%BC%96%E5%86%99">20. 会编写 Docker Compose 的 YAML 文件吗？如何编写？</a></li>
+<li><a href="#21-docker-%E6%9C%89%E5%87%A0%E7%A7%8D%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%BC%8F%E5%88%86%E5%88%AB%E6%98%AF%E5%93%AA%E4%BA%9B%E5%90%84%E8%87%AA%E4%BD%9C%E7%94%A8%E6%98%AF%E4%BB%80%E4%B9%88">21. Docker 有几种网络模式？分别是哪些？各自作用是什么？</a></li>
+<li><a href="#22-%E4%BD%A0%E4%BB%AC%E7%94%A8%E7%9A%84-k8s-%E7%9A%84%E7%89%88%E6%9C%AC%E6%98%AF%E4%BB%80%E4%B9%88">22. 你们用的 K8s 的版本是什么？</a></li>
+<li><a href="#23-dockerfile-%E4%B8%AD-run-cmd-entrypoint-%E7%9A%84%E5%8C%BA%E5%88%AB">23. Dockerfile 中 RUN、CMD、ENTRYPOINT 的区别？</a></li>
+<li><a href="#24-dockerfile-%E4%B8%AD-add-%E5%92%8C-copy-%E7%9A%84%E5%8C%BA%E5%88%AB">24. Dockerfile 中 ADD 和 COPY 的区别？</a></li>
+<li><a href="#25-docker-%E4%B8%AD%E7%9A%84%E9%95%9C%E5%83%8F%E5%88%86%E5%B1%82layering%E6%98%AF%E6%80%8E%E4%B9%88%E6%A0%B7%E7%9A%84">25. Docker 中的镜像分层（Layering）是怎么样的？</a></li>
+</ul>
+</li>
+<li><a href="#3-pod-%E5%92%8C%E6%9C%8D%E5%8A%A1-pod-service">3. Pod 和服务 (Pod &amp; Service)</a>
+<ul>
+<li><a href="#26-k8s-%E4%B8%AD-pod-%E6%98%AF%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E4%BB%A3%E7%90%86%E5%92%8C%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1%E7%9A%84">26. K8s 中 Pod 是如何实现代理和负载均衡的？</a></li>
+<li><a href="#27-k8s-%E4%B8%AD%E5%88%9B%E5%BB%BA-pod-%E7%9A%84%E8%BF%87%E7%A8%8B%E6%88%96%E6%B5%81%E7%A8%8B%E6%98%AF%E6%80%8E%E4%B9%88%E6%A0%B7%E7%9A%84">27. K8s 中创建 Pod 的过程或流程是怎么样的？</a></li>
+<li><a href="#28-k8s-%E4%B8%AD%E5%A6%82%E4%BD%95%E6%89%B9%E9%87%8F%E5%88%A0%E9%99%A4-pod">28. K8s 中如何批量删除 Pod？</a></li>
+<li><a href="#29-kubeadm-%E5%88%9D%E5%A7%8B%E5%8C%96%E7%9A%84-k8s-%E9%9B%86%E7%BE%A4token-%E8%BF%87%E6%9C%9F%E5%90%8E%E9%9B%86%E7%BE%A4%E4%B8%AD%E8%8A%82%E7%82%B9%E6%97%A0%E6%B3%95%E5%8A%A0%E5%85%A5%E6%80%8E%E4%B9%88%E5%8A%9E">29. Kubeadm 初始化的 K8s 集群，Token 过期后，集群中节点无法加入怎么办？</a></li>
+<li><a href="#30-k8s-%E8%BF%90%E7%BB%B4%E8%BF%87%E7%A8%8B%E4%B8%AD%E9%81%87%E5%88%B0%E8%BF%87%E5%93%AA%E4%BA%9B%E9%97%AE%E9%A2%98%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%E7%9A%84%E5%BC%80%E6%94%BE%E6%80%A7%E9%97%AE%E9%A2%98">30. K8s 运维过程中遇到过哪些问题，如何解决的？（开放性问题）</a></li>
+<li><a href="#31-%E6%89%A7%E8%A1%8C-kubectl-get-node-%E5%91%BD%E4%BB%A4%E5%90%8E%E7%9C%8B%E4%B8%8D%E5%88%B0%E6%9F%90%E4%BA%9B%E8%8A%82%E7%82%B9%E7%9A%84%E5%8E%9F%E5%9B%A0">31. 执行 <code>kubectl get node</code> 命令后看不到某些节点的原因？</a></li>
+<li><a href="#32-%E6%89%A7%E8%A1%8C-kubectl-get-cs-%E6%9F%A5%E7%9C%8B%E9%9B%86%E7%BE%A4%E7%8A%B6%E6%80%81%E4%B8%8D%E6%AD%A3%E5%B8%B8%E6%98%BE%E7%A4%BA-unhealthy-%E7%9A%84%E5%8E%9F%E5%9B%A0">32. 执行 <code>kubectl get cs</code> 查看集群状态不正常，显示 Unhealthy 的原因？</a></li>
+<li><a href="#33-kubectl-%E5%91%BD%E4%BB%A4%E4%B8%AD-create-%E5%92%8C-apply-%E5%88%9B%E5%BB%BA%E8%B5%84%E6%BA%90%E7%9A%84%E5%8C%BA%E5%88%AB">33. Kubectl 命令中 <code>create</code> 和 <code>apply</code> 创建资源的区别？</a></li>
+<li><a href="#34-pod-%E8%B5%84%E6%BA%90%E5%85%B1%E4%BA%AB%E6%9C%BA%E5%88%B6%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E5%8D%B3%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0-pod-%E4%B8%AD%E4%B8%A4%E4%B8%AA%E5%AE%B9%E5%99%A8%E5%85%B1%E4%BA%AB%E6%95%B0%E6%8D%AE">34. Pod 资源共享机制如何实现？即：如何实现 Pod 中两个容器共享数据？</a></li>
+<li><a href="#35-%E5%AE%B9%E5%99%A8%E4%B9%8B%E9%97%B4%E6%98%AF%E9%80%9A%E8%BF%87%E4%BB%80%E4%B9%88%E8%BF%9B%E8%A1%8C%E9%9A%94%E7%A6%BB%E7%9A%84">35. 容器之间是通过什么进行隔离的？</a></li>
+<li><a href="#36-pod-%E5%B8%B8%E7%94%A8%E7%9A%84%E7%8A%B6%E6%80%81%E6%9C%89%E5%93%AA%E4%BA%9B">36. Pod 常用的状态有哪些？</a></li>
+<li><a href="#37-%E8%8A%82%E7%82%B9%E9%80%89%E6%8B%A9%E5%99%A8node-selector%E9%83%BD%E6%9C%89%E4%BB%80%E4%B9%88%E5%90%84%E8%87%AA%E7%9A%84%E5%8C%BA%E5%88%AB%E6%98%AF%E4%BB%80%E4%B9%88">37. 节点选择器（Node Selector）都有什么？各自的区别是什么？</a></li>
+<li><a href="#38-%E6%B1%A1%E7%82%B9taint%E5%92%8C%E5%AE%B9%E5%BF%8D%E5%BA%A6toleration%E6%98%AF%E4%BB%80%E4%B9%88%E4%B8%A4%E8%80%85%E6%98%AF%E5%A6%82%E4%BD%95%E9%85%8D%E5%90%88%E4%BD%BF%E7%94%A8%E7%9A%84">38. 污点（Taint）和容忍度（Toleration）是什么？两者是如何配合使用的？</a></li>
+<li><a href="#39-service-%E7%9A%84-4-%E7%A7%8D%E7%B1%BB%E5%9E%8B">39. Service 的 4 种类型？</a></li>
+<li><a href="#40-service-%E7%9A%84%E4%B8%A4%E7%A7%8D%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8Fiptablesipvs">40. Service 的两种代理模式（iptables/IPVS）？</a></li>
+<li><a href="#41-k8s-%E6%8F%90%E4%BE%9B%E4%BA%86%E5%93%AA%E5%87%A0%E7%A7%8D%E5%AF%B9%E5%A4%96%E6%9A%B4%E9%9C%B2%E8%AE%BF%E9%97%AE%E6%96%B9%E5%BC%8F">41. K8s 提供了哪几种对外暴露访问方式？</a></li>
+</ul>
+</li>
+<li><a href="#4-%E7%9B%91%E6%8E%A7%E5%92%8C%E6%97%A5%E5%BF%97-monitoring-logging">4. 监控和日志 (Monitoring &amp; Logging)</a>
+<ul>
+<li><a href="#42-k8s-%E7%9A%84%E7%9B%91%E6%8E%A7prometheus%E5%B8%B8%E7%94%A8%E7%9B%91%E6%8E%A7%E7%BB%84%E4%BB%B6%E6%9C%89%E5%93%AA%E4%BA%9B%E5%90%84%E8%87%AA%E4%BD%9C%E7%94%A8">42. K8s 的监控（Prometheus）常用监控组件有哪些？各自作用？</a>
+<ul>
+<li><a href="#%EF%B8%8F-prometheus-k8s-%E7%9B%91%E6%8E%A7%E6%9E%B6%E6%9E%84%E6%B5%81%E7%A8%8B%E5%9B%BE">🏗️ Prometheus K8s 监控架构流程图</a></li>
+<li><a href="#%E6%9E%B6%E6%9E%84%E7%BB%84%E4%BB%B6%E8%AF%A6%E7%BB%86%E8%A7%A3%E8%AF%BB">📝 架构组件详细解读</a></li>
+<li><a href="#1-%E6%95%B0%E6%8D%AE%E6%BA%90%E5%B1%82-data-sources">1. 数据源层 (Data Sources)</a></li>
+<li><a href="#2-%E9%87%87%E9%9B%86%E5%99%A8%E5%B1%82-exporters">2. 采集器层 (Exporters)</a></li>
+<li><a href="#3-%E6%A0%B8%E5%BF%83%E6%9C%8D%E5%8A%A1%E5%B1%82-core">3. 核心服务层 (Core)</a></li>
+<li><a href="#4-%E5%91%8A%E8%AD%A6%E5%A4%84%E7%90%86%E5%B1%82-alerting">4. 告警处理层 (Alerting)</a></li>
+<li><a href="#5-%E5%B1%95%E7%A4%BA%E4%B8%8E%E5%BA%94%E7%94%A8%E5%B1%82-visualization-action">5. 展示与应用层 (Visualization &amp; Action)</a></li>
+<li><a href="#%E6%A0%B8%E5%BF%83%E5%8C%BA%E5%88%AB%E6%80%BB%E7%BB%93">💡 核心区别总结</a></li>
+</ul>
+</li>
+<li><a href="#43-cadvisor-node-exporter-metrics-server-%E7%9A%84%E5%8C%BA%E5%88%AB%E5%92%8C%E8%81%94%E7%B3%BB">43. cAdvisor、node-exporter、metrics-server 的区别和联系？</a></li>
+<li><a href="#44-pod-%E5%B8%B8%E8%A7%81%E7%9A%84%E7%8A%B6%E6%80%81%E6%9C%89%E5%93%AA%E4%BA%9B%E7%BB%93%E5%90%88%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E5%9B%9E%E7%AD%94">44. Pod 常见的状态有哪些？（结合生命周期回答）</a></li>
+<li><a href="#45-node-%E8%8A%82%E7%82%B9%E4%B8%8D%E8%83%BD%E5%B7%A5%E4%BD%9C%E7%9A%84%E5%A4%84%E7%90%86%E6%B5%81%E7%A8%8B">45. Node 节点不能工作的处理流程？</a></li>
+<li><a href="#46-k8s-%E5%B8%B8%E8%A7%81%E5%81%A5%E5%BA%B7%E6%A3%80%E6%9F%A5%E7%9A%84%E6%8E%A2%E9%92%88probe%E6%9C%89%E5%87%A0%E7%A7%8D">46. K8s 常见健康检查的探针（Probe）有几种？</a></li>
+<li><a href="#47-k8s-%E4%B8%AD%E7%BD%91%E7%BB%9C%E9%80%9A%E4%BF%A1%E7%B1%BB%E5%9E%8B%E6%9C%89%E5%87%A0%E7%A7%8D">47. K8s 中网络通信类型有几种？</a></li>
+<li><a href="#48-k8s-%E4%B8%AD%E7%BD%91%E7%BB%9C%E6%8F%92%E4%BB%B6cni%E6%9C%89%E5%93%AA%E4%BA%9B%E5%90%84%E8%87%AA%E7%89%B9%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88">48. K8s 中网络插件（CNI）有哪些？各自特点是什么？</a></li>
+<li><a href="#49-pod-%E7%BD%91%E7%BB%9C%E8%BF%9E%E6%8E%A5%E8%B6%85%E6%97%B6%E7%9A%84%E5%87%A0%E7%A7%8D%E6%83%85%E5%86%B5">49. Pod 网络连接超时的几种情况？</a></li>
+<li><a href="#50-%E8%AE%BF%E9%97%AE-pod-%E7%9A%84-ip%E7%AB%AF%E5%8F%A3-%E6%88%96-service-%E7%9A%84-ip-%E6%98%BE%E7%A4%BA%E8%B6%85%E6%97%B6%E7%9A%84%E5%A4%84%E7%90%86%E6%80%9D%E8%B7%AF">50. 访问 Pod 的 IP:端口 或 Service 的 IP 显示超时的处理思路？</a></li>
+<li><a href="#51-pod-%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E9%98%B6%E6%AE%B5">51. Pod 的生命周期阶段？</a></li>
+<li><a href="#52-pod-%E5%A4%84%E4%BA%8E-running%E4%BD%86%E5%BA%94%E7%94%A8%E4%B8%8D%E6%AD%A3%E5%B8%B8%E7%9A%84%E5%87%A0%E7%A7%8D%E6%83%85%E5%86%B5">52. Pod 处于 Running，但应用不正常的几种情况？</a></li>
+<li><a href="#53-%E5%BD%93%E9%81%87%E5%88%B0-coredns-%E7%BB%8F%E5%B8%B8%E9%87%8D%E5%90%AF%E5%92%8C%E6%8A%A5%E9%94%99%E8%BF%99%E7%A7%8D%E6%95%85%E9%9A%9C%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5">53. 当遇到 CoreDNS 经常重启和报错，这种故障如何排查？</a></li>
+<li><a href="#54-k8s-%E9%9B%86%E7%BE%A4%E8%8A%82%E7%82%B9%E7%8A%B6%E6%80%81%E4%B8%BA-notready-%E7%9A%84%E9%83%BD%E6%9C%89%E5%93%AA%E4%BA%9B%E6%83%85%E5%86%B5">54. K8s 集群节点状态为 NotReady 的都有哪些情况？</a></li>
+</ul>
+</li>
+<li><a href="#5-%E8%B0%83%E5%BA%A6%E5%92%8C%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86-scheduling-resources">5. 调度和资源管理 (Scheduling &amp; Resources)</a>
+<ul>
+<li><a href="#55-k8s-%E7%9A%84%E5%87%A0%E7%A7%8D%E8%B0%83%E5%BA%A6%E6%96%B9%E5%BC%8F">55. K8s 的几种调度方式？</a></li>
+<li><a href="#56-k8s-%E4%B8%AD%E4%B8%80%E4%B8%AA-node-%E8%8A%82%E7%82%B9%E7%AA%81%E7%84%B6%E6%96%AD%E7%94%B5%E6%81%A2%E5%A4%8D%E5%90%8E%E4%B8%8A%E9%9D%A2%E7%9A%84-pod-%E6%97%A0%E6%B3%95%E5%90%AF%E5%8A%A8%E6%80%8E%E4%B9%88%E5%8A%9E">56. K8s 中一个 Node 节点突然断电，恢复后上面的 Pod 无法启动怎么办？</a></li>
+<li><a href="#57-pod-%E8%B6%85%E8%BF%87%E8%8A%82%E7%82%B9%E8%B5%84%E6%BA%90%E9%99%90%E5%88%B6%E7%9A%84%E6%95%85%E9%9A%9C%E6%83%85%E5%86%B5%E6%9C%89%E5%93%AA%E4%BA%9B">57. Pod 超过节点资源限制的故障情况有哪些？</a></li>
+<li><a href="#58-pod-%E7%9A%84%E8%87%AA%E5%8A%A8%E6%89%A9%E5%AE%B9%E5%92%8C%E7%BC%A9%E5%AE%B9%E7%9A%84%E6%96%B9%E6%B3%95%E6%9C%89%E5%93%AA%E4%BA%9Bhpavpa">58. Pod 的自动扩容和缩容的方法有哪些？（HPA/VPA）</a></li>
+<li><a href="#59-k8s-%E4%B8%AD-service-%E8%AE%BF%E9%97%AE%E5%BC%82%E5%B8%B8%E7%9A%84%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%9C%89%E5%93%AA%E4%BA%9B%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86">59. K8s 中 Service 访问异常的常见问题有哪些？如何处理？</a></li>
+<li><a href="#60-k8s-%E4%B8%AD-pod-%E5%88%A0%E9%99%A4%E5%A4%B1%E8%B4%A5%E6%9C%89%E5%93%AA%E4%BA%9B%E6%83%85%E5%86%B5%E5%92%8C%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3">60. K8s 中 Pod 删除失败，有哪些情况？和如何解决？</a></li>
+<li><a href="#61-pause-%E5%AE%B9%E5%99%A8%E7%9A%84%E6%A6%82%E5%BF%B5%E5%92%8C%E4%BD%9C%E7%94%A8">61. Pause 容器的概念和作用？</a></li>
+</ul>
+</li>
+<li><a href="#6-%E7%BD%91%E7%BB%9C%E5%92%8C%E9%80%9A%E4%BF%A1-networking">6. 网络和通信 (Networking)</a>
+<ul>
+<li><a href="#62-%E5%90%8C%E4%B8%80%E4%B8%AA%E8%8A%82%E7%82%B9%E5%A4%9A%E4%B8%AA-pod-%E4%B9%8B%E9%97%B4%E9%80%9A%E4%BF%A1%E7%A4%BA%E6%84%8F%E5%9B%BE%E5%8F%8A%E5%8E%9F%E7%90%86">62. 同一个节点多个 Pod 之间通信示意图及原理？</a></li>
+<li><a href="#63-%E8%B7%A8%E4%B8%BB%E6%9C%BA%E4%B9%8B%E9%97%B4%E7%9A%84%E5%A4%9A%E4%B8%AA-pod-%E4%B9%8B%E9%97%B4%E9%80%9A%E4%BF%A1%E7%A4%BA%E6%84%8F%E5%9B%BE%E5%8F%8A%E5%8E%9F%E7%90%86">63. 跨主机之间的多个 Pod 之间通信示意图及原理？</a></li>
+<li><a href="#64-k8s-%E4%B8%AD%E5%90%8C%E4%B8%80%E4%B8%AA%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E4%B8%8B%E6%9C%8D%E5%8A%A1%E9%97%B4%E6%98%AF%E6%80%8E%E4%B9%88%E8%B0%83%E7%94%A8%E7%9A%84">64. K8s 中同一个命名空间下服务间是怎么调用的？</a></li>
+<li><a href="#65-k8s-%E4%B8%AD%E4%B8%8D%E5%90%8C%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4%E4%B8%8B%E6%9C%8D%E5%8A%A1%E6%98%AF%E6%80%8E%E4%B9%88%E8%B0%83%E7%94%A8%E7%9A%84">65. K8s 中不同命名空间下服务是怎么调用的？</a></li>
+<li><a href="#66-externalname-%E7%B1%BB%E5%9E%8B%E7%9A%84-service-%E7%9A%84%E6%A6%82%E5%BF%B5%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3">66. ExternalName 类型的 Service 的概念深入理解？</a></li>
+</ul>
+</li>
+<li><a href="#7-%E6%97%A5%E5%BF%97%E5%92%8C%E9%85%8D%E7%BD%AE-logging-config">7. 日志和配置 (Logging &amp; Config)</a>
+<ul>
+<li><a href="#67-docker-%E9%95%9C%E5%83%8F%E7%9A%84%E4%BC%98%E5%8C%96%E6%96%B9%E6%B3%95%E6%9C%89%E5%93%AA%E4%BA%9B">67. Docker 镜像的优化方法有哪些？</a></li>
+<li><a href="#68-k8s-%E4%B8%AD%E9%92%88%E5%AF%B9%E6%A0%87%E5%87%86%E5%8C%96%E8%BE%93%E5%87%BA%E6%96%B9%E5%BC%8Fstdoutstderr%E7%9A%84%E6%97%A5%E5%BF%97%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E6%94%B6%E9%9B%86">68. K8s 中针对标准化输出方式（stdout/stderr）的日志，如何进行收集？</a></li>
+<li><a href="#69-k8s-%E4%B8%AD%E9%92%88%E5%AF%B9%E5%AE%B9%E5%99%A8%E5%86%85%E9%83%A8%E7%9A%84%E6%97%A5%E5%BF%97%E6%96%87%E4%BB%B6%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E6%94%B6%E9%9B%86">69. K8s 中针对容器内部的日志文件，如何进行收集？</a></li>
+<li><a href="#70-%E4%BB%80%E4%B9%88%E6%98%AF%E6%A0%87%E5%87%86%E8%BE%93%E5%87%BA%E6%97%A5%E5%BF%97%E4%BB%80%E4%B9%88%E6%98%AF%E5%AE%B9%E5%99%A8%E5%86%85%E9%83%A8%E6%97%A5%E5%BF%97">70. 什么是标准输出日志？什么是容器内部日志？</a></li>
+<li><a href="#71-k8s-%E4%B8%AD%E9%98%BF%E9%87%8C%E4%BA%91%E5%BC%80%E6%BA%90%E8%BD%AF%E4%BB%B6-log-pilot-%E5%A6%82%E4%BD%95%E6%94%B6%E9%9B%86%E6%A0%87%E5%87%86%E5%8C%96%E8%BE%93%E5%87%BA%E7%9A%84%E6%97%A5%E5%BF%97">71. K8s 中阿里云开源软件 Log-Pilot 如何收集标准化输出的日志？</a></li>
+<li><a href="#72-k8s-%E4%B8%AD%E9%98%BF%E9%87%8C%E4%BA%91%E5%BC%80%E6%BA%90%E8%BD%AF%E4%BB%B6-log-pilot-%E5%A6%82%E4%BD%95%E6%94%B6%E9%9B%86%E5%AE%B9%E5%99%A8%E5%86%85%E7%9A%84%E6%97%A5%E5%BF%97">72. K8s 中阿里云开源软件 Log-Pilot 如何收集容器内的日志？</a></li>
+<li><a href="#73-k8s-%E4%B8%AD-pod-%E7%9A%84%E4%BA%B2%E5%92%8C%E6%80%A7affinity%E5%92%8C%E5%8F%8D%E4%BA%B2%E5%92%8C%E6%80%A7anti-affinity%E7%9A%84%E6%A6%82%E5%BF%B5%E5%A6%82%E4%BD%95%E9%85%8D%E7%BD%AE">73. K8s 中 Pod 的亲和性（Affinity）和反亲和性（Anti-Affinity）的概念？如何配置？</a></li>
+</ul>
+</li>
+<li><a href="#8-%E5%AD%98%E5%82%A8%E5%92%8C%E6%8C%81%E4%B9%85%E5%8C%96-storage">8. 存储和持久化 (Storage)</a>
+<ul>
+<li><a href="#74-%E7%AE%80%E8%BF%B0-kubernetes-%E4%B8%AD-pv-%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E5%86%85%E7%9A%84%E9%98%B6%E6%AE%B5%E6%9C%89%E5%93%AA%E4%BA%9B">74. 简述 Kubernetes 中 PV 生命周期内的阶段有哪些？</a></li>
+<li><a href="#75-k8s-%E4%B8%AD-etcd-%E7%9A%84%E7%89%B9%E7%82%B9">75. K8s 中 Etcd 的特点？</a></li>
+<li><a href="#76-%E7%AE%80%E8%BF%B0-etcd-%E9%80%82%E5%BA%94%E7%9A%84%E5%9C%BA%E6%99%AF">76. 简述 Etcd 适应的场景？</a></li>
+<li><a href="#77-etcd-%E9%9B%86%E7%BE%A4%E8%8A%82%E7%82%B9%E4%B9%8B%E9%97%B4%E6%98%AF%E6%80%8E%E4%B9%88%E5%90%8C%E6%AD%A5%E6%95%B0%E6%8D%AE%E7%9A%84">77. Etcd 集群节点之间是怎么同步数据的？</a></li>
+<li><a href="#78-raft-%E4%B8%80%E8%87%B4%E6%80%A7%E7%AE%97%E6%B3%95%E6%A0%B8%E5%BF%83%E8%A7%A3%E6%9E%90%E9%A1%BA%E4%BE%BF%E4%BB%8B%E7%BB%8D%E4%B8%8B">78. Raft 一致性算法核心解析（顺便介绍下）</a>
+<ul>
+<li><a href="#1-%E8%8A%82%E7%82%B9%E7%8A%B6%E6%80%81">1. 节点状态</a></li>
+<li><a href="#2-%E6%A0%B8%E5%BF%83%E6%9C%BA%E5%88%B6">2. 核心机制</a></li>
+<li><a href="#3-%E4%B8%BA%E4%BB%80%E4%B9%88-k8s-%E9%80%89%E6%8B%A9-raft-%E8%80%8C%E4%B8%8D%E6%98%AF-paxos">3. 为什么 K8s 选择 Raft 而不是 Paxos？</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#9-%E7%BB%BC%E5%90%88%E9%97%AE%E9%A2%98-comprehensive">9. 综合问题 (Comprehensive)</a>
+<ul>
+<li><a href="#79-%E7%AE%80%E8%BF%B0-kubernetes-%E5%92%8C-docker-%E7%9A%84%E5%85%B3%E7%B3%BB%E5%92%8C%E5%8C%BA%E5%88%AB">79. 简述 Kubernetes 和 Docker 的关系和区别？</a></li>
+<li><a href="#80-%E7%AE%80%E8%BF%B0-kubernetes-%E7%9A%84-cni-%E6%A8%A1%E5%9E%8B">80. 简述 Kubernetes 的 CNI 模型？</a></li>
+<li><a href="#81-%E7%AE%80%E8%BF%B0-kubernetes-%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%9B%86%E7%BE%A4%E7%AE%A1%E7%90%86">81. 简述 Kubernetes 如何实现集群管理？</a></li>
+<li><a href="#82-%E7%AE%80%E8%BF%B0-kubernetes-%E7%9A%84%E4%BC%98%E5%8A%BF-%E9%80%82%E5%BA%94%E5%9C%BA%E6%99%AF%E5%8F%8A%E5%85%B6%E7%89%B9%E7%82%B9">82. 简述 Kubernetes 的优势、适应场景及其特点？</a></li>
+<li><a href="#83-%E5%90%8C%E4%B8%80%E8%8A%82%E7%82%B9%E4%B8%8A%E7%9A%84-pod-%E9%80%9A%E4%BF%A1%E5%8E%9F%E7%90%86">83. 同一节点上的 Pod 通信原理？</a></li>
+<li><a href="#84-%E4%B8%8D%E5%90%8C%E8%8A%82%E7%82%B9%E4%B8%8A%E7%9A%84-pod-%E9%80%9A%E4%BF%A1%E5%8E%9F%E7%90%86">84. 不同节点上的 Pod 通信原理？</a></li>
+<li><a href="#85-%E7%AE%80%E8%BF%B0-kubernetes-scheduler-%E4%BD%BF%E7%94%A8%E5%93%AA%E4%B8%A4%E7%A7%8D%E7%AE%97%E6%B3%95%E5%B0%86-pod-%E8%B0%83%E5%BA%A6%E5%88%B0-node">85. 简述 Kubernetes Scheduler 使用哪两种算法将 Pod 调度到 Node？</a></li>
+<li><a href="#86-%E7%AE%80%E8%BF%B0-kubernetes-%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E9%9B%86%E7%BE%A4%E7%9A%84%E5%AE%89%E5%85%A8%E6%80%A7">86. 简述 Kubernetes 如何保证集群的安全性？</a></li>
+<li><a href="#87-k8s-%E4%B8%AD-namespace-%E7%9A%84%E4%BD%9C%E7%94%A8">87. K8s 中 Namespace 的作用？</a></li>
+<li><a href="#88-pod-%E6%98%AF%E4%BB%80%E4%B9%88">88. Pod 是什么？</a></li>
+<li><a href="#89-%E4%BB%80%E4%B9%88%E6%98%AF%E9%9D%99%E6%80%81-podstatic-pod">89. 什么是静态 Pod（Static Pod）？</a></li>
+<li><a href="#90-%E7%AE%80%E8%BF%B0-k8s-%E4%B8%AD-pod-%E7%9A%84%E5%B8%B8%E8%A7%81%E8%B0%83%E5%BA%A6%E6%96%B9%E5%BC%8F">90. 简述 K8s 中 Pod 的常见调度方式？</a></li>
+<li><a href="#91-%E7%AE%80%E8%BF%B0%E4%B8%80%E4%B8%8B%E5%9C%A8-k8s-%E4%B8%AD%E5%88%A0%E9%99%A4-pod-%E7%9A%84%E6%B5%81%E7%A8%8B">91. 简述一下在 K8s 中删除 Pod 的流程？</a></li>
+<li><a href="#92-pod-%E7%9A%84%E8%B5%84%E6%BA%90%E8%AF%B7%E6%B1%82request%E5%92%8C%E9%99%90%E5%88%B6limit%E5%A6%82%E4%BD%95%E5%AE%9A%E4%B9%89">92. Pod 的资源请求（Request）和限制（Limit）如何定义？</a></li>
+<li><a href="#93-%E6%A0%87%E7%AD%BElabels%E5%8F%8A%E6%A0%87%E7%AD%BE%E9%80%89%E6%8B%A9%E5%99%A8label-selectors%E6%98%AF%E4%BB%80%E4%B9%88%E4%BD%9C%E7%94%A8%E6%98%AF%E4%BB%80%E4%B9%88">93. 标签（Labels）及标签选择器（Label Selectors）是什么，作用是什么？</a></li>
+<li><a href="#94-service-%E7%9A%84%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90%E6%A0%BC%E5%BC%8F">94. Service 的域名解析格式？</a></li>
+<li><a href="#95-pod-%E4%B8%8E-service-%E7%9A%84%E9%80%9A%E4%BF%A1%E4%BF%A1%E6%81%AF%E6%98%AF%E6%80%8E%E4%B9%88%E6%A0%B7%E7%9A%84">95. Pod 与 Service 的通信信息是怎么样的？</a></li>
+<li><a href="#96-%E5%9C%A8-k8s-%E9%9B%86%E7%BE%A4%E5%86%85%E7%9A%84%E5%BA%94%E7%94%A8%E5%A6%82%E4%BD%95%E8%AE%BF%E9%97%AE%E5%A4%96%E9%83%A8%E7%9A%84%E6%9C%8D%E5%8A%A1">96. 在 K8s 集群内的应用如何访问外部的服务？</a></li>
+<li><a href="#97-service-endpoint-kube-proxy-%E4%B8%89%E8%80%85%E7%9A%84%E5%85%B3%E7%B3%BB%E6%98%AF%E4%BB%80%E4%B9%88">97. Service、Endpoint、Kube-Proxy 三者的关系是什么？</a></li>
+<li><a href="#98-pod-%E5%88%9B%E5%BB%BA%E5%88%A0%E9%99%A4%E6%97%B6service-endpoint-kube-proxy-%E4%B8%89%E8%80%85%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88%E5%8F%98%E5%8C%96">98. Pod 创建/删除时，Service、Endpoint、Kube-Proxy 三者发生了什么变化？</a></li>
+<li><a href="#99-deployment-%E6%80%8E%E4%B9%88%E6%89%A9%E5%AE%B9%E6%88%96%E7%BC%A9%E5%AE%B9">99. Deployment 怎么扩容或缩容？</a></li>
+<li><a href="#100-k8s-%E6%95%B0%E6%8D%AE%E6%8C%81%E4%B9%85%E5%8C%96%E7%9A%84%E6%96%B9%E5%BC%8F%E6%9C%89%E5%93%AA%E4%BA%9B">100. K8s 数据持久化的方式有哪些？</a></li>
+</ul>
+</li>
+<li><a href="#10-%E9%AB%98%E7%BA%A7%E4%B8%BB%E9%A2%98-advanced-topics">10. 高级主题 (Advanced Topics)</a>
+<ul>
+<li><a href="#101-%E4%BB%80%E4%B9%88%E6%98%AF-kubernetes%E5%AE%83%E7%9A%84%E4%B8%BB%E8%A6%81%E7%9B%AE%E6%A0%87%E6%98%AF%E4%BB%80%E4%B9%88">101. 什么是 Kubernetes？它的主要目标是什么？</a></li>
+<li><a href="#102-%E4%BB%80%E4%B9%88%E6%98%AF-replicaset">102. 什么是 ReplicaSet？</a></li>
+<li><a href="#103-%E4%BB%80%E4%B9%88%E6%98%AF-deployment">103. 什么是 Deployment？</a></li>
+<li><a href="#104-%E4%BB%80%E4%B9%88%E6%98%AF-service">104. 什么是 Service？</a></li>
+<li><a href="#105-%E4%BB%80%E4%B9%88%E6%98%AF%E5%91%BD%E5%90%8D%E7%A9%BA%E9%97%B4-namespace">105. 什么是命名空间 (Namespace)？</a></li>
+<li><a href="#106-%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E7%9A%84%E6%B0%B4%E5%B9%B3%E6%89%A9%E5%B1%95">106. 如何进行应用程序的水平扩展？</a></li>
+<li><a href="#107-%E5%A6%82%E4%BD%95%E5%9C%A8-kubernetes-%E4%B8%AD%E8%BF%9B%E8%A1%8C%E6%BB%9A%E5%8A%A8%E6%9B%B4%E6%96%B0-rolling-update">107. 如何在 Kubernetes 中进行滚动更新 (Rolling Update)？</a></li>
+<li><a href="#108-%E5%A6%82%E4%BD%95%E5%9C%A8-kubernetes-%E4%B8%AD%E8%BF%9B%E8%A1%8C%E6%BB%9A%E5%8A%A8%E5%9B%9E%E6%BB%9A-rollback">108. 如何在 Kubernetes 中进行滚动回滚 (Rollback)？</a></li>
+<li><a href="#109-%E4%BB%80%E4%B9%88%E6%98%AF-kubernetes-%E7%9A%84%E6%B0%B4%E5%B9%B3%E8%87%AA%E5%8A%A8%E6%89%A9%E5%B1%95-horizontal-pod-autoscaler-hpa">109. 什么是 Kubernetes 的水平自动扩展 (Horizontal Pod Autoscaler, HPA)？</a></li>
+<li><a href="#110-%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E5%AD%98%E5%82%A8%E5%8D%B7-volume-%E7%9A%84%E4%BD%BF%E7%94%A8">110. 如何进行存储卷 (Volume) 的使用？</a></li>
+<li><a href="#111-%E4%BB%80%E4%B9%88%E6%98%AF-init-%E5%AE%B9%E5%99%A8-init-container">111. 什么是 Init 容器 (Init Container)？</a></li>
+<li><a href="#112-%E5%A6%82%E4%BD%95%E5%9C%A8-kubernetes-%E4%B8%AD%E8%BF%9B%E8%A1%8C%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%E7%9A%84%E5%AE%89%E5%85%A8%E7%AE%A1%E7%90%86secretconfigmap">112. 如何在 Kubernetes 中进行配置文件的安全管理（Secret/ConfigMap）？</a></li>
+<li><a href="#113-%E5%A6%82%E4%BD%95%E7%9B%91%E6%8E%A7-kubernetes-%E9%9B%86%E7%BE%A4">113. 如何监控 Kubernetes 集群？</a></li>
+<li><a href="#114-%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E8%B7%A8%E9%9B%86%E7%BE%A4%E9%83%A8%E7%BD%B2%E5%92%8C%E7%AE%A1%E7%90%86">114. 如何进行跨集群部署和管理？</a></li>
+<li><a href="#115-%E4%BB%80%E4%B9%88%E6%98%AF-kubernetes-%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E9%92%A9%E5%AD%90-lifecycle-hooks">115. 什么是 Kubernetes 的生命周期钩子 (Lifecycle Hooks)？</a></li>
+<li><a href="#116-%E4%BB%80%E4%B9%88%E6%98%AF-pod-%E7%9A%84%E6%8E%A2%E9%92%88-probeliveness-readiness-startup">116. 什么是 Pod 的探针 (Probe)？(Liveness, Readiness, Startup)</a></li>
+<li><a href="#117-%E4%BB%80%E4%B9%88%E6%98%AF-kubernetes-%E7%9A%84%E5%AE%89%E5%85%A8%E6%80%A7%E6%8E%AA%E6%96%BD">117. 什么是 Kubernetes 的安全性措施？</a></li>
+<li><a href="#118-%E4%BB%80%E4%B9%88%E6%98%AF%E5%AE%B9%E5%99%A8%E8%B5%84%E6%BA%90%E9%99%90%E5%88%B6-resource-limit-%E5%92%8C%E5%AE%B9%E5%99%A8%E8%B5%84%E6%BA%90%E8%AF%B7%E6%B1%82-resource-request">118. 什么是容器资源限制 (Resource Limit) 和容器资源请求 (Resource Request)？</a></li>
+<li><a href="#119-%E4%BB%80%E4%B9%88%E6%98%AF-kubernetes-%E4%B8%AD%E7%9A%84%E6%B0%B4%E5%B9%B3%E5%92%8C%E5%9E%82%E7%9B%B4%E6%89%A9%E5%B1%95">119. 什么是 Kubernetes 中的水平和垂直扩展？</a></li>
+<li><a href="#120-%E4%BB%80%E4%B9%88%E6%98%AF-kubernetes-%E7%9A%84%E4%BA%8B%E4%BB%B6-event">120. 什么是 Kubernetes 的事件 (Event)？</a></li>
+<li><a href="#121-%E4%BB%80%E4%B9%88%E6%98%AF-helm">121. 什么是 Helm？</a></li>
+<li><a href="#122-%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C-kubernetes-%E9%9B%86%E7%BE%A4%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7%E9%85%8D%E7%BD%AE">122. 如何进行 Kubernetes 集群的高可用性配置？</a></li>
+<li><a href="#123-%E4%BB%80%E4%B9%88%E6%98%AF-k8s-%E7%9A%84%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86%E5%B7%A5%E5%85%B7">123. 什么是 K8s 的配置管理工具？</a></li>
+<li><a href="#124-%E4%BB%80%E4%B9%88%E6%98%AF-k8s-%E7%9A%84%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B">124. 什么是 K8s 的网络模型？</a></li>
+<li><a href="#125-kubernetes-%E7%9A%84%E5%8D%87%E7%BA%A7%E7%AD%96%E7%95%A5%E6%9C%89%E5%93%AA%E4%BA%9B">125. Kubernetes 的升级策略有哪些？</a></li>
+<li><a href="#126-%E4%BB%80%E4%B9%88%E6%98%AF-kubernetes-%E7%9A%84%E7%9B%91%E6%8E%A7%E5%92%8C%E6%97%A5%E5%BF%97%E8%AE%B0%E5%BD%95%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88">126. 什么是 Kubernetes 的监控和日志记录解决方案？</a></li>
+<li><a href="#127-%E6%80%8E%E6%A0%B7%E4%BB%8E%E4%B8%80%E4%B8%AA%E9%95%9C%E5%83%8F%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AA-pod">127. 怎样从一个镜像创建一个 Pod？</a></li>
+<li><a href="#128-%E5%A6%82%E4%BD%95%E5%B0%86%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E9%83%A8%E7%BD%B2%E5%88%B0-kubernetes">128. 如何将应用程序部署到 Kubernetes？</a></li>
+<li><a href="#129-%E5%A6%82%E4%BD%95%E6%B0%B4%E5%B9%B3%E6%89%A9%E5%B1%95-deployment">129. 如何水平扩展 Deployment？</a></li>
+<li><a href="#130-%E6%80%8E%E6%A0%B7%E5%9C%A8-kubernetes-%E4%B8%AD%E8%BF%9B%E8%A1%8C%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0">130. 怎样在 Kubernetes 中进行服务发现？</a></li>
+<li><a href="#131-%E6%80%8E%E6%A0%B7%E8%BF%9B%E8%A1%8C%E5%AE%B9%E5%99%A8%E9%97%B4%E9%80%9A%E4%BF%A1">131. 怎样进行容器间通信？</a></li>
+<li><a href="#132-%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E5%AE%89%E5%85%A8%E8%AE%BF%E9%97%AE%E6%8E%A7%E5%88%B6-rbac">132. 如何进行安全访问控制 (RBAC)？</a></li>
+<li><a href="#133-%E6%80%8E%E6%A0%B7%E8%BF%9B%E8%A1%8C%E7%83%AD%E6%9B%B4%E6%96%B0-hot-deployment">133. 怎样进行热更新 (Hot Deployment)？</a></li>
+<li><a href="#134-%E5%A6%82%E4%BD%95%E5%9C%A8-prometheus-%E4%B8%AD%E5%AE%9A%E4%B9%89%E7%9B%91%E6%8E%A7%E6%8C%87%E6%A0%87">134. 如何在 Prometheus 中定义监控指标？</a></li>
+<li><a href="#135-%E5%A6%82%E4%BD%95%E9%85%8D%E7%BD%AE-prometheus-%E8%BF%9B%E8%A1%8C%E7%9B%AE%E6%A0%87%E6%8A%93%E5%8F%96-scrape-config">135. 如何配置 Prometheus 进行目标抓取 (Scrape Config)？</a></li>
+<li><a href="#136-prometheus-%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86%E6%95%B0%E6%8D%AE%E5%AD%98%E5%82%A8%E5%92%8C%E4%BF%9D%E7%95%99%E7%AD%96%E7%95%A5">136. Prometheus 如何处理数据存储和保留策略？</a></li>
+<li><a href="#137-%E5%A6%82%E4%BD%95%E8%AE%BE%E7%BD%AE%E8%AD%A6%E6%8A%A5%E8%A7%84%E5%88%99%E5%B9%B6%E9%85%8D%E7%BD%AE-alertmanager">137. 如何设置警报规则并配置 Alertmanager？</a></li>
+<li><a href="#138-prometheus-%E6%94%AF%E6%8C%81%E5%93%AA%E4%BA%9B%E6%9F%A5%E8%AF%A2%E6%93%8D%E4%BD%9C%E5%92%8C%E8%81%9A%E5%90%88%E5%87%BD%E6%95%B0-promql">138. Prometheus 支持哪些查询操作和聚合函数 (PromQL)？</a></li>
+<li><a href="#139-%E4%BB%80%E4%B9%88%E6%98%AF-prometheus-%E7%9A%84%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E6%9C%BA%E5%88%B6">139. 什么是 Prometheus 的服务发现机制？</a></li>
+<li><a href="#140-prometheus-%E7%9A%84%E5%8F%AF%E8%A7%86%E5%8C%96%E5%92%8C%E6%9F%A5%E8%AF%A2%E7%95%8C%E9%9D%A2%E6%98%AF%E4%BB%80%E4%B9%88-grafanapromui">140. Prometheus 的可视化和查询界面是什么 (Grafana/PromUI)？</a></li>
+<li><a href="#141-%E4%BB%80%E4%B9%88%E6%98%AF-prometheus-%E7%9A%84%E6%8E%A8%E6%A8%A1%E5%BC%8F-push-%E5%92%8C%E6%8B%89%E6%A8%A1%E5%BC%8F-pull-%E6%8A%93%E5%8F%96">141. 什么是 Prometheus 的推模式 (Push) 和拉模式 (Pull) 抓取？</a></li>
+<li><a href="#142-%E5%A6%82%E4%BD%95%E5%9C%A8-prometheus-%E4%B8%AD%E9%85%8D%E7%BD%AE%E6%8C%81%E4%B9%85%E5%8C%96%E5%AD%98%E5%82%A8">142. 如何在 Prometheus 中配置持久化存储？</a></li>
+<li><a href="#143-prometheus-%E6%98%AF%E5%90%A6%E6%94%AF%E6%8C%81%E9%AB%98%E5%8F%AF%E7%94%A8%E6%80%A7-ha-%E9%83%A8%E7%BD%B2">143. Prometheus 是否支持高可用性 (HA) 部署？</a></li>
+<li><a href="#144-%E4%BB%80%E4%B9%88%E6%98%AF-prometheus-%E7%9A%84%E6%8C%81%E7%BB%AD%E6%9F%A5%E8%AF%A2-recording-rules">144. 什么是 Prometheus 的持续查询 (Recording Rules)？</a></li>
+<li><a href="#145-k8s-%E4%B8%AD-rbac-role-based-access-control-%E8%AF%A6%E8%A7%A3">145. K8s 中 RBAC (Role-Based Access Control) 详解？</a></li>
+<li><a href="#146-k8s-%E4%B8%AD%E5%A6%82%E4%BD%95%E5%AE%89%E5%85%A8%E5%9C%B0%E4%BC%A0%E9%80%92%E6%95%8F%E6%84%9F%E4%BF%A1%E6%81%AF-%E5%A6%82%E5%AF%86%E7%A0%81-%E5%AF%86%E9%92%A5%E7%AD%89">146. K8s 中如何安全地传递敏感信息 (如密码、密钥等)？</a></li>
+<li><a href="#147-kubernetes-%E4%B8%AD%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%AE%B9%E5%99%A8%E7%9A%84%E5%AE%89%E5%85%A8%E6%80%A7%E5%8F%AF%E4%BB%A5%E5%88%97%E4%B8%BE%E5%87%A0%E7%82%B9">147. Kubernetes 中如何管理容器的安全性？可以列举几点？</a></li>
+<li><a href="#148-%E5%A6%82%E4%BD%95%E6%9F%A5%E7%9C%8B%E5%92%8C%E5%88%86%E6%9E%90-pod-%E7%9A%84%E6%97%A5%E5%BF%97%E6%9C%89%E5%93%AA%E4%BA%9B%E5%B7%A5%E5%85%B7%E5%8F%AF%E4%BB%A5%E5%B8%AE%E5%8A%A9%E5%AE%9E%E7%8E%B0">148. 如何查看和分析 Pod 的日志？有哪些工具可以帮助实现？</a></li>
+<li><a href="#149-%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8-kubernetes-%E8%BF%9B%E8%A1%8C%E5%A4%9A%E7%8E%AF%E5%A2%83%E9%83%A8%E7%BD%B2%E5%A6%82%E5%BC%80%E5%8F%91-%E6%B5%8B%E8%AF%95-%E7%94%9F%E4%BA%A7">149. 如何使用 Kubernetes 进行多环境部署（如开发、测试、生产）？</a></li>
+<li><a href="#150-%E5%A6%82%E4%BD%95%E5%9C%A8-kubernetes-%E4%B8%AD%E5%AE%9E%E7%8E%B0%E5%BA%94%E7%94%A8%E7%A8%8B%E5%BA%8F%E7%9A%84%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86">150. 如何在 Kubernetes 中实现应用程序的配置管理？</a></li>
+<li><a href="#151-kubernetes-%E4%B8%8E-cicd-%E5%A6%82-jenkins-gitlab-ci-%E5%A6%82%E4%BD%95%E9%9B%86%E6%88%90">151. Kubernetes 与 CI/CD (如 Jenkins, GitLab CI) 如何集成？</a></li>
+<li><a href="#152-%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0-kubernetes-%E9%9B%86%E7%BE%A4%E7%9A%84%E5%A4%87%E4%BB%BD%E7%89%B9%E5%88%AB%E6%98%AF-etcd">152. 如何实现 Kubernetes 集群的备份（特别是 Etcd）？</a></li>
+<li><a href="#153-kubernetes-%E4%B8%AD%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%92%8C%E4%BC%98%E5%8C%96%E8%B5%84%E6%BA%90-%E5%A6%82-cpu-%E5%86%85%E5%AD%98">153. Kubernetes 中如何管理和优化资源 (如 CPU、内存)？</a></li>
+<li><a href="#154-kubernetes-%E4%B8%AD%E5%A6%82%E4%BD%95%E7%AE%A1%E7%90%86%E5%92%8C%E6%9B%B4%E6%96%B0%E5%AE%B9%E5%99%A8%E7%9A%84%E5%AE%89%E5%85%A8%E8%A1%A5%E4%B8%81">154. Kubernetes 中如何管理和更新容器的安全补丁？</a></li>
+<li><a href="#155-kubernetes-%E4%B8%AD%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E6%95%85%E9%9A%9C%E8%BD%AC%E7%A7%BB%E5%92%8C%E8%87%AA%E5%8A%A8%E6%81%A2%E5%A4%8D">155. Kubernetes 中如何实现故障转移和自动恢复？</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/kafka-kraft-mo-shi-an-zhuang-yu-shi-yong-zhi-nan-wu-xu-zookeeper/">
+              <h3 class="post-title">
+                Kafka KRaft 模式安装与使用指南（无需 Zookeeper）
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  <!-- 1. 引入 Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: 'loose'
+    });
+  }
+</script>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>

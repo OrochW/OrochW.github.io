@@ -1,0 +1,573 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kafka KRaft 模式安装与使用指南（无需 Zookeeper） | OrochW&#39;s Blog</title>
+<link rel="shortcut icon" href="https://orochw.github.io/favicon.ico?v=1773592477967">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://orochw.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Kafka KRaft 模式安装与使用指南（无需 Zookeeper） | OrochW&#39;s Blog - Atom Feed" href="https://orochw.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-133741629-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-133741629-1');
+</script>
+
+
+    <meta name="description" content="以下是 完整、按流程顺序重写的 Kafka KRaft 集群搭建文档，包含从零开始的完整初始化流程。
+
+Kafka KRaft 模式集群搭建完整流程（无需 Zookeeper）
+
+适用版本：Kafka 2.13-4.0.0（KRaft 模式..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="https://cdn.bootcss.com/highlight.js/9.12.0/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://orochw.github.io">
+  <img class="avatar" src="https://orochw.github.io/images/avatar.png?v=1773592477967" alt="">
+  </a>
+  <h1 class="site-title">
+    OrochW&#39;s Blog
+  </h1>
+  <p class="site-description">
+    
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+        <a href="https://github.com/OrochW" target="_blank">
+          <i class="ri-github-line"></i>
+        </a>
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Kafka KRaft 模式安装与使用指南（无需 Zookeeper）
+            </h2>
+            <div class="post-info">
+              <span>
+                2025-09-02
+              </span>
+              <span>
+                8 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content">
+                <p>以下是 <strong>完整、按流程顺序重写的 Kafka KRaft 集群搭建文档</strong>，包含从零开始的完整初始化流程。</p>
+<hr>
+<h1 id="kafka-kraft-模式集群搭建完整流程无需-zookeeper"><strong>Kafka KRaft 模式集群搭建完整流程（无需 Zookeeper）</strong></h1>
+<blockquote>
+<p><strong>适用版本：Kafka 2.13-4.0.0（KRaft 模式）</strong><br>
+本文档详细介绍如何在 <strong>不依赖 Zookeeper</strong> 的情况下，使用 <strong>KRaft（Kafka Raft Metadata）模式</strong> 搭建一个 3 节点高可用 Kafka 集群。<br>
+包含 <strong>元数据初始化、格式化、启动、验证</strong> 全流程。</p>
+</blockquote>
+<hr>
+<h2 id="一-集群规划3-节点示例">🌐 一、集群规划（3 节点示例）</h2>
+<table>
+<thead>
+<tr>
+<th>主机名</th>
+<th>IP 地址</th>
+<th><code>node.id</code></th>
+<th>角色</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>kafka1</td>
+<td>172.31.7.107</td>
+<td>1</td>
+<td>broker + controller</td>
+</tr>
+<tr>
+<td>kafka2</td>
+<td>172.31.7.108</td>
+<td>2</td>
+<td>broker + controller</td>
+</tr>
+<tr>
+<td>kafka3</td>
+<td>172.31.7.109</td>
+<td>3</td>
+<td>broker + controller</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>✅ 所有节点均使用 <strong>混合角色模式</strong>（broker + controller）</p>
+</blockquote>
+<hr>
+<h2 id="二-环境准备">🔧 二、环境准备</h2>
+<h3 id="1-安装-openjdk-17推荐">1. 安装 OpenJDK 17（推荐）</h3>
+<pre><code class="language-bash"># Ubuntu/Debian
+sudo apt update &amp;&amp; sudo apt install openjdk-17-jdk -y
+
+# CentOS/RHEL
+sudo yum install java-17-openjdk-devel -y
+</code></pre>
+<p>验证：</p>
+<pre><code class="language-bash">java -version
+</code></pre>
+<blockquote>
+<p>⚠️ <strong>注意</strong>：OpenJDK 11 在 Kafka 4.0.0 中可能出现兼容性问题，<strong>强烈推荐使用 OpenJDK 17</strong>。</p>
+</blockquote>
+<hr>
+<h2 id="三-下载与解压-kafka">📦 三、下载与解压 Kafka</h2>
+<p>在所有节点执行：</p>
+<pre><code class="language-bash">cd /apps
+wget https://downloads.apache.org/kafka/4.0.0/kafka_2.13-4.0.0.tgz
+tar -xzf kafka_2.13-4.0.0.tgz
+ln -s kafka_2.13-4.0.0 kafka
+</code></pre>
+<p>设置环境变量（可选）：</p>
+<pre><code class="language-bash">export KAFKA_HOME=/apps/kafka_2.13-4.0.0
+export PATH=$KAFKA_HOME/bin:$PATH
+</code></pre>
+<hr>
+<h2 id="️-四-配置文件configserverproperties">⚙️ 四、配置文件：<code>config/server.properties</code></h2>
+<p>在所有节点创建或编辑 <code>$KAFKA_HOME/config/server.properties</code>：</p>
+<pre><code class="language-properties">############################# Server Basics #############################
+process.roles=broker,controller
+node.id=__NODE_ID__
+
+############################# Socket Server Settings #############################
+listeners=PLAINTEXT://:9092,CONTROLLER://:9093
+advertised.listeners=PLAINTEXT://__IP__:9092,CONTROLLER://__IP__:9093
+controller.listener.names=CONTROLLER
+listener.security.protocol.map=PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+inter.broker.listener.name=PLAINTEXT
+
+############################# Log Basics #############################
+log.dirs=/apps/kafka_2.13-4.0.0/logs
+
+############################# Controller Quorum #############################
+# 三节点控制器投票配置
+controller.quorum.voters=1@172.31.7.107:9093,2@172.31.7.108:9093,3@172.31.7.109:9093
+
+############################# Internal Topics #############################
+offsets.topic.replication.factor=3
+transaction.state.log.replication.factor=3
+transaction.state.log.min.isr=2
+</code></pre>
+<blockquote>
+<p>🔁 <code>__NODE_ID__</code> 和 <code>__IP__</code> 将由脚本自动替换。</p>
+</blockquote>
+<hr>
+<h2 id="五-初始化集群元数据关键步骤">🧰 五、初始化集群元数据（关键步骤！）</h2>
+<blockquote>
+<p>⚠️ <strong>此步骤必须在首次启动前执行，且只需执行一次</strong></p>
+</blockquote>
+<h3 id="step-1生成唯一的-clusterid">Step 1：生成唯一的 <code>cluster.id</code></h3>
+<p>在任意一台机器上生成集群 ID：</p>
+<pre><code class="language-bash">CLUSTER_ID=$(bin/kafka-storage.sh random-uuid)
+echo $CLUSTER_ID
+</code></pre>
+<p>输出示例：</p>
+<pre><code>3hzu8188TC68nQcL5A-Y0g
+</code></pre>
+<blockquote>
+<p>✅ 记下这个 <code>cluster.id</code>，所有节点将使用相同的 ID。</p>
+</blockquote>
+<hr>
+<h3 id="step-2格式化存储目录所有节点执行">Step 2：格式化存储目录（所有节点执行）</h3>
+<p>在 <strong>每台 Kafka 节点</strong> 上执行格式化命令，使用上一步生成的 <code>cluster.id</code>：</p>
+<pre><code class="language-bash">bin/kafka-storage.sh format \
+  -t 3hzu8188TC68nQcL5A-Y0g \
+  -c /apps/kafka_2.13-4.0.0/config/server.properties \
+  --cluster-id 3hzu8188TC68nQcL5A-Y0g
+</code></pre>
+<blockquote>
+<p>🔍 参数说明：</p>
+<ul>
+<li><code>-t</code>：指定 <code>node.id</code>（每台机器不同）</li>
+<li><code>-c</code>：配置文件路径</li>
+<li><code>--cluster-id</code>：上一步生成的全局唯一 ID</li>
+</ul>
+</blockquote>
+<h4 id="预期输出">✅ 预期输出：</h4>
+<pre><code>Formatting /apps/kafka_2.13-4.0.0/logs with cluster id 3hzu8188TC68nQcL5A-Y0g
+</code></pre>
+<blockquote>
+<p>✅ 此操作会在 <code>log.dirs</code> 目录下创建元数据日志，<strong>每个节点必须单独执行</strong>。</p>
+</blockquote>
+<hr>
+<h2 id="六-启动脚本支持动态-ip-替换">🚀 六、启动脚本（支持动态 IP 替换）</h2>
+<h3 id="创建管理脚本binkafka-managersh">创建管理脚本：<code>bin/kafka-manager.sh</code></h3>
+<pre><code class="language-bash">#!/bin/bash
+
+# 自动检测 Java
+if command -v java &gt;/dev/null 2&gt;&amp;1; then
+    JAVA_BIN=$(command -v java)
+    JAVA_HOME=$(dirname &quot;$(dirname &quot;$JAVA_BIN&quot;)&quot;)
+    export JAVA_HOME
+    export PATH=$JAVA_HOME/bin:$PATH
+else
+    echo &quot;❌ Java not found, please install OpenJDK 17+&quot;
+    exit 1
+fi
+
+KAFKA_HOME=&quot;/apps/kafka_2.13-4.0.0&quot;
+LOG_FILE=&quot;$KAFKA_HOME/logs/kafka.log&quot;
+PID_FILE=&quot;$KAFKA_HOME/logs/kafka.pid&quot;
+BOOTSTRAP_SERVER=&quot;$(hostname -I | awk '{print $1}'):9092&quot;
+
+get_pid() {
+    if [[ -f &quot;$PID_FILE&quot; ]]; then
+        pid=$(cat &quot;$PID_FILE&quot;)
+        if [[ -n &quot;$pid&quot; &amp;&amp; -d &quot;/proc/$pid&quot; ]]; then echo &quot;$pid&quot;; else rm -f &quot;$PID_FILE&quot;; fi
+    else
+        pgrep -f &quot;kafka\.Kafka&quot; || echo &quot;&quot;
+    fi
+}
+
+prepare_config() {
+    IP=$(hostname -I | awk '{print $1}')
+    sed -i &quot;s|__IP__|$IP|g&quot; config/server.properties
+}
+
+start() {
+    pid=$(get_pid)
+    [[ -n &quot;$pid&quot; ]] &amp;&amp; { echo &quot;❌ Kafka is already running (PID: $pid)&quot;; return 1; }
+
+    prepare_config
+    echo &quot;🚀 Starting Kafka server...&quot;
+    nohup bin/kafka-server-start.sh config/server.properties &gt; &quot;$LOG_FILE&quot; 2&gt;&amp;1 &amp;
+    echo $! &gt; &quot;$PID_FILE&quot;
+    disown
+    echo &quot;✅ Kafka started, PID: $!&quot;
+}
+
+stop() {
+    pid=$(get_pid)
+    [[ -z &quot;$pid&quot; ]] &amp;&amp; { echo &quot;❌ Kafka is not running.&quot;; return 1; }
+
+    echo &quot;🛑 Stopping Kafka (PID: $pid)...&quot;
+    kill -15 &quot;$pid&quot; &amp;&amp; rm -f &quot;$PID_FILE&quot;
+    for i in {1..30}; do
+        ! kill -0 &quot;$pid&quot; 2&gt;/dev/null &amp;&amp; { echo &quot;✅ Kafka stopped.&quot;; return 0; }
+        sleep 1
+    done
+    echo &quot;⚠️  Force killing...&quot;
+    kill -9 &quot;$pid&quot; &amp;&amp; rm -f &quot;$PID_FILE&quot;
+    echo &quot;✅ Kafka killed.&quot;
+}
+
+status() {
+    pid=$(get_pid)
+    [[ -n &quot;$pid&quot; ]] &amp;&amp; echo &quot;🟢 Kafka is running (PID: $pid)&quot; || echo &quot;🔴 Kafka is not running.&quot;
+}
+
+controller_info() {
+    echo &quot;🧠 Controller Quorum Info:&quot;
+    bin/kafka-metadata-quorum.sh --bootstrap-server &quot;$BOOTSTRAP_SERVER&quot; describe --status
+}
+
+case &quot;$1&quot; in
+    start) start ;;
+    stop) stop ;;
+    restart) stop; sleep 3; start ;;
+    status) status ;;
+    controller-info) controller_info ;;
+    *)
+        echo &quot;📌 Usage: $0 {start|stop|restart|status|controller-info}&quot;
+        ;;
+esac
+</code></pre>
+<p>赋予执行权限：</p>
+<pre><code class="language-bash">chmod +x bin/kafka-manager.sh
+</code></pre>
+<hr>
+<h2 id="️-七-启动集群所有节点">▶️ 七、启动集群（所有节点）</h2>
+<p>在每台机器上执行：</p>
+<h3 id="1-设置-nodeid">1. 设置 <code>node.id</code></h3>
+<pre><code class="language-bash"># 节点1
+sed -i 's/__NODE_ID__/1/g' config/server.properties
+
+# 节点2
+sed -i 's/__NODE_ID__/2/g' config/server.properties
+
+# 节点3
+sed -i 's/__NODE_ID__/3/g' config/server.properties
+</code></pre>
+<h3 id="2-启动-kafka">2. 启动 Kafka</h3>
+<pre><code class="language-bash">bin/kafka-manager.sh start
+</code></pre>
+<hr>
+<h2 id="八-验证集群状态">✅ 八、验证集群状态</h2>
+<h3 id="1-检查运行状态">1. 检查运行状态</h3>
+<pre><code class="language-bash">bin/kafka-manager.sh status
+</code></pre>
+<h3 id="2-查看控制器信息任一节点执行">2. 查看控制器信息（任一节点执行）</h3>
+<pre><code class="language-bash">bin/kafka-manager.sh controller-info
+</code></pre>
+<h4 id="实际输出示例来自你的测试">✅ 实际输出示例（来自你的测试）：</h4>
+<pre><code>🧠 Controller Quorum Info:
+ClusterId:              3hzu8188TC68nQcL5A-Y0g
+LeaderId:               1
+LeaderEpoch:            1
+HighWatermark:          235
+MaxFollowerLag:         0
+MaxFollowerLagTimeMs:   0
+CurrentVoters:          [{&quot;id&quot;: 1, &quot;directoryId&quot;: null, &quot;endpoints&quot;: [&quot;CONTROLLER://172.31.7.107:9093&quot;]}, {&quot;id&quot;: 2, &quot;directoryId&quot;: null, &quot;endpoints&quot;: [&quot;CONTROLLER://172.31.7.108:9093&quot;]}, {&quot;id&quot;: 3, &quot;directoryId&quot;: null, &quot;endpoints&quot;: [&quot;CONTROLLER://172.31.7.109:9093&quot;]}]
+CurrentObservers:       []
+</code></pre>
+<blockquote>
+<p>✅ <strong>健康标志</strong>：</p>
+<ul>
+<li><code>LeaderId</code> 存在</li>
+<li><code>MaxFollowerLag: 0</code></li>
+<li><code>CurrentVoters</code> 包含所有 3 个节点</li>
+</ul>
+</blockquote>
+<hr>
+<h2 id="九-常见问题">📌 九、常见问题</h2>
+<table>
+<thead>
+<tr>
+<th>问题</th>
+<th>原因</th>
+<th>解决</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kafka-storage.sh: command not found</code></td>
+<td>路径错误</td>
+<td>使用 <code>bin/kafka-storage.sh</code></td>
+</tr>
+<tr>
+<td>格式化失败</td>
+<td><code>node.id</code> 或 <code>cluster.id</code> 错误</td>
+<td>检查参数</td>
+</tr>
+<tr>
+<td>节点无法加入</td>
+<td>网络不通或端口被占用</td>
+<td>检查 <code>9092/9093</code> 端口</td>
+</tr>
+<tr>
+<td>启动崩溃</td>
+<td>OpenJDK 版本问题</td>
+<td>升级到 <strong>OpenJDK 17</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="十-总结">🎉 十、总结</h2>
+<p>✅ <strong>KRaft 模式初始化完整流程</strong>：</p>
+<ol>
+<li>安装 OpenJDK 17</li>
+<li>下载 Kafka 并配置 <code>server.properties</code></li>
+<li><strong>生成 <code>cluster.id</code>：<code>bin/kafka-storage.sh random-uuid</code></strong></li>
+<li><strong>格式化存储：<code>bin/kafka-storage.sh format -t &lt;node.id&gt; --cluster-id &lt;id&gt;</code></strong></li>
+<li>设置 <code>node.id</code> 并启动</li>
+<li>使用 <code>kafka-metadata-quorum.sh describe --status</code> 验证</li>
+</ol>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#kafka-kraft-%E6%A8%A1%E5%BC%8F%E9%9B%86%E7%BE%A4%E6%90%AD%E5%BB%BA%E5%AE%8C%E6%95%B4%E6%B5%81%E7%A8%8B%E6%97%A0%E9%9C%80-zookeeper"><strong>Kafka KRaft 模式集群搭建完整流程（无需 Zookeeper）</strong></a>
+<ul>
+<li><a href="#%E4%B8%80-%E9%9B%86%E7%BE%A4%E8%A7%84%E5%88%923-%E8%8A%82%E7%82%B9%E7%A4%BA%E4%BE%8B">🌐 一、集群规划（3 节点示例）</a></li>
+<li><a href="#%E4%BA%8C-%E7%8E%AF%E5%A2%83%E5%87%86%E5%A4%87">🔧 二、环境准备</a>
+<ul>
+<li><a href="#1-%E5%AE%89%E8%A3%85-openjdk-17%E6%8E%A8%E8%8D%90">1. 安装 OpenJDK 17（推荐）</a></li>
+</ul>
+</li>
+<li><a href="#%E4%B8%89-%E4%B8%8B%E8%BD%BD%E4%B8%8E%E8%A7%A3%E5%8E%8B-kafka">📦 三、下载与解压 Kafka</a></li>
+<li><a href="#%EF%B8%8F-%E5%9B%9B-%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6configserverproperties">⚙️ 四、配置文件：<code>config/server.properties</code></a></li>
+<li><a href="#%E4%BA%94-%E5%88%9D%E5%A7%8B%E5%8C%96%E9%9B%86%E7%BE%A4%E5%85%83%E6%95%B0%E6%8D%AE%E5%85%B3%E9%94%AE%E6%AD%A5%E9%AA%A4">🧰 五、初始化集群元数据（关键步骤！）</a>
+<ul>
+<li><a href="#step-1%E7%94%9F%E6%88%90%E5%94%AF%E4%B8%80%E7%9A%84-clusterid">Step 1：生成唯一的 <code>cluster.id</code></a></li>
+<li><a href="#step-2%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%98%E5%82%A8%E7%9B%AE%E5%BD%95%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9%E6%89%A7%E8%A1%8C">Step 2：格式化存储目录（所有节点执行）</a>
+<ul>
+<li><a href="#%E9%A2%84%E6%9C%9F%E8%BE%93%E5%87%BA">✅ 预期输出：</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#%E5%85%AD-%E5%90%AF%E5%8A%A8%E8%84%9A%E6%9C%AC%E6%94%AF%E6%8C%81%E5%8A%A8%E6%80%81-ip-%E6%9B%BF%E6%8D%A2">🚀 六、启动脚本（支持动态 IP 替换）</a>
+<ul>
+<li><a href="#%E5%88%9B%E5%BB%BA%E7%AE%A1%E7%90%86%E8%84%9A%E6%9C%ACbinkafka-managersh">创建管理脚本：<code>bin/kafka-manager.sh</code></a></li>
+</ul>
+</li>
+<li><a href="#%EF%B8%8F-%E4%B8%83-%E5%90%AF%E5%8A%A8%E9%9B%86%E7%BE%A4%E6%89%80%E6%9C%89%E8%8A%82%E7%82%B9">▶️ 七、启动集群（所有节点）</a>
+<ul>
+<li><a href="#1-%E8%AE%BE%E7%BD%AE-nodeid">1. 设置 <code>node.id</code></a></li>
+<li><a href="#2-%E5%90%AF%E5%8A%A8-kafka">2. 启动 Kafka</a></li>
+</ul>
+</li>
+<li><a href="#%E5%85%AB-%E9%AA%8C%E8%AF%81%E9%9B%86%E7%BE%A4%E7%8A%B6%E6%80%81">✅ 八、验证集群状态</a>
+<ul>
+<li><a href="#1-%E6%A3%80%E6%9F%A5%E8%BF%90%E8%A1%8C%E7%8A%B6%E6%80%81">1. 检查运行状态</a></li>
+<li><a href="#2-%E6%9F%A5%E7%9C%8B%E6%8E%A7%E5%88%B6%E5%99%A8%E4%BF%A1%E6%81%AF%E4%BB%BB%E4%B8%80%E8%8A%82%E7%82%B9%E6%89%A7%E8%A1%8C">2. 查看控制器信息（任一节点执行）</a>
+<ul>
+<li><a href="#%E5%AE%9E%E9%99%85%E8%BE%93%E5%87%BA%E7%A4%BA%E4%BE%8B%E6%9D%A5%E8%87%AA%E4%BD%A0%E7%9A%84%E6%B5%8B%E8%AF%95">✅ 实际输出示例（来自你的测试）：</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#%E4%B9%9D-%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98">📌 九、常见问题</a></li>
+<li><a href="#%E5%8D%81-%E6%80%BB%E7%BB%93">🎉 十、总结</a></li>
+</ul>
+</li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://orochw.github.io/post/kubernetes-redis-4014-ji-qun-bu-shu-yu-pai-cuo-shou-ce/">
+              <h3 class="post-title">
+                Kubernetes Redis 4.0.14 集群部署与排错手册
+              </h3>
+            </a>
+          </div>
+        
+
+        
+          
+            <link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css">
+<script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+
+<div id="gitalk-container"></div>
+
+<script>
+
+  var gitalk = new Gitalk({
+    clientID: 'e16544ded74efb82c5cb',
+    clientSecret: 'cc815ef9f98d5cf6d79ae6f9ca0f9fc2b521645a',
+    repo: 'Gitalk',
+    owner: 'OrochW',
+    admin: ['OrochW'],
+    id: (location.pathname).substring(0, 49),      // Ensure uniqueness and length less than 50
+    distractionFreeMode: false  // Facebook-like distraction free mode
+  })
+
+  gitalk.render('gitalk-container')
+
+</script>
+
+          
+
+          
+        
+
+        <div class="site-footer">
+  <!-- 1. 引入 Mermaid -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: 'loose'
+    });
+  }
+</script>
+  <a class="rss" href="https://orochw.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>
